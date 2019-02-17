@@ -8,18 +8,38 @@ sys.path.append(modulePath) if modulePath not in sys.path else None
 import seaborn as sns
 sns.set_style('whitegrid')
 
+
 class Machine():
     """
     Info:
         Description:
-            Child class of QuickPlot that contains methods for evaluating and visualizing datasets
-            based on the feature type and target variable type.
+            Main class for handling several machine learning tasks, including
+            data cleaning, feature encoding, exploratory data analysis, data
+            prepation, model building, model tuning and model evaluation.
+
+            Consolidates class methods from several different sub-modules.
     """
+    
+    # Import mlmachine modules
+    from .clean.featureCleaner import transformLabel
+    from .explore.eda import edaNumTargetNumFeat, edaCatTargetCatFeat,\
+                            edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
+    from .engineer.encoder import NomCatFeatureDummies, OrdCatFeatureEncoder
+    
+
     def __init__(self, data, removeFeatures = [], overrideCat = None, overrideNum = None, dateFeatures = None, target = None, targetType = None):
         """
         Info:
             Description:
-
+                __init__ handles ingestion of main data set, identification of select
+                features to be removed (if any), identification of select features to
+                be considered as categorical despite the features' data type (if any), 
+                identification of select features to be considered as numerical despite 
+                the features' data type (if any), identification of select features to be
+                considered as date features (if any), identification of the feature 
+                representing the target (if there is one) and the type of target. Returns
+                data frame of independent variables, series containing dependent variable
+                and a dictionary that categorizes features by data type.
             Parameters:
                 data : Pandas DataFrame
                     Input data
@@ -44,6 +64,7 @@ class Machine():
                     Dictionary containing two keys, continuous and categorical, each paired with a
                     value that is a list of column names that are of that feature type - continuous or categorical.
         """
+        
         self.data = data
         self.removeFeatures = removeFeatures
         self.overrideCat = overrideCat
@@ -112,12 +133,3 @@ class Machine():
         else:
             return self.X_, self.featureByDtype_
 
-    
-    # Import mlmachine modules
-    from .clean.featureCleaner import transformLabel
-    from .explore.eda import edaNumTargetNumFeat, edaCatTargetCatFeat,\
-                            edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
-    # from .clean import featureCleaner
-    # from .explore import eda
-    # importlib.reload(featureCleaner)
-    # importlib.reload(eda)

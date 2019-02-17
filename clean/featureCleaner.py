@@ -19,3 +19,7 @@ def transformLabel(self, reverse = False):
 
         if reverse:
             self.y_ = self.le_.inverse_transform(self.y_)
+
+def missingDataSummary(self):
+    pass
+
