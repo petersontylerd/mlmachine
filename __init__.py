@@ -1,6 +1,7 @@
 
 import os
 import sys
+import importlib
 modulePath = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(modulePath) if modulePath not in sys.path else None
 
@@ -111,10 +112,12 @@ class Machine():
         else:
             return self.X_, self.featureByDtype_
 
+    
     # Import mlmachine modules
     from .clean.featureCleaner import transformLabel
-    from .visualize import plotter
     from .explore.eda import edaNumTargetNumFeat, edaCatTargetCatFeat,\
-                             edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
-
-    
+                            edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
+    # from .clean import featureCleaner
+    # from .explore import eda
+    # importlib.reload(featureCleaner)
+    # importlib.reload(eda)

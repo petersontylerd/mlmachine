@@ -16,9 +16,9 @@ from IPython.display import display_html
 import os
 import sys
 
-from visualize import style
-from visualize.plotter import QuickPlot
-
+sys.path.append('/main')
+from quickplot.plotter import QuickPlot
+from quickplot import style
 
 def edaCatTargetCatFeat(self):
     """
