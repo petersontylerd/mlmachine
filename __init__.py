@@ -21,10 +21,13 @@ class Machine():
     """
     
     # Import mlmachine modules
-    from .clean.featureCleaner import transformLabel
+    from .clean.featureCleaner import transformLabel, featureDropper, missingDataSummary,\
+                                missingDataDropperAll, DataFrameImputer
     from .explore.eda import edaNumTargetNumFeat, edaCatTargetCatFeat,\
                             edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
-    from .engineer.encoder import NomCatFeatureDummies, OrdCatFeatureEncoder
+    from .engineer.encoder import NomCatFeatureDummies, OrdCatFeatureEncoder,\
+                                testSetMissingLevel
+    from .model.tune.powerGridSearch import EstimatorSelectionHelper
     
 
     def __init__(self, data, removeFeatures = [], overrideCat = None, overrideNum = None, dateFeatures = None, target = None, targetType = None):

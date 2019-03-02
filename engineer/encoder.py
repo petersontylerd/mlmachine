@@ -44,7 +44,7 @@ class OrdCatFeatureEncoder(base.TransformerMixin, base.BaseEstimator):
                     transform validation data using encoder fit on 
                     training data
                 classDict : dict, default = None
-                    Dictionary containing feature/LabelEncoder() pairs to be used
+                    Dictionary containing feature : LabelEncoder() pairs to be used
                     to transform validation data. Only used when train = False.
         """        
         self.ordCatCols = ordCatCols
@@ -63,5 +63,22 @@ class OrdCatFeatureEncoder(base.TransformerMixin, base.BaseEstimator):
         # Encode validation data with training data encodings.
         else:
             X[self.ordCatCols] = X[self.ordCatCols].apply(lambda x: self.classDict[x.name].transform(x))
+        return X
+
+class testSetMissingLevel(base.TransformerMixin, base.BaseEstimator):
+    """
+
+    """
+    def __init__(self, trainCols):
+        self.trainCols = trainCols
+        
+    def fit(self, X, y = None):
+        return self
+    
+    def transform(self, X):
+        missingLevels = set(self.trainCols) - set(X.columns)
+        for c in missingLevels:
+            X[c] = 0
+        X = X[self.trainCols]
         return X
 
