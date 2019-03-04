@@ -21,12 +21,16 @@ class Machine():
     """
     
     # Import mlmachine modules
-    from .clean.featureCleaner import transformLabel, featureDropper, missingDataSummary,\
-                                missingDataDropperAll, DataFrameImputer
-    from .explore.eda import edaNumTargetNumFeat, edaCatTargetCatFeat,\
-                            edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
-    from .engineer.encoder import NomCatFeatureDummies, OrdCatFeatureEncoder,\
-                                testSetMissingLevel
+    
+    from .explore.edaSuite import edaNumTargetNumFeat, edaCatTargetCatFeat, edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
+    from .explore.edaTransform import edaTransformInitial, edaTransformLog1, edaTransformBoxCox
+    from .explore.edaMissing import edaMissingSummary
+    
+    from .features.encode import cleanLabel, NomCatFeatureDummies, OrdCatFeatureEncoder, testSetMissingLevel
+    from .features.impute import  DataFrameImputer
+    from .features.missing import missingDataDropperAll, featureDropper
+    from .features.transform import skewSummary, SkewTransform
+    
     from .model.tune.powerGridSearch import EstimatorSelectionHelper
     
 
@@ -93,6 +97,7 @@ class Machine():
         ### Identify target from features
         if self.target is not None:
             self.y_ = self.data[self.target]
+            self.cleanLabel()
             self.X_ = self.data.drop(self.removeFeatures + self.target, axis = 1)
         else:
             self.X_ = self.data.drop(self.removeFeatures, axis = 1)            
@@ -135,4 +140,3 @@ class Machine():
             return self.X_, self.y_, self.featureByDtype_
         else:
             return self.X_, self.featureByDtype_
-
