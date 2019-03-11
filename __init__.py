@@ -26,13 +26,22 @@ class Machine():
     from .explore.edaTransform import edaTransformInitial, edaTransformLog1, edaTransformBoxCox
     from .explore.edaMissing import edaMissingSummary
     
-    from .features.encode import cleanLabel, NomCatFeatureDummies, OrdCatFeatureEncoder, testSetMissingLevel
-    from .features.impute import  DataFrameImputer
-    from .features.missing import missingDataDropperAll, featureDropper
-    from .features.transform import skewSummary, SkewTransform
+    from .features.encode import cleanLabel, Dummies, MissingDummies, OrdinalEncoder
+    from .features.impute import  NumericalImputer, CategoricalImputer, ConstantImputer, ContextImputer
+    from .features.missing import missingDataDropperAll, featureDropper, missingColCompare
+    from .features.scale import Standard
+    from .features.transform import skewSummary, SkewTransform, Binner
     
     from .model.tune.powerGridSearch import EstimatorSelectionHelper
     
+    importlib.reload(explore.edaSuite)
+    importlib.reload(explore.edaTransform)
+    importlib.reload(explore.edaMissing)
+    importlib.reload(features.encode)
+    importlib.reload(features.impute)
+    importlib.reload(features.missing)
+    importlib.reload(features.scale)
+    importlib.reload(features.transform)
 
     def __init__(self, data, removeFeatures = [], overrideCat = None, overrideNum = None, dateFeatures = None, target = None, targetType = None):
         """

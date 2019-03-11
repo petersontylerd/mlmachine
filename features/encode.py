@@ -5,13 +5,14 @@ import sklearn.preprocessing as preprocessing
 import numpy as np
 import pandas as pd
 
-# from mlmachine import Machine
-
 from collections import defaultdict
 
 def cleanLabel(self, reverse = False):
     """
-
+    Info:
+        Description:
+            a
+        Parameters:
     """
     if self.targetType == 'continuous':
         self.y_ = self.y_.values.reshape(-1)
@@ -27,63 +28,33 @@ def cleanLabel(self, reverse = False):
     if reverse:
         self.y_ = self.le_.inverse_transform(self.y_)
 
-class NomCatFeatureDummies(base.TransformerMixin, base.BaseEstimator):
+class Dummies(base.TransformerMixin, base.BaseEstimator):
     """
-
+    Info:
+        Description: 
+            Create dummy columns for specified nominal 
+            features.
     """
-    def __init__(self, nomCatCols, dropFirst = True):
-        self.nomCatCols = nomCatCols
+    def __init__(self, cols, dropFirst = True):
+        self.cols = cols
         self.dropFirst = dropFirst
     
     def fit(self, X, y = None):
         return self
     
     def transform(self, X):
-        X = pd.get_dummies(data = X, columns = self.nomCatCols, drop_first = self.dropFirst)
+        X = pd.get_dummies(data = X, columns = self.cols, drop_first = self.dropFirst)
         return X
 
-class OrdCatFeatureEncoder(base.TransformerMixin, base.BaseEstimator):
+class MissingDummies(base.TransformerMixin, base.BaseEstimator):
     """
-    
-    """
-    def __init__(self, ordCatCols, train = True, classDict = None):
-        """
-        Info:
-            Description:
-                Encode ordinal categorical columns. Capable of fit_transforming
-                new data, as well as transforming validation data with the same
-                encodings.
-            Parameters:
-                ordCatCols : list
-                    List of features to be encoded
-                train : boolean, default = True
-                    Controls whether to fit_transform training data or
-                    transform validation data using encoder fit on 
-                    training data
-                classDict : dict, default = None
-                    Dictionary containing feature : LabelEncoder() pairs to be used
-                    to transform validation data. Only used when train = False.
-        """        
-        self.ordCatCols = ordCatCols
-        self.train = train
-        self.classDict = classDict
-
-        self.d_ = defaultdict(preprocessing.LabelEncoder)
-    
-    def fit(self, X, y = None):
-        return self
-    
-    def transform(self, X):
-        # Encode training data
-        if self.train:
-            X[self.ordCatCols] = X[self.ordCatCols].apply(lambda x: self.d_[x.name].fit_transform(x))
-        # Encode validation data with training data encodings.
-        else:
-            X[self.ordCatCols] = X[self.ordCatCols].apply(lambda x: self.classDict[x.name].transform(x))
-        return X
-
-class testSetMissingLevel(base.TransformerMixin, base.BaseEstimator):
-    """
+    Info:
+        Description: 
+            If the test set is missing a level in a column, and
+            therefore does now have the data necessary to create all dummy columns
+            that were created in the test set, this class will add that dummy 
+            column for the missing level and fill it with zeros.
+        Parameters:
 
     """
     def __init__(self, trainCols):
@@ -97,5 +68,43 @@ class testSetMissingLevel(base.TransformerMixin, base.BaseEstimator):
         for c in missingLevels:
             X[c] = 0
         X = X[self.trainCols]
+        return X
+
+class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
+    """
+    Info:
+        Description:
+            Encode ordinal categorical columns. Capable of fit_transforming
+            new data, as well as transforming validation data with the same
+            encodings.
+        Parameters:
+            cols : list
+                List of features to be encoded
+            train : boolean, default = True
+                Controls whether to fit_transform training data or
+                transform validation data using encoder fit on 
+                training data
+            trainDict : dict, default = None
+                Dictionary containing feature : LabelEncoder() pairs to be used
+                to transform validation data. Only used when train = False.
+                Variable to be retrieved is called colValueDict_
+    """        
+    def __init__(self, cols, train = True, trainDict = None):
+        self.cols = cols
+        self.train = train
+        self.trainDict = trainDict
+
+        self.colValueDict_ = defaultdict(preprocessing.LabelEncoder)
+    
+    def fit(self, X, y = None):
+        return self
+    
+    def transform(self, X):
+        # Encode training data
+        if self.train:
+            X[self.cols] = X[self.cols].apply(lambda x: self.colValueDict_[x.name].fit_transform(x))
+        # Encode validation data with training data encodings.
+        else:
+            X[self.cols] = X[self.cols].apply(lambda x: self.trainDict[x.name].transform(x))
         return X
 
