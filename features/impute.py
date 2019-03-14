@@ -105,7 +105,8 @@ class ConstantImputer(base.TransformerMixin):
         Description:
             Impute specified columns with a specific value. Intended to
             be used when a missing value conveys that an observation does not
-            have that attribute
+            have that attribute. If column dtype is string, fill with 'Absent'.
+            If column dtype is numerical, fill with 0.
         Parameters:
             cols : list
                 List of features to be imputer

@@ -33,6 +33,7 @@ class Machine():
     from .features.transform import skewSummary, SkewTransform, Binner
     
     from .model.tune.powerGridSearch import EstimatorSelectionHelper
+    from .model.evaluate.crossvalidate import rmsleCV
     
     importlib.reload(explore.edaSuite)
     importlib.reload(explore.edaTransform)
