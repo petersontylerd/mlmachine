@@ -23,7 +23,7 @@ def skewSummary(self):
             skewness.loc[col]['PctZero'] = self.X_[self.X_[col] == 0][col].value_counts() / len(self.X_)
         except ValueError:
             skewness.loc[col]['PctZero'] = 0.0
-    skewness = skewness.sort_values(['PctZero'])
+    skewness = skewness.sort_values(['Skew'])
     display(skewness)
     
 class SkewTransform(base.TransformerMixin, base.BaseEstimator):

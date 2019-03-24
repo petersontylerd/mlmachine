@@ -26,13 +26,14 @@ class Machine():
     from .explore.edaTransform import edaTransformInitial, edaTransformLog1, edaTransformBoxCox
     from .explore.edaMissing import edaMissingSummary
     
-    from .features.encode import cleanLabel, Dummies, MissingDummies, OrdinalEncoder
+    from .features.encode import cleanLabel, Dummies, MissingDummies, OrdinalEncoder, CustomOrdinalEncoder
     from .features.impute import  NumericalImputer, CategoricalImputer, ConstantImputer, ContextImputer
     from .features.missing import missingDataDropperAll, featureDropper, missingColCompare
-    from .features.scale import Standard
+    from .features.scale import Standard, Robust
     from .features.transform import skewSummary, SkewTransform, Binner
     
-    from .model.tune.powerGridSearch import EstimatorSelectionHelper
+    from .model.tune.powerGridSearch import PowerGridSearcher
+    from .model.tune.stack import modelParamBuilder, SklearnHelper, oofGenerator
     from .model.evaluate.crossvalidate import rmsleCV
     
     importlib.reload(explore.edaSuite)
@@ -43,6 +44,9 @@ class Machine():
     importlib.reload(features.missing)
     importlib.reload(features.scale)
     importlib.reload(features.transform)
+    importlib.reload(model.tune.powerGridSearch)
+    importlib.reload(model.tune.stack)
+    importlib.reload(model.evaluate.crossvalidate)
 
     def __init__(self, data, removeFeatures = [], overrideCat = None, overrideNum = None, dateFeatures = None, target = None, targetType = None):
         """

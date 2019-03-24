@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
                 
 
-class EstimatorSelectionHelper:
+class PowerGridSearcher:
     
     
     def __init__(self, models, params):

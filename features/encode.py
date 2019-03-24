@@ -108,3 +108,25 @@ class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
             X[self.cols] = X[self.cols].apply(lambda x: self.trainDict[x.name].transform(x))
         return X
 
+class CustomOrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
+    """
+    Info:
+        Description:
+            Encode ordinal categorical columns using custom encodings. 
+            
+        Parameters:
+            encodings : dict
+                Dictionary of dictionaries containing columns / encoding
+                instructions
+    """        
+    def __init__(self, encodings):
+        self.encodings = encodings
+        
+    def fit(self, X, y = None):
+        return self
+    
+    def transform(self, X):
+        for key, val in self.encodings.items():
+            X[key] = X[key].replace(val)
+        return X
+
