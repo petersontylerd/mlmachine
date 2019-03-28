@@ -17,7 +17,7 @@ def cleanLabel(self, reverse = False):
     if self.targetType == 'continuous':
         self.y_ = self.y_.values.reshape(-1)
     elif self.targetType == 'categorical':
-        self.le_ = prepocessing.LabelEncoder()
+        self.le_ = preprocessing.LabelEncoder()
 
         self.y_ = self.le_.fit_transform(self.y_.values.reshape(-1))
         

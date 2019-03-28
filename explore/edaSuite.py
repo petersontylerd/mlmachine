@@ -20,81 +20,87 @@ sys.path.append('/main')
 from quickplot.plotter import QuickPlot
 from quickplot import style
 
-def edaCatTargetCatFeat(self):
+def edaCatTargetCatFeat(self, skipCols = None):
     """
     Info:
         Description:
+            a
+        Parameters
+            skipCols : list, default = None
+            Column to skip over in visualization creation loop.
     """
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['categorical']:
-        
-        # Univariate summary
-        uniSummDf = pd.DataFrame(columns = [feature, 'Count', 'Proportion'])
-        uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
-        for i, j in zip(uniqueVals, uniqueCounts):
-            uniSummDf = uniSummDf.append({feature : i
-                                    ,'Count' : j
-                                    ,'Proportion' : j / np.sum(uniqueCounts) * 100
-                                    }
-                                ,ignore_index = True)
-        uniSummDf = uniSummDf.sort_values(by = ['Proportion'], ascending = False)
-        
-        # Bivariate summary
-        biDf = pd.DataFrame(np.stack((self.X_[feature].values, self.y_)
-                                ,axis = -1)
-                            ,columns = [feature, self.target[0]])
-        biSummDf = biDf.groupby([feature] + self.target).size().reset_index()\
-                            .pivot(columns = self.target[0], index = feature, values = 0)
-        
-        multiIndex = biSummDf.columns
-        singleIndex = pd.Index([i for i in multiIndex.tolist()])
-        biSummDf.columns = singleIndex
-        biSummDf.reset_index(inplace = True)
+        if feature not in skipCols: 
+            # Univariate summary
+            uniSummDf = pd.DataFrame(columns = [feature, 'Count', 'Proportion'])
+            uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
+            for i, j in zip(uniqueVals, uniqueCounts):
+                uniSummDf = uniSummDf.append({feature : i
+                                        ,'Count' : j
+                                        ,'Proportion' : j / np.sum(uniqueCounts) * 100
+                                        }
+                                    ,ignore_index = True)
+            uniSummDf = uniSummDf.sort_values(by = ['Proportion'], ascending = False)
+            
+            # Bivariate summary
+            biDf = pd.DataFrame(np.stack((self.X_[feature].values, self.y_)
+                                    ,axis = -1)
+                                ,columns = [feature, self.target[0]])
+            biSummDf = biDf.groupby([feature] + self.target).size().reset_index()\
+                                .pivot(columns = self.target[0], index = feature, values = 0)
+            
+            multiIndex = biSummDf.columns
+            singleIndex = pd.Index([i for i in multiIndex.tolist()])
+            biSummDf.columns = singleIndex
+            biSummDf.reset_index(inplace = True)
 
-        # Execute z-test
-        if len(np.unique(biDf[feature])) == 2:
-            
-            # Total observations
-            totalObs1 = biDf[(biDf[feature] == np.unique(biDf[feature])[0])][feature].shape[0]
-            totalObs2 = biDf[(biDf[feature] == np.unique(biDf[feature])[1])][feature].shape[0]
-            
-            # Total positive observations
-            posObs1 = biDf[(biDf[feature] == np.unique(biDf[feature])[0]) & (biDf[self.target[0]] == 1)][feature].shape[0]
-            posObs2 = biDf[(biDf[feature] == np.unique(biDf[feature])[1]) & (biDf[self.target[0]] == 1)][feature].shape[0]
-            
-            z, pVal = proportions_ztest(count = (posObs1, posObs2), nobs = (totalObs1, totalObs2))
-            
-            statTestDf = pd.DataFrame(data = [{'z-test statistic' : z, 'p-value' : pVal}]
-                                        ,columns = ['z-test statistic', 'p-value']
-                                        ,index = [feature]).round(4)
-            
-            # Display summary tables
-            self.dfSideBySide(dfs = (uniSummDf, biSummDf, statTestDf), names = ['Univariate summary', 'Biivariate summary', 'Statistical test'])
-        
-        else:            
-            # Display summary tables
-            self.dfSideBySide(dfs = (uniSummDf, biSummDf), names = ['Univariate summary', 'Biivariate summary'])
-        
-        # Instantiate charting object
-        p = QuickPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+            # Execute z-test
+            if len(np.unique(biDf[biDf[feature].notnull()][feature])) == 2:
                 
-        # Univariate plot
-        ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
-        
-        p.qpBarV(x = uniqueVals
-                ,counts = uniqueCounts
-                ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
-                ,color = style.styleHexMid[2]
-                ,yUnits = 'f'
-                ,ax = ax)                        
-        
-        # Bivariate plot
-        ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 122)
-        p.qpFacetCat(df = biSummDf
-                    ,feature = feature
+                # Total observations
+                totalObs1 = biDf[(biDf[feature] == np.unique(biDf[feature])[0])][feature].shape[0]
+                totalObs2 = biDf[(biDf[feature] == np.unique(biDf[feature])[1])][feature].shape[0]
+                
+                # Total positive observations
+                posObs1 = biDf[(biDf[feature] == np.unique(biDf[feature])[0]) & (biDf[self.target[0]] == 1)][feature].shape[0]
+                posObs2 = biDf[(biDf[feature] == np.unique(biDf[feature])[1]) & (biDf[self.target[0]] == 1)][feature].shape[0]
+                
+                z, pVal = proportions_ztest(count = (posObs1, posObs2), nobs = (totalObs1, totalObs2))
+                
+                statTestDf = pd.DataFrame(data = [{'z-test statistic' : z, 'p-value' : pVal}]
+                                            ,columns = ['z-test statistic', 'p-value']
+                                            ,index = [feature]).round(4)
+                
+                # Display summary tables
+                self.dfSideBySide(dfs = (uniSummDf, biSummDf, statTestDf), names = ['Univariate summary', 'Biivariate summary', 'Statistical test'])
+            
+            else:            
+                # Display summary tables
+                self.dfSideBySide(dfs = (uniSummDf, biSummDf), names = ['Univariate summary', 'Biivariate summary'])
+            
+            # Instantiate charting object
+            p = QuickPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+                    
+            # Univariate plot
+            ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
+            
+            p.qpBarV(x = uniqueVals
+                    ,counts = uniqueCounts
                     ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
-                    ,ax = ax)
-        plt.show()
+                    ,color = style.styleHexMid[2]
+                    ,yUnits = 'f'
+                    ,ax = ax)                        
+            
+            # Bivariate plot
+            ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 122)
+            p.qpFacetCat(df = biSummDf
+                        ,feature = feature
+                        ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
+                        ,ax = ax)
+            plt.show()
+        # else:
+        #     pass
 
 def edaCatTargetNumFeat(self):
     """

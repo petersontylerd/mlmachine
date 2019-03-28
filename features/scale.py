@@ -8,7 +8,7 @@ from collections import defaultdict
 
 import warnings
 from sklearn.exceptions import DataConversionWarning
-warnings.filterwarnings(action='ignore', category=DataConversionWarning)
+warnings.filterwarnings(action = 'ignore', category = DataConversionWarning)
 
 class Standard(base.TransformerMixin, base.BaseEstimator):
     """

@@ -75,7 +75,7 @@ class Machine():
                 target : list, default = None
                     Name of column containing dependent variable
                 targetType : list, default = None
-                    Target variable type, either 'categorical' or 'continuous
+                    Target variable type, either 'categorical' or 'continuous'
             Attributes:
                 X_ : Pandas DataFrame
                     Independent variables
