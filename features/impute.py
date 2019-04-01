@@ -96,7 +96,7 @@ class NumericalImputer(base.TransformerMixin):
         # For each columns, fill nulls with most frequently occuring value in training data
         else:
             for col in self.cols:
-                X[col] = X[col].fillna(self.trainDict[col])
+                X[col] = X[col].fillna(self.trainDict[col][0])
         return X
 
 class ConstantImputer(base.TransformerMixin):

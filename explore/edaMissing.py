@@ -28,16 +28,19 @@ def edaMissingSummary(self):
     percentMissing = pd.DataFrame({'Total missing' : totalMissing, 'Percent missing' : percentMissing})
     percentMissing = percentMissing[~(percentMissing['Percent missing'].isna()) 
                                     & (percentMissing['Percent missing'] > 0)].sort_values(['Percent missing'] , ascending = False)
-
-    display(percentMissing)
     
-    p = QuickPlot(fig = plt.figure(), chartProp = 15)
-    ax = p.makeCanvas(title = 'Percent missing by feature', xLabel = '', yLabel = ''
-                    ,yShift = 0.8, position = 221)
-    p.qpBarV(x = percentMissing.index
-            ,counts = percentMissing['Percent missing']
-            ,labelRotate = 90 #if len(uniqueVals) >= 4 else 0
-            ,color = style.styleHexMid[2]
-            ,yUnits = 'p'
-            ,ax = ax)                        
+    if not percentMissing.empty:
+        display(percentMissing)
+        
+        p = QuickPlot(fig = plt.figure(), chartProp = 15)
+        ax = p.makeCanvas(title = 'Percent missing by feature', xLabel = '', yLabel = ''
+                        ,yShift = 0.8, position = 221)
+        p.qpBarV(x = percentMissing.index
+                ,counts = percentMissing['Percent missing']
+                ,labelRotate = 90 #if len(uniqueVals) >= 4 else 0
+                ,color = style.styleHexMid[2]
+                ,yUnits = 'p'
+                ,ax = ax)                        
+    else:
+        print('No nulls')
         
