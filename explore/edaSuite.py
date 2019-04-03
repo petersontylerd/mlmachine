@@ -20,7 +20,7 @@ sys.path.append('/main')
 from quickplot.plotter import QuickPlot
 from quickplot import style
 
-def edaCatTargetCatFeat(self, skipCols = None):
+def edaCatTargetCatFeat(self, skipCols = []):
     """
     Info:
         Description:
@@ -55,6 +55,10 @@ def edaCatTargetCatFeat(self, skipCols = None):
             biSummDf.columns = singleIndex
             biSummDf.reset_index(inplace = True)
 
+            # add PercentPositive column
+            if len(np.unique(self.y_)):
+                biSummDf['PercentPositive'] = (biSummDf[1] / (biSummDf[1] + biSummDf[0])) * 100
+
             # Execute z-test
             if len(np.unique(biDf[biDf[feature].notnull()][feature])) == 2:
                 
@@ -74,10 +78,12 @@ def edaCatTargetCatFeat(self, skipCols = None):
                 
                 # Display summary tables
                 self.dfSideBySide(dfs = (uniSummDf, biSummDf, statTestDf), names = ['Univariate summary', 'Biivariate summary', 'Statistical test'])
-            
+                if 'PercentPositive' in biSummDf: biSummDf = biSummDf.drop(['PercentPositive'], axis = 1)
+        
             else:            
                 # Display summary tables
                 self.dfSideBySide(dfs = (uniSummDf, biSummDf), names = ['Univariate summary', 'Biivariate summary'])
+                if 'PercentPositive' in biSummDf: biSummDf = biSummDf.drop(['PercentPositive'], axis = 1)
             
             # Instantiate charting object
             p = QuickPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
@@ -132,7 +138,7 @@ def edaCatTargetNumFeat(self):
         # Display summary tables
         describeDf = pd.DataFrame(biDf[feature].describe()).reset_index()
         describeDf = describeDf.append({'index' : 'skew'
-                                        ,feature : stats.skew(biDf[feature].values, nan_policy = 'omit')
+                                        ,feature : np.round(stats.skew(biDf[feature].values, nan_policy = 'omit'), 5)
                                         }
                                 ,ignore_index = True)
         describeDf = describeDf.append({'index' : 'kurtosis'
@@ -143,8 +149,8 @@ def edaCatTargetNumFeat(self):
 
         # Execute z-test or t-test
         if len(np.unique(self.y_)) == 2:
-            s1 = biDf[biDf[self.target[0]] == biDf[self.target[0]].unique()[0]][feature]
-            s2 = biDf[biDf[self.target[0]] == biDf[self.target[0]].unique()[1]][feature]
+            s1 = biDf[(biDf[self.target[0]] == biDf[self.target[0]].unique()[0]) & (biDf[feature].notnull())][feature]
+            s2 = biDf[(biDf[self.target[0]] == biDf[self.target[0]].unique()[1]) & (biDf[feature].notnull())][feature]
             if len(s1) > 30 and len(s2) > 30:
                 z, pVal = ztest(s1, s2)
                 

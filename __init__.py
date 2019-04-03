@@ -27,10 +27,11 @@ class Machine():
     from .explore.edaMissing import edaMissingSummary
     
     from .features.encode import cleanLabel, Dummies, MissingDummies, OrdinalEncoder, CustomOrdinalEncoder
-    from .features.impute import  NumericalImputer, CategoricalImputer, ConstantImputer, ContextImputer
+    from .features.importance import featureImportanceSummary
+    from .features.impute import  NumericalImputer, ModeImputer, ConstantImputer, ContextImputer
     from .features.missing import missingDataDropperAll, featureDropper, missingColCompare
     from .features.scale import Standard, Robust
-    from .features.transform import skewSummary, SkewTransform, Binner
+    from .features.transform import skewSummary, SkewTransform, EqualBinner, CustomBinner, PercentileBinner, featureDropper
     
     from .model.tune.powerGridSearch import PowerGridSearcher
     from .model.tune.stack import modelParamBuilder, SklearnHelper, oofGenerator

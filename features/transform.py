@@ -53,7 +53,7 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 Only used when train = False. Variable to be retrieved is 
                 called colValueDict_.
     """
-    def __init__(self, cols, skewMin = None, pctZeroMax = None, train = True, trainDict = None):
+    def __init__(self, cols = None, skewMin = None, pctZeroMax = None, train = True, trainDict = None):
         
         self.cols = cols
         self.skewMin = skewMin
@@ -99,7 +99,7 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 X[col] = special.boxcox1p(X[col], lmbda)
         return X
 
-class Binner(base.TransformerMixin):
+class EqualBinner(base.TransformerMixin):
     """
     Info:
         Description:
@@ -107,10 +107,13 @@ class Binner(base.TransformerMixin):
             features, and stores the cut points to be used on validation and
             unseen data.
         Parameters:
-            colBinLabelDict : dictionary
+            equalBinDict : dictionary
                 Dictionary containing col : label pairs. Custom bin labels to be 
                 used for each paired column. The bin size is calculated based off 
-                of the label length. 
+                of the label length. The labels are expected to be a list that 
+                describes how the bins should be named, i.e. a label list of
+                ['low','med','high'] will instruct the binner to create three bins
+                and then call each bin 'low','med' and 'high'.
             train : boolean, default = True
                 Tells class whether we are binning training data or unseen
                 data.
@@ -120,8 +123,8 @@ class Binner(base.TransformerMixin):
                 Retrieved from training data pipeline using named steps.
                 Variable to be retrieved is called colValueDict_.
     """
-    def __init__(self, colBinLabelDict, train = True, trainDict = None):
-        self.colBinLabelDict = colBinLabelDict
+    def __init__(self, equalBinDict = None, train = True, trainDict = None):
+        self.equalBinDict = equalBinDict
         self.train = train
         self.trainDict = trainDict
         
@@ -131,20 +134,199 @@ class Binner(base.TransformerMixin):
     def transform(self, X):
         # Encode training data
         if self.train:
-            self.colValueDict_ = {}
-            for col, label in self.colBinLabelDict.items():
+            
+            # create shell dictionary to store learned bins for each column
+            self.trainDict_ = {}
+            
+            # iterate through col : label pairs
+            for col, label in self.equalBinDict.items():
+                
                 # retrieve bin cutoffs from original column
                 _, bins = pd.cut(X[col], bins = len(label), labels = label, retbins = True)
                 
                 # add binned version of original column to dataset 
-                X['{}_{}'.format(col,'binned')] = pd.cut(X[col], bins = len(label), labels = False)    
+                X['{}{}'.format(col,'EqualBin')] = pd.cut(X[col], bins = len(label), labels = label)    
+                
+                # append featureDtype dict
+                # self.featureByDtype_['categorical'].append('{}{}'.format(col,'EqualBin'))
                 
                 # build colValueDict
-                self.colValueDict_[col] = bins
+                self.trainDict_[col] = bins
+
+                # set data type
+                # X['{}{}'.format(col,'EqualBin')] = X['{}{}'.format(col,'EqualBin')].astype('int64')
                 
         # For each column, bin the values based on the cut-offs learned on training data
         else:
+            # iterate through columns and stored bins that were learned from training data
             for col, bins in self.trainDict.items():
                 trainBins = pd.IntervalIndex.from_breaks(bins)
-                X['{}_{}'.format(col,'binned')] = pd.cut(X[col], bins = trainBins).codes
+                X['{}{}'.format(col,'EqualBin')] = pd.cut(X[col], bins = trainBins)
+                
+                # append featureDtype dict
+                # self.featureByDtype_['categorical'].append('{}{}'.format(col,'EqualBin'))
+                
+                # set data type
+                # X['{}{}'.format(col,'EqualBin')] = X['{}{}'.format(col,'EqualBin')].astype('int64')
         return X
+
+class PercentileBinner(base.TransformerMixin):
+    """
+    Info:
+        Description:
+            Bin continuous columns into segments based on percentile cut-offs.
+        Parameters:
+            cols : list
+                List of colummns to be binned. The percentiles are derived from 
+                the raw data.
+            percs : list
+                a
+            train : boolean, default = True
+                a
+            trainDict : dict
+                a
+    """
+    def __init__(self, cols = None, percs = None, train = True, trainDict = None):
+        self.cols = cols
+        self.percs = percs
+        self.train = train
+        self.trainDict = trainDict
+        
+    def fit(self, X, y = None):
+        return self
+    
+    def transform(self, X):
+        # bin training data
+        if self.train:
+            
+            # create shell dictionary to store percentile values for each column
+            self.trainDict_ = {}
+            
+            # iterate through columns by name
+            for col in self.cols:
+                # create empty PercBin column
+                binCol = '{}PercBin'.format(col)
+                X[binCol] = np.nan
+                
+                # append featureDtype dict
+                # self.featureByDtype_['categorical'].append(binCol)
+                
+                # determine percentile cut-offs
+                percVals = []
+                for perc in self.percs:
+                    percVals.append(np.percentile(X[col], perc))
+
+                # iterate through custom binning
+                for ix, ceil in enumerate(percVals):
+                    # first item
+                    if ix == 0:
+                        X.loc[X[col] <= ceil, binCol] = ix
+                    
+                    # next to last and last item
+                    elif ix == len(percVals) - 1:
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                        X.loc[X[col] > ceil, binCol] = ix + 1
+                    # everything in between
+                    else:
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                    
+                    # increment the floor
+                    floor = ceil
+                
+                # build colValueDict
+                self.trainDict_[col] = percVals
+
+                # set data type
+                X[binCol] = X[binCol].astype('int64')
+        
+        # bin validation data based on percentile values learned from training data
+        else:
+            # iterate through columns by name
+            for col in self.trainDict.keys():
+                # create empty PercBin column
+                binCol = '{}PercBin'.format(col)
+                X[binCol] = np.nan
+
+                # append featureDtype dict
+                # self.featureByDtype_['categorical'].append(binCol)
+                
+                # iterate through bin values
+                for ix, ceil in enumerate(self.trainDict[col]):
+                    # first item
+                    if ix == 0:
+                        X.loc[X[col] <= ceil, binCol] = ix                
+                    # next to last and last item
+                    elif ix == len(self.trainDict[col]) - 1:
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                        X.loc[X[col] > ceil, binCol] = ix + 1
+                    # everything in between
+                    else:
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                    
+                    # increment the floor
+                    floor = ceil
+                
+                # set data type
+                X[binCol] = X[binCol].astype('int64')           
+        return X
+
+class CustomBinner(base.TransformerMixin):
+    """
+    Info:
+        Description:
+            Bin continuous columns into custom segments.
+        Parameters:
+            customBinDict : dictionary
+                Dictionary containing col : bin specifcation pairs. Bin
+                specification should be a list.
+    """
+    def __init__(self, customBinDict):
+        self.customBinDict = customBinDict
+        
+    def fit(self, X, y = None):
+        return self
+    
+    def transform(self, X):
+        # iterate through columns by name
+        for col in self.customBinDict.keys():
+            # create empty CustomBin column
+            binCol = '{}CustomBin'.format(col)
+            X[binCol] = np.nan
+            
+            # append featureDtype dict
+            # self.featureByDtype_['categorical'].append(binCol)
+                
+            # iterate through custom binning
+            for ix, ceil in enumerate(self.customBinDict[col]):
+                # first item
+                if ix == 0:
+                    X.loc[X[col] <= ceil, binCol] = ix                
+                # next to last and last item
+                elif ix == len(self.customBinDict[col]) - 1:
+                    X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                    X.loc[X[col] > ceil, binCol] = ix + 1
+                # everything in between
+                else:
+                    X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                
+                # increment the floor
+                floor = ceil
+
+            # set data type
+            X[binCol] = X[binCol].astype('int64')   
+        return X
+
+
+def featureDropper(self, cols):
+    """
+    
+    """
+    for col in cols:
+        # delete colummn from data from
+        self.X_ = self.X_.drop([col], axis = 1)
+        
+        # delete column name from featureByDtype dict
+        if col in self.featureByDtype_['categorical']:
+            self.featureByDtype_['categorical'].remove(col)
+        elif col in self.featureByDtype_['continuous']:
+            self.featureByDtype_['continuous'].remove(col)

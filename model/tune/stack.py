@@ -44,8 +44,11 @@ class SklearnHelper():
     def fit(self, x, y):
         return self.clf.fit(x, y)
     
+    # def feature_importances(self, x, y):
+    #     print(self.clf.fit(x, y).feature_importances_)
+
     def feature_importances(self, x, y):
-        print(self.clf.fit(x, y).feature_importances_)
+        return self.clf.fit(x, y).feature_importances_
 
 def oofGenerator(self, clf, x_train, y_train, x_valid, nfolds = 10):
     # row counts

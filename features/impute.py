@@ -6,12 +6,12 @@ import sklearn.base as base
 import sklearn.impute as impute
 
 
-class CategoricalImputer(base.TransformerMixin):
+class ModeImputer(base.TransformerMixin):
     """
     Info:
         Description:
-            Impute nominal categorical columns with mode value. Imputes
-            training data features, and stores mode values to be used on
+            Impute columns with mode value. Imputes training data 
+            features, and stores mode values to be used on
             validation and unseen data.
         Parameters:
             cols : list
@@ -49,14 +49,12 @@ class CategoricalImputer(base.TransformerMixin):
             for col in self.cols:
                 X[col] = X[col].fillna(self.trainDict[col])
         return X
-
-
         
 class NumericalImputer(base.TransformerMixin):
     """
     Info:
         Description:
-            Impute nominal numerical columns with certain value, as specified
+            Impute numerical columns with certain value, as specified
             by the strategy parameter. Imputes training data features, and stores 
             impute values to be used on validation and unseen data.
         Parameters:
@@ -131,12 +129,14 @@ class ContextImputer(base.TransformerMixin):
     """
     Info:
         Description:
-            Impute nominal numerical columns with certain value, as specified
+            Impute numerical columns with certain value, as specified
             by the strategy parameter. Imputes training data features, and stores 
             impute values to be used on validation and unseen data.
         Parameters:
-            cols : list
-                List of features to be imputer
+            nullCol : list
+                Column with nulls to be imputed
+            contextCol : list
+                Columns to group by 
             strategy : string, default = 'mean'
                 Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'
             train : boolean, default = True
