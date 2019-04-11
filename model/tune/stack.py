@@ -20,15 +20,16 @@ def modelParamBuilder(self, scoreDf, modelIx):
                 be turned into dictionary containing parameter : value
                 pairs.
     """
-    df = scoreDf.loc[modelIx][5:].dropna(axis = 0)
+    estimator = scoreDf.loc[modelIx][0]
+    params = scoreDf.loc[modelIx][5:].dropna(axis = 0)
     
     # convert floats that are effectively ints to ints
-    for ix in df.index:
-        if not isinstance(df[ix], str):
-            if int(df[ix]) == df[ix] and isinstance(df[ix], float):
-                df[ix] = df[ix].astype(np.int64)
+    for ix in params.index:
+        if not isinstance(params[ix], str):
+            if int(params[ix]) == params[ix] and isinstance(params[ix], float):
+                params[ix] = params[ix].astype(np.int64)
 
-    return df.to_dict()
+    return estimator, params.to_dict()
 
 class SklearnHelper():
     def __init__(self, clf, seed = 0, params = None):
@@ -58,22 +59,30 @@ def oofGenerator(self, clf, x_train, y_train, x_valid, nfolds = 10):
     # kfold train/test index generator
     kf = model_selection.KFold(n_splits = nfolds)
         
-    # 
+    # create shell arrays for holding results
     oof_train = np.zeros((ntrain,))
     oof_valid = np.zeros((nvalid,))
     oof_valid_skf = np.empty((nfolds, nvalid))
 
     # iterate through all kfolds to train model, capture scores
     for i, (train_index, test_index) in enumerate(kf.split(x_train)):
+        # set train/test observations based on KFold indices
         x_tr = x_train[train_index]
         y_tr = y_train[train_index]
         x_te = x_train[test_index]
 
+        # train model based on training variables and labels
         clf.train(x_tr, y_tr)
 
+        # Update segment of oof_train where indices match the indices of the observations 
+        # used as test observations. These are the "out of fold" observations that we are not
+        # considered in the training phase of the model
         oof_train[test_index] = clf.predict(x_te)
+        
+        # generate predictions using entire validation dataset, otherwise unused up to this point
+        # and capture predictions for each folds
         oof_valid_skf[i, :] = clf.predict(x_valid)
 
-    # record average score
+    # determine average score of validations predictions
     oof_valid[:] = oof_valid_skf.mean(axis = 0)
     return oof_train.reshape(-1, 1), oof_valid.reshape(-1, 1)
