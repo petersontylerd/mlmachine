@@ -30,6 +30,7 @@ class Machine():
     from .features.importance import featureImportanceSummary
     from .features.impute import  NumericalImputer, ModeImputer, ConstantImputer, ContextImputer
     from .features.missing import missingDataDropperAll, featureDropper, missingColCompare
+    from .features.outlier import OutlierIQR
     from .features.scale import Standard, Robust
     from .features.transform import skewSummary, SkewTransform, EqualBinner, CustomBinner, PercentileBinner, featureDropper
     
@@ -43,6 +44,7 @@ class Machine():
     importlib.reload(features.encode)
     importlib.reload(features.impute)
     importlib.reload(features.missing)
+    importlib.reload(features.outlier)
     importlib.reload(features.scale)
     importlib.reload(features.transform)
     importlib.reload(model.tune.powerGridSearch)
