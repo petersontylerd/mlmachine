@@ -91,7 +91,7 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
 
                     X[col] = special.boxcox1p(X[col], lowLambda)
                     self.colValueDict_[col] = lowLambda
-                    print('transformed {}'.format(col))
+                    # print('transformed {}'.format(col))
             
         # Encode validation data with training data encodings.
         else:
