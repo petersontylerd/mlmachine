@@ -34,8 +34,9 @@ class Machine():
     from .features.scale import Standard, Robust
     from .features.transform import skewSummary, SkewTransform, EqualBinner, CustomBinner, PercentileBinner, featureDropper
     
+    from .model.tune.bayesianOptimSearch import execBayesOptimSearch, objective, unpackParams, lossPlot, paramPlot, samplePlot
     from .model.tune.powerGridSearch import PowerGridSearcher
-    from .model.tune.stack import modelParamBuilder, SklearnHelper, oofGenerator
+    from .model.tune.stack import modelParamBuilder, SklearnHelper, oofGenerator, paramExtractor, modelStacker
     from .model.evaluate.crossvalidate import rmsleCV
     
     importlib.reload(explore.edaSuite)
@@ -47,6 +48,7 @@ class Machine():
     importlib.reload(features.outlier)
     importlib.reload(features.scale)
     importlib.reload(features.transform)
+    importlib.reload(model.tune.bayesianOptimSearch)
     importlib.reload(model.tune.powerGridSearch)
     importlib.reload(model.tune.stack)
     importlib.reload(model.evaluate.crossvalidate)
@@ -157,3 +159,4 @@ class Machine():
             return self.X_, self.y_, self.featureByDtype_
         else:
             return self.X_, self.featureByDtype_
+
