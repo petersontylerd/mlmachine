@@ -49,8 +49,12 @@ def modelParamBuilder(self, results, modelIx):
     return estimator, params.to_dict()
 
 class SklearnHelper():
-    def __init__(self, clf, seed = 0, params = None):
-        params['random_state'] = seed
+    def __init__(self, clf, seed = 0, params = None, nJobs = 2):
+        # params['random_state'] = seed
+        
+        if clf not in [ensemble.GradientBoostingClassifier, ensemble.GradientBoostingRegressor, ensemble.AdaBoostClassifier, ensemble.AdaBoostRegressor\
+                        , naive_bayes.BernoulliNB, naive_bayes.GaussianNB, svm.SVC]:
+            params['n_jobs'] = nJobs
         self.clf = clf(**params)
 
     def train(self, x_train, y_train):
@@ -68,18 +72,18 @@ class SklearnHelper():
     def feature_importances(self, x, y):
         return self.clf.fit(x, y).feature_importances_
 
-def oofGenerator(self, clf, x_train, y_train, x_valid, nfolds = 10):
+def oofGenerator(self, clf, x_train, y_train, x_valid, nFolds = 10):
     # row counts
     ntrain = x_train.shape[0]
     nvalid = x_valid.shape[0]
     
     # kfold train/test index generator
-    kf = model_selection.KFold(n_splits = nfolds)
+    kf = model_selection.KFold(n_splits = nFolds)
         
     # create shell arrays for holding results
     oof_train = np.zeros((ntrain,))
     oof_valid = np.zeros((nvalid,))
-    oof_valid_skf = np.empty((nfolds, nvalid))
+    oof_valid_skf = np.empty((nFolds, nvalid))
 
     # iterate through all kfolds to train model, capture scores
     for i, (train_index, test_index) in enumerate(kf.split(x_train)):
@@ -111,7 +115,7 @@ def paramExtractor(self, resultsDf, estimator, iteration):
     params = resultsDf[(resultsDf['estimator'] == estimator) & (resultsDf['iteration'] == iteration)]['params'].values[0]
     return ast.literal_eval(params)
 
-def modelStacker(self, models, resultsDf, XTrain, yTrain, XValid):
+def modelStacker(self, models, resultsDf, XTrain, yTrain, XValid, nFolds, nJobs):
     """
 
     """
@@ -119,20 +123,18 @@ def modelStacker(self, models, resultsDf, XTrain, yTrain, XValid):
     columns = []
     # iterate through estimators
     for estimator in models.keys():
-        print(estimator)
         # iterate through parameter set for estimator
         for iteration in models[estimator]:
+            print(estimator + ' ' + str(iteration))
             params = self.paramExtractor(resultsDf = resultsDf, estimator = estimator, iteration = iteration)
-            print(params)
             columns.append(estimator + '_' + str(iteration))
 
-            model = SklearnHelper(clf = eval(estimator), params = params)
-            print(model.clf)
-
+            model = SklearnHelper(clf = eval(estimator), params = params, nJobs = nJobs)
             oofTrainModel, oofValidModel = self.oofGenerator(clf = model
                                                               ,x_train = XTrain
                                                               ,y_train = yTrain
                                                               ,x_valid = XValid
+                                                              ,nFolds = nFolds
                                                              )
             try:
                 oofTrain = np.hstack((oofTrain, oofTrainModel))
@@ -140,5 +142,4 @@ def modelStacker(self, models, resultsDf, XTrain, yTrain, XValid):
             except NameError:
                 oofTrain = oofTrainModel
                 oofValid = oofValidModel
-                print("not defined")
     return oofTrain, oofValid, columns

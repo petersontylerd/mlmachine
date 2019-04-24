@@ -41,9 +41,10 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
             # append the found outlier indices for col to the list of outlier indices 
             outlier_indices.extend(outlier_list_col)
             
-        # select observations containing more than 2 outliers
-        outlier_indices = Counter(outlier_indices)        
-        self.outliers_ = list( k for k, v in outlier_indices.items() if v > self.outlierCount)
+        # select observations containing more than 'outlierCount' outliers
+        outlier_indices = Counter(outlier_indices)
+        
+        self.outliers_ = list( k for k, v in outlier_indices.items() if v >= self.outlierCount)
         
         if self.dropOutliers:
             X = X.drop(self.outliers_, axis = 0).reset_index(drop = True)

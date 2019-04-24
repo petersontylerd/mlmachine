@@ -53,7 +53,7 @@ def objective(space, resultsDir = None, model = '', X = None, y = None, scoring 
         if param in space.keys():
             space[param] = int(space[param])
     # print(space)
-    print('{0}(**{1})'.format(model, space))
+    # print('{0}(**{1})'.format(model, space))
     cv = model_selection.cross_val_score(estimator = eval('{0}(**{1})'.format(model, space))
                                          ,X = X
                                          ,y = y
