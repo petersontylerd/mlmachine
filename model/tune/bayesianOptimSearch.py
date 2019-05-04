@@ -52,15 +52,14 @@ def objective(space, resultsDir = None, model = '', X = None, y = None, scoring 
     for param in ['num_leaves', 'subsample_for_bin', 'min_child_samples']:
         if param in space.keys():
             space[param] = int(space[param])
-    # print(space)
-    # print('{0}(**{1})'.format(model, space))
+    
     cv = model_selection.cross_val_score(estimator = eval('{0}(**{1})'.format(model, space))
                                          ,X = X
                                          ,y = y
                                          ,verbose = verbose
                                          ,n_jobs = n_jobs
                                          ,cv = n_folds
-                                         ,scoring = scoring)
+                                         ,scoring = 'neg_mean_squared_error' if scoring == 'rmsle' else scoring)
     run_time = timer() - start
     
     # Extract the best score
@@ -68,7 +67,7 @@ def objective(space, resultsDir = None, model = '', X = None, y = None, scoring 
         loss = 1 - cv.mean()
     elif scoring == 'neg_mean_squared_error':
         loss = abs(cv.mean())
-    elif scoring == 'rmlse':
+    elif scoring == 'rmsle':
         cv = np.sqrt(abs(cv))
         loss = np.mean(cv)
     

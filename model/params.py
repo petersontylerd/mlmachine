@@ -78,3 +78,95 @@ allSpace = {
                 ,'weights' : hp.choice('weights', ['distance','uniform'])
             }
 }
+
+
+ # parameter space
+allSpace = {
+            'linear_model.Lasso' :{
+                'alpha' :  hp.uniform('alpha', 0.0000001, 10)
+            }
+            ,'linear_model.Ridge' :{
+                'alpha' :  hp.uniform('alpha', 0.0001, 20)
+            }
+            ,'linear_model.ElasticNet' :{
+                'alpha' :  hp.uniform('alpha', 0.0000001, 10)
+                ,'l1_ratio' :  hp.uniform('l1_ratio', 0.0, 0.2)
+            }
+            ,'kernel_ridge.KernelRidge' :{
+                'alpha' :  hp.uniform('alpha', 0.0001, 15)
+                ,'kernel' : hp.choice('kernel', ['linear', 'polynomial', 'rbf'])
+                ,'degree' : hp.choice('degree', [2,3])
+                ,'gamma' : hp.quniform('gamma', 0.0, 10, 0.05)
+            }
+            ,'lightgbm.LGBMRegressor' : {
+                'colsample_bytree': hp.quniform('colsample_bytree', 0.5, 1.0, 0.05)
+                ,'boosting_type' : hp.choice('boosting_type', ['gbdt', 'dart', 'goss'])
+                #,'boosting_type': hp.choice('boosting_type'
+                #                    ,[{'boosting_type': 'gbdt', 'subsample': hp.uniform('gdbt_subsample', 0.5, 1)}
+                #                    ,{'boosting_type': 'dart', 'subsample': hp.uniform('dart_subsample', 0.5, 1)}
+                #                    ,{'boosting_type': 'goss', 'subsample': 1.0}])
+                ,'learning_rate' : hp.quniform('learning_rate', 0.01, 0.2, 0.01)
+                ,'max_depth' : hp.choice('max_depth', np.arange(2, 20, dtype = int))
+                ,'min_child_samples' : hp.quniform('min_child_samples', 20, 500, 5)
+                ,'n_estimators' : hp.choice('n_estimators', np.arange(100, 10000, 10, dtype = int))
+                ,'num_leaves': hp.quniform('num_leaves', 8, 150, 1)
+                ,'reg_alpha': hp.uniform('reg_alpha', 0.0, 1.0)
+                ,'reg_lambda': hp.uniform('reg_lambda', 0.0, 1.0)
+                ,'subsample_for_bin': hp.quniform('subsample_for_bin', 20000, 300000, 20000)                    
+            }
+            ,'xgboost.XGBRegressor' : {
+                'colsample_bytree' : hp.quniform('colsample_bytree', 0.5, 1.0, 0.05)
+                ,'gamma' : hp.quniform('gamma', 0.0, 10, 0.05)
+                ,'reg_alpha': hp.uniform('reg_alpha', 0.0, 1.0)
+                ,'reg_lambda': hp.uniform('reg_lambda', 0.0, 1.0)
+                ,'learning_rate' : hp.quniform('learning_rate', 0.01, 0.2, 0.01)
+                ,'max_depth' : hp.choice('max_depth', np.arange(2, 20, dtype = int))
+                ,'min_child_weight': hp.quniform ('min_child_weight', 1, 20, 1)
+                ,'n_estimators' : hp.choice('n_estimators', np.arange(100, 10000, 10, dtype = int))
+                #,'objective' : hp.choice('objective', ['binary:logistic'])
+                ,'subsample': hp.uniform ('subsample', 0.5, 1)
+            }
+            ,'ensemble.RandomForestRegressor' : {
+                'bootstrap' : hp.choice('bootstrap', [True, False])
+                ,'max_depth' : hp.choice('max_depth', np.arange(2, 20, dtype = int))
+                ,'n_estimators' : hp.choice('n_estimators', np.arange(100, 10000, 10, dtype = int))
+                ,'max_features' : hp.choice('max_features', ['auto','sqrt'])
+                ,'min_samples_split' : hp.choice('min_samples_split', np.arange(2, 40, dtype = int))
+                ,'min_samples_leaf' : hp.choice('min_samples_leaf', np.arange(2, 40, dtype = int))
+            }
+            ,'ensemble.GradientBoostingRegressor' : {
+                'n_estimators' : hp.choice('n_estimators', np.arange(100, 10000, 10, dtype = int))
+                ,'max_depth' : hp.choice('max_depth', np.arange(2, 20, dtype = int))
+                ,'max_features' : hp.choice('max_features', ['auto','sqrt'])    
+                ,'learning_rate' : hp.quniform('learning_rate', 0.01, 0.2, 0.01)
+                ,'loss' : hp.choice('loss', ['ls','lad','huber','quantile'])    
+                ,'min_samples_split' : hp.choice('min_samples_split', np.arange(2, 40, dtype = int))
+                ,'min_samples_leaf' : hp.choice('min_samples_leaf', np.arange(2, 40, dtype = int))
+            }
+            
+            ,'ensemble.AdaBoostRegressor' : {
+                'n_estimators' : hp.choice('n_estimators', np.arange(100, 10000, 10, dtype = int))
+                ,'learning_rate' : hp.quniform('learning_rate', 0.01, 0.2, 0.01)
+                ,'loss' : hp.choice('loss', ['linear', 'square','exponential'])                    
+            }
+            ,'ensemble.ExtraTreesRegressor' : {
+                'n_estimators' : hp.choice('n_estimators', np.arange(100, 10000, 10, dtype = int))
+                ,'max_depth' : hp.choice('max_depth', np.arange(2, 20, dtype = int))
+                ,'min_samples_split' : hp.choice('min_samples_split', np.arange(2, 40, dtype = int))
+                ,'min_samples_leaf' : hp.choice('min_samples_leaf', np.arange(2, 40, dtype = int))
+                ,'max_features' : hp.choice('max_features', ['auto','sqrt'])
+            }
+            ,'svm.SVR' : {
+                'C' : hp.quniform('C', 0.00001, 10, 0.05)
+                ,'kernel' : hp.choice('kernel', ['linear','poly','rbf','sigmoid'])
+                ,'degree' : hp.choice('degree', [2,3])
+                ,'gamma' : hp.quniform('gamma', 0.0001, 10, 0.05)
+                ,'epsilon' : hp.quniform('epsilon', 0.001, 5, 0.05)
+            }
+            ,'neighbors.KNeighborsRegressor' : {
+                'algorithm' : hp.choice('algorithm', ['auto','ball_tree','kd_tree','brute'])
+                ,'n_neighbors' : hp.choice('n_neighbors', np.arange(1, 20, dtype = int))
+                ,'weights' : hp.choice('weights', ['distance','uniform'])
+                ,'p' : hp.choice('p', [1,2])
+            }
+}
