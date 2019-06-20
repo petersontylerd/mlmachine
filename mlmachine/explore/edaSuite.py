@@ -16,13 +16,12 @@ from IPython.display import display_html
 import os
 import sys
 
-# sys.path.append('/home')
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 def edaCatTargetCatFeat(self, skipCols = []):
     """
-    Info:
+    Documentation:
         Description:
             a
         Parameters
@@ -91,7 +90,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
             # Univariate plot
             ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
             
-            p.qpBarV(x = uniqueVals
+            p.prettyBarV(x = uniqueVals
                     ,counts = uniqueCounts
                     ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
                     ,color = style.styleHexMid[2]
@@ -100,7 +99,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
             
             # Bivariate plot
             ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 122)
-            p.qpFacetCat(df = biSummDf
+            p.prettyFacetCat(df = biSummDf
                         ,feature = feature
                         ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
                         ,ax = ax)
@@ -110,7 +109,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
 
 def edaCatTargetNumFeat(self):
     """
-    Info:
+    Documentation:
         Description:
     """
     # Iterate through each feature within a feature type
@@ -174,20 +173,20 @@ def edaCatTargetNumFeat(self):
 
         # Univariate plot
         ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 151)
-        p.qpDist(biDf[(biDf[feature].notnull())][feature].values
+        p.prettyDist(biDf[(biDf[feature].notnull())][feature].values
                 ,color = style.styleHexMid[2]
                 ,yUnits = 'ffff'
                 ,ax = ax)
         
         # Probability plot
         ax = p.makeCanvas(title = 'Probability plot\n* {}'.format(feature), yShift = 0.8, position = 152)
-        p.qpProbPlot(x = biDf[(biDf[feature].notnull())][feature].values
+        p.prettyProbPlot(x = biDf[(biDf[feature].notnull())][feature].values
                     ,plot = ax)
         
         # Bivariate kernel density plot
         ax = p.makeCanvas(title = 'KDE - Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 153)
         for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target[0]].values)):
-            p.qpKde(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
+            p.prettyKde(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
                     ,color = style.styleHexMid[ix]
                     ,yUnits = 'ffff'
                     ,ax = ax)
@@ -195,14 +194,14 @@ def edaCatTargetNumFeat(self):
         # Bivariate histogram
         ax = p.makeCanvas(title = 'Hist - Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 154)
         for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target[0]].values)):
-            p.qpFacetNum(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
+            p.prettyFacetNum(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
                         ,color = style.styleHexMid[ix]
                         ,label = labl
                         ,alpha = 0.4)
 
         # Boxplot histogram
         ax = p.makeCanvas(title = 'Boxplot - Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 155)
-        p.qpBoxPlotH(x = feature
+        p.prettyBoxPlotH(x = feature
                     ,y = self.target[0]
                     ,data = biDf
                     ,ax = ax)
@@ -210,7 +209,7 @@ def edaCatTargetNumFeat(self):
 
 def edaNumTargetNumFeat(self):
     """
-    Info:
+    Documentation:
         Description:
     """
     # Iterate through each feature within a feature type
@@ -254,7 +253,7 @@ def edaNumTargetNumFeat(self):
             # Univariate plot
             uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
             ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 131)
-            p.qpBarV(x = uniqueVals
+            p.prettyBarV(x = uniqueVals
                 ,counts = uniqueCounts
                 ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
                 ,color = style.styleHexMid[2]
@@ -263,7 +262,7 @@ def edaNumTargetNumFeat(self):
 
             # Regression plot
             ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), yShift = 0.8, position = 132)
-            p.qpRegPlot(x = feature
+            p.prettyRegPlot(x = feature
                         ,y = self.target[0]
                         ,data = biDf[biDf[feature].notnull()]
                         ,x_jitter = .2
@@ -271,7 +270,7 @@ def edaNumTargetNumFeat(self):
 
             # Bivariate box plot
             ax = p.makeCanvas(title = 'Box plot - Faceted by\n* {}'.format(feature), yShift = 0.8, position = 133)
-            p.qpBoxPlotV(x = feature
+            p.prettyBoxPlotV(x = feature
                         ,y = self.target[0]
                         ,data = biDf[biDf[feature].notnull()]
                         ,color = style.genCmap(len(uniqueVals), [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]])
@@ -294,7 +293,7 @@ def edaNumTargetNumFeat(self):
 
             # Univariate plot
             ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 131)
-            p.qpDist(biDf[(biDf[feature].notnull())][feature].values                                
+            p.prettyDist(biDf[(biDf[feature].notnull())][feature].values                                
                     ,color = style.styleHexMid[2]
                     ,yUnits = 'ffff'
                     ,fit = stats.norm
@@ -302,12 +301,12 @@ def edaNumTargetNumFeat(self):
         
             # Probability plot
             ax = p.makeCanvas(title = 'Probability plot\n* {}'.format(feature), yShift = 0.8, position = 132)
-            p.qpProbPlot(x = biDf[(biDf[feature].notnull())][feature].values
+            p.prettyProbPlot(x = biDf[(biDf[feature].notnull())][feature].values
                         ,plot = ax)
         
             # Regression plot
             ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), yShift = 0.8, position = 133)
-            p.qpRegPlot(x = feature
+            p.prettyRegPlot(x = feature
                         ,y = self.target[0]
                         ,data = biDf[biDf[feature].notnull()]
                         ,x_jitter = .1
@@ -316,7 +315,7 @@ def edaNumTargetNumFeat(self):
 
 def edaNumTargetCatFeat(self):
     """
-    Info:
+    Documentation:
         Description:
     """
     # Iterate through each feature within a feature type
@@ -372,7 +371,7 @@ def edaNumTargetCatFeat(self):
             # Sort temporary data frame for box plot
             biDf[feature] = biDf[feature].astype(int)
 
-        p.qpBarV(x = uniqueVals
+        p.prettyBarV(x = uniqueVals
                 ,counts = uniqueCounts
                 ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
                 ,color = style.styleHexMid[2]
@@ -381,7 +380,7 @@ def edaNumTargetCatFeat(self):
                                 
         # Bivariate box plot
         ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 122)
-        p.qpBoxPlotV(x = feature
+        p.prettyBoxPlotV(x = feature
                     ,y = self.target[0]
                     ,data = biDf[biDf[feature].notnull()].sort_values([feature])
                     ,color = style.genCmap(len(uniqueVals), [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]])
@@ -391,7 +390,7 @@ def edaNumTargetCatFeat(self):
 
 def dfSideBySide(self, dfs, names = []):
     """
-    Info:
+    Documentation:
         Description:
 
         Parameters:

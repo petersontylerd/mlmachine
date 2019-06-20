@@ -17,7 +17,6 @@ from IPython.display import display_html
 import os
 import sys
 
-# sys.path.append('/main')
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
@@ -30,13 +29,13 @@ def edaTransformInitial(self, data, name):
     # Before, distribution / kernel density plot
     ax = p.makeCanvas(title = 'Dist/KDE - {} (Initial)'.format(name), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 221)
-    p.qpDist(data, color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
+    p.prettyDist(data, color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
     plt.xticks([]); plt.yticks([])
 
     # Before, QQ plot
     ax = p.makeCanvas(title = 'Probability plot - {} (Initial)'.format(name), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 222)
-    p.qpProbPlot(data, plot = ax)
+    p.prettyProbPlot(data, plot = ax)
     plt.xticks([]); plt.yticks([])
     
     # spacing
@@ -50,13 +49,13 @@ def edaTransformLog1(self, data, name):
     
     ax = p.makeCanvas(title = 'Dist/KDE - {} (log+1)'.format(name), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 223)
-    p.qpDist(np.log1p(data), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
+    p.prettyDist(np.log1p(data), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
     plt.xticks([]); plt.yticks([])
 
     # After, QQ plot
     ax = p.makeCanvas(title = 'Probability plot - {} (log+1)'.format(name), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 224)
-    p.qpProbPlot(np.log1p(data), plot = ax)
+    p.prettyProbPlot(np.log1p(data), plot = ax)
     plt.xticks([]); plt.yticks([])
 
     # spacing
@@ -70,13 +69,13 @@ def edaTransformBoxCox(self, data, name, lmbda):
     
     ax = p.makeCanvas(title = 'Dist/KDE - {} (BoxCox, {})'.format(name,lmbda), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 223)
-    p.qpDist(special.boxcox1p(data, lmbda), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
+    p.prettyDist(special.boxcox1p(data, lmbda), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
     plt.xticks([]); plt.yticks([])
 
     # After, QQ plot
     ax = p.makeCanvas(title = 'Probability plot - {} (BoxCox, {})'.format(name,lmbda), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 224)
-    p.qpProbPlot(special.boxcox1p(data, lmbda), plot = ax)
+    p.prettyProbPlot(special.boxcox1p(data, lmbda), plot = ax)
     plt.xticks([]); plt.yticks([])
 
     # spacing

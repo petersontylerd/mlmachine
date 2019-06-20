@@ -39,10 +39,7 @@ def setup_package():
                                     ,'Programming Language :: Python :: 3'
                                     ,'Topic :: Software Development'
                                     ,'Topic :: Scientific/Engineering'
-                                    ,'Operating System :: Microsoft :: Windows'
-                                    ,'Operating System :: POSIX'
-                                    ,'Operating System :: Unix'
-                                    ,'Operating System :: MacOS'
+                                    ,'Operating System :: OS Independent'
                                  ],
                     python_requires = ">=3.5",
                     ],

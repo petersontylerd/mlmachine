@@ -54,7 +54,7 @@ class Machine():
 
     def __init__(self, data, removeFeatures = [], overrideCat = None, overrideNum = None, dateFeatures = None, target = None, targetType = None):
         """
-        Info:
+        Documentation:
             Description:
                 __init__ handles ingestion of main data set, identification of select
                 features to be removed (if any), identification of select features to
@@ -106,7 +106,7 @@ class Machine():
     
     def measLevel(self):
         """
-        Info:
+        Documentation:
             Description:
                 Isolate independent variables in X_.
                 If provided, isolate dependent variable y_.

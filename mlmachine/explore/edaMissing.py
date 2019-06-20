@@ -16,7 +16,6 @@ from IPython.display import display_html
 import os
 import sys
 
-# sys.path.append('/main')
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
@@ -35,7 +34,7 @@ def edaMissingSummary(self):
         p = PrettierPlot(fig = plt.figure(), chartProp = 15)
         ax = p.makeCanvas(title = 'Percent missing by feature', xLabel = '', yLabel = ''
                         ,yShift = 0.8, position = 221)
-        p.qpBarV(x = percentMissing.index
+        p.prettyBarV(x = percentMissing.index
                 ,counts = percentMissing['Percent missing']
                 ,labelRotate = 90 #if len(uniqueVals) >= 4 else 0
                 ,color = style.styleHexMid[2]
