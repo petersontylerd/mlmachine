@@ -1,4 +1,3 @@
-
 import os
 import sys
 import importlib
@@ -39,19 +38,19 @@ class Machine():
     from .model.tune.stack import modelParamBuilder, SklearnHelper, oofGenerator, paramExtractor, modelStacker
     from .model.evaluate.crossvalidate import rmsleCV
     
-    importlib.reload(explore.edaSuite)
-    importlib.reload(explore.edaTransform)
-    importlib.reload(explore.edaMissing)
-    importlib.reload(features.encode)
-    importlib.reload(features.impute)
-    importlib.reload(features.missing)
-    importlib.reload(features.outlier)
-    importlib.reload(features.scale)
-    importlib.reload(features.transform)
-    importlib.reload(model.tune.bayesianOptimSearch)
-    importlib.reload(model.tune.powerGridSearch)
-    importlib.reload(model.tune.stack)
-    importlib.reload(model.evaluate.crossvalidate)
+    # importlib.reload(explore.edaSuite)
+    # importlib.reload(explore.edaTransform)
+    # importlib.reload(explore.edaMissing)
+    # importlib.reload(features.encode)
+    # importlib.reload(features.impute)
+    # importlib.reload(features.missing)
+    # importlib.reload(features.outlier)
+    # importlib.reload(features.scale)
+    # importlib.reload(features.transform)
+    # importlib.reload(model.tune.bayesianOptimSearch)
+    # importlib.reload(model.tune.powerGridSearch)
+    # importlib.reload(model.tune.stack)
+    # importlib.reload(model.evaluate.crossvalidate)
 
     def __init__(self, data, removeFeatures = [], overrideCat = None, overrideNum = None, dateFeatures = None, target = None, targetType = None):
         """

@@ -16,9 +16,9 @@ from IPython.display import display_html
 import os
 import sys
 
-sys.path.append('/main')
-from quickplot.plotter import QuickPlot
-from quickplot import style
+# sys.path.append('/main')
+from prettierplot.plotter import PrettierPlot
+from prettierplot import style
 
 def edaMissingSummary(self):
     
@@ -32,7 +32,7 @@ def edaMissingSummary(self):
     if not percentMissing.empty:
         display(percentMissing)
         
-        p = QuickPlot(fig = plt.figure(), chartProp = 15)
+        p = PrettierPlot(fig = plt.figure(), chartProp = 15)
         ax = p.makeCanvas(title = 'Percent missing by feature', xLabel = '', yLabel = ''
                         ,yShift = 0.8, position = 221)
         p.qpBarV(x = percentMissing.index

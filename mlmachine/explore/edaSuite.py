@@ -16,9 +16,9 @@ from IPython.display import display_html
 import os
 import sys
 
-sys.path.append('/main')
-from quickplot.plotter import QuickPlot
-from quickplot import style
+# sys.path.append('/home')
+from prettierplot.plotter import PrettierPlot
+from prettierplot import style
 
 def edaCatTargetCatFeat(self, skipCols = []):
     """
@@ -86,7 +86,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
                 if 'PercentPositive' in biSummDf: biSummDf = biSummDf.drop(['PercentPositive'], axis = 1)
             
             # Instantiate charting object
-            p = QuickPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+            p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
                     
             # Univariate plot
             ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
@@ -170,7 +170,7 @@ def edaCatTargetNumFeat(self):
                                 ,names = ['Descriptive stats', 'Bivariate stats'])
             
         # Instantiate charting object
-        p = QuickPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+        p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
 
         # Univariate plot
         ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 151)
@@ -227,7 +227,7 @@ def edaNumTargetNumFeat(self):
         describeDf = pd.DataFrame(biDf[feature].describe()).reset_index()
         
         # Instantiate charting object
-        p = QuickPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+        p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
 
         # If continuous variable has fewer than a set number of unique variables, represent variable
         # as a categorical variable vs. a continuous target variable
@@ -353,7 +353,7 @@ def edaNumTargetCatFeat(self):
         
         ### Plots
         # Instantiate charting object
-        p = QuickPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+        p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
         
         # Univariate plot
         ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)

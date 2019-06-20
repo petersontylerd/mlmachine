@@ -33,9 +33,9 @@ import xgboost
 import lightgbm
 import catboost
 
-sys.path.append('/main')
-from quickplot.plotter import QuickPlot
-from quickplot import style
+# sys.path.append('/main')
+from prettierplot.plotter import PrettierPlot
+from prettierplot import style
 
 # set optimization parameters
 def objective(space, resultsDir = None, model = '', X = None, y = None, scoring = None
@@ -139,7 +139,7 @@ def lossPlot(self, resultsDf):
         lossDf = pd.DataFrame(np.stack((df['loss'], df['iteration'])
                                 ,axis = -1)
                             ,columns = ['loss','iteration'])
-        p = QuickPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
+        p = PrettierPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
         ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(clf), yShift = 0.8, position = 111)
         p.qpRegPlot(x = 'iteration'
                     ,y = 'loss'
@@ -156,7 +156,7 @@ def samplePlot(self, sampleSpace, nIter):
             theoreticalDist.append(sample(sampleSpace)[param])
         theoreticalDist = np.array(theoreticalDist)
 
-        p = QuickPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
+        p = PrettierPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
         ax = p.makeCanvas(title = 'Actual vs. theoretical plot\n* {}'.format(param), yShift = 0.8, position = 111)
         p.qpKde(theoreticalDist
                 ,color = style.styleHexMid[0]
@@ -196,7 +196,7 @@ def paramPlot(self, results, allSpace, nIter):
             # plot distributions for categorical params
             if any(isinstance(d, str) for d in theoreticalDist):
                 
-                p = QuickPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
+                p = PrettierPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
                 # theoretical plot
                 uniqueVals, uniqueCounts = np.unique(theoreticalDist, return_counts = True)
                 ax = p.makeCanvas(title = 'Theoretical plot\n* {}'.format(param), yShift = 0.8, position = 121)
@@ -228,7 +228,7 @@ def paramPlot(self, results, allSpace, nIter):
 
                 actualIterDf = actualIterDf.astype(convert_dict) 
                 
-                p = QuickPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
+                p = PrettierPlot(fig = plt.figure(), chartProp = 8, plotOrientation = 'square')
                 ax = p.makeCanvas(title = 'Actual vs. theoretical plot\n* {}'.format(param), yShift = 0.8, position = 121)
                 p.qpKde(theoreticalDist
                         ,color = style.styleHexMid[0]

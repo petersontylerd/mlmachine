@@ -17,15 +17,15 @@ from IPython.display import display_html
 import os
 import sys
 
-sys.path.append('/main')
-from quickplot.plotter import QuickPlot
-from quickplot import style
+# sys.path.append('/main')
+from prettierplot.plotter import PrettierPlot
+from prettierplot import style
 
 def edaTransformInitial(self, data, name):
     """
 
     """    
-    p = QuickPlot(fig = plt.figure(), chartProp = 15)
+    p = PrettierPlot(fig = plt.figure(), chartProp = 15)
     
     # Before, distribution / kernel density plot
     ax = p.makeCanvas(title = 'Dist/KDE - {} (Initial)'.format(name), xLabel = '', yLabel = ''
@@ -46,7 +46,7 @@ def edaTransformLog1(self, data, name):
     """
 
     """    
-    p = QuickPlot(fig = plt.figure(), chartProp = 15)
+    p = PrettierPlot(fig = plt.figure(), chartProp = 15)
     
     ax = p.makeCanvas(title = 'Dist/KDE - {} (log+1)'.format(name), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 223)
@@ -66,7 +66,7 @@ def edaTransformBoxCox(self, data, name, lmbda):
     """
 
     """    
-    p = QuickPlot(fig = plt.figure(), chartProp = 15)
+    p = PrettierPlot(fig = plt.figure(), chartProp = 15)
     
     ax = p.makeCanvas(title = 'Dist/KDE - {} (BoxCox, {})'.format(name,lmbda), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 223)
