@@ -15,7 +15,7 @@ PROJECT_URLS = {
     ,'Source Code': 'https://github.com/Petersontylerd/mlmachine'
 }
 URL = 'https://github.com/Petersontylerd/mlmachine'
-VERSION = '0.0.1'
+VERSION = '0.0.12'
 
 def setup_package():
     metadata = dict(name = DISTNAME
@@ -25,24 +25,30 @@ def setup_package():
                     ,keywords = ['Machine learning','Data science']
                     ,license = LICENSE
                     ,url = URL
-                    ,download_url = DOWNLOAD_URL
+                    # ,download_url = DOWNLOAD_URL
                     ,packages = setuptools.find_packages()
+                    # ,package_dir = {
+                    #     '' : 'mlmachine'
+                    # }
                     ,project_urls = PROJECT_URLS
                     ,version = VERSION
                     ,long_description = LONG_DESCRIPTION
-                    ,classifiers = ['Development Status :: 3 - Alpha'
-                                    ,'Intended Audience :: Data Scientists'
+                    ,classifiers = ['Development Status :: 2 - Pre-Alpha'
                                     ,'Intended Audience :: Developers'
                                     ,'Intended Audience :: Science/Research'
-                                    ,'Topic :: Machine Learning :: Data Science'
+                                    ,'Topic :: Scientific/Engineering'
+                                    ,'Topic :: Scientific/Engineering :: Artificial Intelligence'
+                                    ,'Topic :: Scientific/Engineering :: Information Analysis'
+                                    ,'Topic :: Scientific/Engineering :: Visualization'
+                                    ,'Topic :: Software Development'
+                                    ,'Topic :: Software Development :: Libraries :: Python Modules'
                                     ,'License :: OSI Approved :: MIT License'
                                     ,'Programming Language :: Python :: 3'
-                                    ,'Topic :: Software Development'
-                                    ,'Topic :: Scientific/Engineering'
                                     ,'Operating System :: OS Independent'
-                                 ],
-                    python_requires = ">=3.5",
-                    ],
+                                 ]
+                    ,python_requires = ">=3.5"
+                    # ,install_requires = []
+                    ,dependency_links = ['https://github.com/Petersontylerd/prettierplot']
                 )
 
     setuptools.setup(**metadata)
