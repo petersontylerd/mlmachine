@@ -28,6 +28,8 @@ def edaCatTargetCatFeat(self, skipCols = []):
             skipCols : list, default = None
             Column to skip over in visualization creation loop.
     """
+    sns.set(rc = style.rcGrey)
+
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['categorical']:
         if feature not in skipCols: 
@@ -92,7 +94,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
             
             p.prettyBarV(x = uniqueVals
                     ,counts = uniqueCounts
-                    ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
+                    ,labelRotate = 90 if len(uniqueVals) >= 4 and len(str(uniqueVals[0])) >= 5 else 0
                     ,color = style.styleHexMid[2]
                     ,yUnits = 'f'
                     ,ax = ax)                        
@@ -101,17 +103,20 @@ def edaCatTargetCatFeat(self, skipCols = []):
             ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 122)
             p.prettyFacetCat(df = biSummDf
                         ,feature = feature
-                        ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
+                        ,labelRotate = 90 if len(uniqueVals) >= 4 and len(str(uniqueVals[0])) >= 5 else 0
                         ,ax = ax)
+            # plt.subplots_adjust(hspace = 0.0, wspace = 0.0)
+            
             plt.show()
-        # else:
-        #     pass
+
 
 def edaCatTargetNumFeat(self):
     """
     Documentation:
         Description:
     """
+    sns.set(rc = style.rcGrey)
+
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['continuous']:
         
@@ -212,6 +217,8 @@ def edaNumTargetNumFeat(self):
     Documentation:
         Description:
     """
+    sns.set(rc = style.rcGrey)
+    
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['continuous']:
         
@@ -318,6 +325,8 @@ def edaNumTargetCatFeat(self):
     Documentation:
         Description:
     """
+    sns.set(rc = style.rcGrey)
+
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['categorical']:
         

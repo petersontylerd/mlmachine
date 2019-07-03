@@ -1,12 +1,6 @@
 import os
 import sys
 import importlib
-modulePath = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(modulePath) if modulePath not in sys.path else None
-
-import seaborn as sns
-sns.set_style('whitegrid')
-
 
 class Machine():
     """
@@ -19,8 +13,8 @@ class Machine():
             Consolidates class methods from several different sub-modules.
     """
     
-    # Import mlmachine modules
     
+    # Import mlmachine modules
     from .explore.edaSuite import edaNumTargetNumFeat, edaCatTargetCatFeat, edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
     from .explore.edaTransform import edaTransformInitial, edaTransformLog1, edaTransformBoxCox
     from .explore.edaMissing import edaMissingSummary
