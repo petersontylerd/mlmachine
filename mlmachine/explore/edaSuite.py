@@ -178,7 +178,7 @@ def edaCatTargetNumFeat(self):
 
         # Univariate plot
         ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 151)
-        p.prettyDist(biDf[(biDf[feature].notnull())][feature].values
+        p.prettyDistPlot(biDf[(biDf[feature].notnull())][feature].values
                 ,color = style.styleHexMid[2]
                 ,yUnits = 'ffff'
                 ,ax = ax)
@@ -191,7 +191,7 @@ def edaCatTargetNumFeat(self):
         # Bivariate kernel density plot
         ax = p.makeCanvas(title = 'KDE - Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 153)
         for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target[0]].values)):
-            p.prettyKde(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
+            p.prettyKdePlot(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
                     ,color = style.styleHexMid[ix]
                     ,yUnits = 'ffff'
                     ,ax = ax)
@@ -300,7 +300,7 @@ def edaNumTargetNumFeat(self):
 
             # Univariate plot
             ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 131)
-            p.prettyDist(biDf[(biDf[feature].notnull())][feature].values                                
+            p.prettyDistPlot(biDf[(biDf[feature].notnull())][feature].values                                
                     ,color = style.styleHexMid[2]
                     ,yUnits = 'ffff'
                     ,fit = stats.norm
