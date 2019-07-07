@@ -31,7 +31,7 @@ def edaMissingSummary(self):
     if not percentMissing.empty:
         display(percentMissing)
         
-        p = PrettierPlot(fig = plt.figure(), chartProp = 15)
+        p = PrettierPlot(chartProp = 15)
         ax = p.makeCanvas(title = 'Percent missing by feature', xLabel = '', yLabel = ''
                         ,yShift = 0.8, position = 221)
         p.prettyBarV(x = percentMissing.index

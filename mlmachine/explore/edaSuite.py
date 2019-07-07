@@ -87,7 +87,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
                 if 'PercentPositive' in biSummDf: biSummDf = biSummDf.drop(['PercentPositive'], axis = 1)
             
             # Instantiate charting object
-            p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+            p = PrettierPlot(chartProp = 15, plotOrientation = 'wide')
                     
             # Univariate plot
             ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
@@ -174,7 +174,7 @@ def edaCatTargetNumFeat(self):
                                 ,names = ['Descriptive stats', 'Bivariate stats'])
             
         # Instantiate charting object
-        p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+        p = PrettierPlot(chartProp = 15, plotOrientation = 'wide')
 
         # Univariate plot
         ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 151)
@@ -233,7 +233,7 @@ def edaNumTargetNumFeat(self):
         describeDf = pd.DataFrame(biDf[feature].describe()).reset_index()
         
         # Instantiate charting object
-        p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+        p = PrettierPlot(chartProp = 15, plotOrientation = 'wide')
 
         # If continuous variable has fewer than a set number of unique variables, represent variable
         # as a categorical variable vs. a continuous target variable
@@ -361,7 +361,7 @@ def edaNumTargetCatFeat(self):
         
         ### Plots
         # Instantiate charting object
-        p = PrettierPlot(fig = plt.figure(), chartProp = 15, plotOrientation = 'wide')
+        p = PrettierPlot(chartProp = 15, plotOrientation = 'wide')
         
         # Univariate plot
         ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
