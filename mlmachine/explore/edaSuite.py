@@ -28,7 +28,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
             skipCols : list, default = None
             Column to skip over in visualization creation loop.
     """
-    sns.set(rc = style.rcGrey)
+    # sns.set(rc = style.rcGrey)
 
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['categorical']:
@@ -86,27 +86,37 @@ def edaCatTargetCatFeat(self, skipCols = []):
                 self.dfSideBySide(dfs = (uniSummDf, biSummDf), names = ['Univariate summary', 'Biivariate summary'])
                 if 'PercentPositive' in biSummDf: biSummDf = biSummDf.drop(['PercentPositive'], axis = 1)
             
+            # set label rotation angle    
+            lenUniqueVal = len(uniqueVals)
+            avgLenUniqueVal = (sum(map(len, str(uniqueVals))) / len(uniqueVals))
+            if lenUniqueVal <= 4 and avgLenUniqueVal <= 12:
+                rotation = 0
+            elif lenUniqueVal >= 5 and lenUniqueVal <= 8 and avgLenUniqueVal <= 8:
+                rotation = 0
+            elif lenUniqueVal >= 9 and lenUniqueVal <= 14 and avgLenUniqueVal <= 4:
+                rotation = 0
+            else:
+                rotation = 90
+
             # Instantiate charting object
             p = PrettierPlot(chartProp = 15, plotOrientation = 'wide')
                     
             # Univariate plot
-            ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
+            ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), position = 121)
             
             p.prettyBarV(x = uniqueVals
                     ,counts = uniqueCounts
-                    ,labelRotate = 90 if len(uniqueVals) >= 4 and len(str(uniqueVals[0])) >= 5 else 0
+                    ,labelRotate = rotation
                     ,color = style.styleHexMid[2]
                     ,yUnits = 'f'
                     ,ax = ax)                        
             
             # Bivariate plot
-            ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 122)
+            ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), position = 122)
             p.prettyFacetCat(df = biSummDf
                         ,feature = feature
-                        ,labelRotate = 90 if len(uniqueVals) >= 4 and len(str(uniqueVals[0])) >= 5 else 0
+                        ,labelRotate = rotation
                         ,ax = ax)
-            # plt.subplots_adjust(hspace = 0.0, wspace = 0.0)
-            
             plt.show()
 
 
@@ -115,7 +125,7 @@ def edaCatTargetNumFeat(self):
     Documentation:
         Description:
     """
-    sns.set(rc = style.rcGrey)
+    # sns.set(rc = style.rcGrey)
 
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['continuous']:
@@ -177,19 +187,19 @@ def edaCatTargetNumFeat(self):
         p = PrettierPlot(chartProp = 15, plotOrientation = 'wide')
 
         # Univariate plot
-        ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 151)
+        ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), position = 151)
         p.prettyDistPlot(biDf[(biDf[feature].notnull())][feature].values
                 ,color = style.styleHexMid[2]
                 ,yUnits = 'ffff'
                 ,ax = ax)
         
         # Probability plot
-        ax = p.makeCanvas(title = 'Probability plot\n* {}'.format(feature), yShift = 0.8, position = 152)
+        ax = p.makeCanvas(title = 'Probability plot\n* {}'.format(feature), position = 152)
         p.prettyProbPlot(x = biDf[(biDf[feature].notnull())][feature].values
                     ,plot = ax)
         
         # Bivariate kernel density plot
-        ax = p.makeCanvas(title = 'KDE - Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 153)
+        ax = p.makeCanvas(title = 'KDE - Faceted by target\n* {}'.format(feature), position = 153)
         for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target[0]].values)):
             p.prettyKdePlot(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
                     ,color = style.styleHexMid[ix]
@@ -197,7 +207,7 @@ def edaCatTargetNumFeat(self):
                     ,ax = ax)
 
         # Bivariate histogram
-        ax = p.makeCanvas(title = 'Hist - Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 154)
+        ax = p.makeCanvas(title = 'Hist - Faceted by target\n* {}'.format(feature), position = 154)
         for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target[0]].values)):
             p.prettyFacetNum(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
                         ,color = style.styleHexMid[ix]
@@ -205,7 +215,7 @@ def edaCatTargetNumFeat(self):
                         ,alpha = 0.4)
 
         # Boxplot histogram
-        ax = p.makeCanvas(title = 'Boxplot - Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 155)
+        ax = p.makeCanvas(title = 'Boxplot - Faceted by target\n* {}'.format(feature), position = 155)
         p.prettyBoxPlotH(x = feature
                     ,y = self.target[0]
                     ,data = biDf
@@ -217,7 +227,7 @@ def edaNumTargetNumFeat(self):
     Documentation:
         Description:
     """
-    sns.set(rc = style.rcGrey)
+    # sns.set(rc = style.rcGrey)
     
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['continuous']:
@@ -243,6 +253,7 @@ def edaNumTargetNumFeat(self):
             
             # Bivariate summary statistics
             biSummStatsDf = pd.DataFrame(columns = [feature, 'Count', 'Proportion', 'Mean', 'StdDv'])                            
+            uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
             for featureVal in np.unique(biDf[feature].values):
                 featureSlice = biDf[(biDf[feature] == featureVal) & (biDf[feature].notnull())][feature]
             
@@ -257,31 +268,47 @@ def edaNumTargetNumFeat(self):
             # Display summary dataframes
             self.dfSideBySide(dfs = (describeDf, biSummStatsDf), names = ['Univariate stats', 'Bivariate stats'])
 
+            # set rotation angle
+            lenUniqueVal = len(uniqueVals)
+            avgLenUniqueVal = (sum(map(len, str(uniqueVals))) / len(uniqueVals))
+            if lenUniqueVal <= 4 and avgLenUniqueVal <= 12:
+                rotation = 0
+            elif lenUniqueVal >= 5 and lenUniqueVal <= 8 and avgLenUniqueVal <= 8:
+                rotation = 0
+            elif lenUniqueVal >= 9 and lenUniqueVal <= 14 and avgLenUniqueVal <= 4:
+                rotation = 0
+            else:
+                rotation = 90
+
             # Univariate plot
-            uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
-            ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 131)
-            p.prettyBarV(x = uniqueVals
+            ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), position = 131)
+            p.prettyBarV(x = list(map(str, uniqueVals.tolist()))
                 ,counts = uniqueCounts
-                ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
+                ,labelRotate = rotation
                 ,color = style.styleHexMid[2]
                 ,yUnits = 'f'
                 ,ax = ax)                        
 
             # Regression plot
-            ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), yShift = 0.8, position = 132)
+            ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), position = 132)
             p.prettyRegPlot(x = feature
                         ,y = self.target[0]
                         ,data = biDf[biDf[feature].notnull()]
                         ,x_jitter = .2
                         ,ax = ax)
-
+            
+            # hide every other label if total number of levels is less than 5
+            if lenUniqueVal <= 4:
+                xmin, xmax = ax.get_xlim()
+                ax.set_xticks(np.round(np.linspace(xmin, xmax, lenUniqueVal), 2))
+                
             # Bivariate box plot
-            ax = p.makeCanvas(title = 'Box plot - Faceted by\n* {}'.format(feature), yShift = 0.8, position = 133)
+            ax = p.makeCanvas(title = 'Box plot - Faceted by\n* {}'.format(feature), position = 133)
             p.prettyBoxPlotV(x = feature
                         ,y = self.target[0]
                         ,data = biDf[biDf[feature].notnull()]
                         ,color = style.genCmap(len(uniqueVals), [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]])
-                        ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
+                        ,labelRotate = rotation
                         ,ax = ax)
 
         # If continuous variable has greater than a set number of unique variables, represent variable
@@ -299,24 +326,26 @@ def edaNumTargetNumFeat(self):
             display(describeDf)
 
             # Univariate plot
-            ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), yShift = 0.8, position = 131)
+            ax = p.makeCanvas(title = 'Dist/KDE - Univariate\n* {}'.format(feature), position = 131)
             p.prettyDistPlot(biDf[(biDf[feature].notnull())][feature].values                                
                     ,color = style.styleHexMid[2]
                     ,yUnits = 'ffff'
                     ,fit = stats.norm
+                    ,xRotate = 45
                     ,ax = ax)
         
             # Probability plot
-            ax = p.makeCanvas(title = 'Probability plot\n* {}'.format(feature), yShift = 0.8, position = 132)
+            ax = p.makeCanvas(title = 'Probability plot\n* {}'.format(feature), position = 132)
             p.prettyProbPlot(x = biDf[(biDf[feature].notnull())][feature].values
                         ,plot = ax)
         
             # Regression plot
-            ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), yShift = 0.8, position = 133)
+            ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), position = 133)
             p.prettyRegPlot(x = feature
                         ,y = self.target[0]
                         ,data = biDf[biDf[feature].notnull()]
                         ,x_jitter = .1
+                        ,xRotate = 45
                         ,ax = ax)                            
         plt.show()
 
@@ -325,7 +354,7 @@ def edaNumTargetCatFeat(self):
     Documentation:
         Description:
     """
-    sns.set(rc = style.rcGrey)
+    # sns.set(rc = style.rcGrey)
 
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['categorical']:
@@ -364,7 +393,7 @@ def edaNumTargetCatFeat(self):
         p = PrettierPlot(chartProp = 15, plotOrientation = 'wide')
         
         # Univariate plot
-        ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), yShift = 0.8, position = 121)
+        ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), position = 121)
         
         # Select error catching block for resorting labels
         try:
@@ -376,25 +405,47 @@ def edaNumTargetCatFeat(self):
             newIx = [sorted(list(uniqueVals), key = int).index(i) for i in list(uniqueVals)]
             uniqueVals = np.array(sorted(list(uniqueVals), key = int))
             uniqueCounts = np.array([y for x,y in sorted(zip(newIx, uniqueCounts))])
-        
             # Sort temporary data frame for box plot
             biDf[feature] = biDf[feature].astype(int)
 
-        p.prettyBarV(x = uniqueVals
+        # set rotation angle
+        lenUniqueVal = len(uniqueVals)
+        avgLenUniqueVal = (sum(map(len, str(uniqueVals))) / len(uniqueVals))
+        if lenUniqueVal <= 4 and avgLenUniqueVal <= 12:
+            rotation = 0
+        elif lenUniqueVal >= 5 and lenUniqueVal <= 8 and avgLenUniqueVal <= 10:
+            rotation = 0
+        elif lenUniqueVal >= 9 and lenUniqueVal <= 14 and avgLenUniqueVal <= 6:
+            rotation = 0
+        else:
+            rotation = 90
+
+        p.prettyBarV(x = list(map(str, uniqueVals.tolist()))
                 ,counts = uniqueCounts
-                ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
+                ,labelRotate = rotation
                 ,color = style.styleHexMid[2]
                 ,yUnits = 'f'
-                ,ax = ax)                 
+                ,ax = ax)
+
+        # hide every other label if total number of levels is greater than 40
+        if lenUniqueVal > 40:
+            n = 2 
+            [l.set_visible(False) for (i,l) in enumerate(ax.xaxis.get_ticklabels()) if i % n != 0]           
                                 
         # Bivariate box plot
-        ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), yShift = 0.8, position = 122)
+        ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), position = 122)
         p.prettyBoxPlotV(x = feature
                     ,y = self.target[0]
                     ,data = biDf[biDf[feature].notnull()].sort_values([feature])
                     ,color = style.genCmap(len(uniqueVals), [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]])
-                    ,labelRotate = 90 if len(uniqueVals) >= 4 else 0
+                    ,labelRotate = rotation
                     ,ax = ax)                        
+        
+        # hide every other label if total number of levels is greater than 40
+        if lenUniqueVal > 40:
+            n = 2 
+            [l.set_visible(False) for (i,l) in enumerate(ax.xaxis.get_ticklabels()) if i % n != 0]           
+        
         plt.show()
 
 def dfSideBySide(self, dfs, names = []):
