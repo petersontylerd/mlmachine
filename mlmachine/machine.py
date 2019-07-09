@@ -1,6 +1,7 @@
 import os
 import sys
 import importlib
+import pandas as pd 
 
 class Machine():
     """
@@ -75,45 +76,41 @@ class Machine():
                 targetType : list, default = None
                     Target variable type, either 'categorical' or 'continuous'
             Attributes:
-                X_ : Pandas DataFrame
+                data : Pandas DataFrame
                     Independent variables
                 y_ : Pandas Series
-                    Dependent variables
+                    Dependent variable
                 featuresByDtype_ : dict
                     Dictionary containing two keys, continuous and categorical, each paired with a
                     value that is a list of column names that are of that feature type - continuous or categorical.
         """
         
-        self.data = data
         self.removeFeatures = removeFeatures
+        self.target = data[target].squeeze() if target is not None else None
+        self.data = data.drop(self.removeFeatures + [self.target.name], axis = 1)\
+                        if target is not None else data.drop(self.removeFeatures, axis = 1)
         self.overrideCat = overrideCat
         self.overrideNum = overrideNum
         self.dateFeatures = dateFeatures
-        self.target = target
         self.targetType = targetType
 
         # Execute method measLevel
         if self.target is not None:
-            self.X_, self.y_, self.featureByDtype_ = self.measLevel()
+            self.data, self.target, self.featureByDtype_ = self.measLevel()
         else:
-            self.X_, self.featureByDtype_ = self.measLevel()
+            self.data, self.featureByDtype_ = self.measLevel()
     
     def measLevel(self):
         """
         Documentation:
             Description:
-                Isolate independent variables in X_.
-                If provided, isolate dependent variable y_.
+                If provided, isolate dependent variable y_ and drop from data.
                 Determine level of measurement for each feature as categorical, continuous or date.
         """
         ### Identify target from features
         if self.target is not None:
-            self.y_ = self.data[self.target]
             self.cleanLabel()
-            self.X_ = self.data.drop(self.removeFeatures + self.target, axis = 1)
-        else:
-            self.X_ = self.data.drop(self.removeFeatures, axis = 1)            
-        
+            
         ### Add categorical and continuous keys, and any associated overrides
         self.featureByDtype_ = {}
         
@@ -139,17 +136,19 @@ class Machine():
         handled = [i for i in sum(self.featureByDtype_.values(), [])]
         
         ### Categorize remaining columns
-        for c in [i for i in self.X_.columns if i not in handled]:
+        for c in [i for i in self.data.columns if i not in handled]:
             
             # Identify feature type based on column data type
-            if str(self.X_[c].dtype).startswith(('int','float')):
+            if str(self.data[c].dtype).startswith(('int','float')):
                 self.featureByDtype_['continuous'].append(c)
-            elif str(self.X_[c].dtype).startswith(('object')):
+            elif str(self.data[c].dtype).startswith(('object')):
                 self.featureByDtype_['categorical'].append(c)
 
         ### Return objects
         if self.target is not None:
-            return self.X_, self.y_, self.featureByDtype_
+            return self.data, self.target, self.featureByDtype_
         else:
-            return self.X_, self.featureByDtype_
+            return self.data, self.featureByDtype_
 
+    def edaData(self, X, y):
+        return X.merge(y, left_index = True, right_index = True)

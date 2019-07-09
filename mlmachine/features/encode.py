@@ -14,19 +14,19 @@ def cleanLabel(self, reverse = False):
             a
         Parameters:
     """
-    if self.targetType == 'continuous':
-        self.y_ = self.y_.values.reshape(-1)
-    elif self.targetType == 'categorical':
+    if self.targetType == 'categorical':
         self.le_ = preprocessing.LabelEncoder()
 
-        self.y_ = self.le_.fit_transform(self.y_.values.reshape(-1))
+        self.target = pd.Series(self.le_.fit_transform(self.target.values.reshape(-1)), name = self.target.name)
         
         print('******************\nCategorical label encoding\n')
-        for origLbl, encLbl in zip(np.sort(self.le_.classes_), np.sort(np.unique(self.y_))):
+        for origLbl, encLbl in zip(np.sort(self.le_.classes_), np.sort(np.unique(self.target))):
             print('{} --> {}'.format(origLbl, encLbl))
+    # if self.targetType == 'continuous':
+    #     self.target = self.target.values.reshape(-1)
 
     if reverse:
-        self.y_ = self.le_.inverse_transform(self.y_)
+        self.target = self.le_.inverse_transform(self.target)
 
 class Dummies(base.TransformerMixin, base.BaseEstimator):
     """

@@ -6,12 +6,12 @@ def missingDataDropperAll(self):
     """
 
     """
-    missingCols = self.X_.isnull().sum()
+    missingCols = self.data.isnull().sum()
     missingCols = missingCols[missingCols > 0].index
-    self.X_ = self.X_.drop(missingCols, axis = 1)
+    self.data = self.data.drop(missingCols, axis = 1)
 
 def featureDropper(self, cols):
-    self.X_ = self.X_.drop(cols, axis = 1)
+    self.data = self.data.drop(cols, axis = 1)
 
 def missingColCompare(self, train, validation):
     trainMissing = train.isnull().sum()

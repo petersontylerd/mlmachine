@@ -22,8 +22,8 @@ from prettierplot import style
 def edaMissingSummary(self):
     
     
-    totalMissing = self.X_.isnull().sum()
-    percentMissing = self.X_.isnull().sum() / len(self.X_) * 100
+    totalMissing = self.data.isnull().sum()
+    percentMissing = self.data.isnull().sum() / len(self.data) * 100
     percentMissing = pd.DataFrame({'Total missing' : totalMissing, 'Percent missing' : percentMissing})
     percentMissing = percentMissing[~(percentMissing['Percent missing'].isna()) 
                                     & (percentMissing['Percent missing'] > 0)].sort_values(['Percent missing'] , ascending = False)

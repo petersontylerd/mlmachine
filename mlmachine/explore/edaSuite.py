@@ -28,14 +28,12 @@ def edaCatTargetCatFeat(self, skipCols = []):
             skipCols : list, default = None
             Column to skip over in visualization creation loop.
     """
-    # sns.set(rc = style.rcGrey)
-
     # Iterate through each feature within a feature type
     for feature in self.featureByDtype_['categorical']:
         if feature not in skipCols: 
             # Univariate summary
             uniSummDf = pd.DataFrame(columns = [feature, 'Count', 'Proportion'])
-            uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
+            uniqueVals, uniqueCounts = np.unique(self.data[self.data[feature].notnull()][feature], return_counts = True)
             for i, j in zip(uniqueVals, uniqueCounts):
                 uniSummDf = uniSummDf.append({feature : i
                                         ,'Count' : j
@@ -45,11 +43,10 @@ def edaCatTargetCatFeat(self, skipCols = []):
             uniSummDf = uniSummDf.sort_values(by = ['Proportion'], ascending = False)
             
             # Bivariate summary
-            biDf = pd.DataFrame(np.stack((self.X_[feature].values, self.y_)
-                                    ,axis = -1)
-                                ,columns = [feature, self.target[0]])
-            biSummDf = biDf.groupby([feature] + self.target).size().reset_index()\
-                                .pivot(columns = self.target[0], index = feature, values = 0)
+            biDf = pd.concat([self.data[feature], self.target], axis = 1)
+
+            biSummDf = biDf.groupby([feature] + [self.target.name]).size().reset_index()\
+                           .pivot(columns = self.target.name, index = feature, values = 0)
             
             multiIndex = biSummDf.columns
             singleIndex = pd.Index([i for i in multiIndex.tolist()])
@@ -57,7 +54,7 @@ def edaCatTargetCatFeat(self, skipCols = []):
             biSummDf.reset_index(inplace = True)
 
             # add PercentPositive column
-            if len(np.unique(self.y_)):
+            if len(np.unique(self.target)):
                 biSummDf['PercentPositive'] = (biSummDf[1] / (biSummDf[1] + biSummDf[0])) * 100
 
             # Execute z-test
@@ -68,8 +65,8 @@ def edaCatTargetCatFeat(self, skipCols = []):
                 totalObs2 = biDf[(biDf[feature] == np.unique(biDf[feature])[1])][feature].shape[0]
                 
                 # Total positive observations
-                posObs1 = biDf[(biDf[feature] == np.unique(biDf[feature])[0]) & (biDf[self.target[0]] == 1)][feature].shape[0]
-                posObs2 = biDf[(biDf[feature] == np.unique(biDf[feature])[1]) & (biDf[self.target[0]] == 1)][feature].shape[0]
+                posObs1 = biDf[(biDf[feature] == np.unique(biDf[feature])[0]) & (biDf[self.target.name] == 1)][feature].shape[0]
+                posObs2 = biDf[(biDf[feature] == np.unique(biDf[feature])[1]) & (biDf[self.target.name] == 1)][feature].shape[0]
                 
                 z, pVal = proportions_ztest(count = (posObs1, posObs2), nobs = (totalObs1, totalObs2))
                 
@@ -104,19 +101,21 @@ def edaCatTargetCatFeat(self, skipCols = []):
             # Univariate plot
             ax = p.makeCanvas(title = 'Univariate\n* {}'.format(feature), position = 121)
             
-            p.prettyBarV(x = uniqueVals
-                    ,counts = uniqueCounts
-                    ,labelRotate = rotation
-                    ,color = style.styleHexMid[2]
-                    ,yUnits = 'f'
-                    ,ax = ax)                        
+            p.prettyBarV(x = list(map(str, uniqueVals.tolist()))
+                        ,counts = uniqueCounts
+                        ,labelRotate = rotation
+                        ,color = style.styleHexMid[2]
+                        ,yUnits = 'f'
+                        ,ax = ax
+                )
             
             # Bivariate plot
             ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), position = 122)
             p.prettyFacetCat(df = biSummDf
-                        ,feature = feature
-                        ,labelRotate = rotation
-                        ,ax = ax)
+                            ,feature = feature
+                            ,labelRotate = rotation
+                            ,ax = ax
+                )
             plt.show()
 
 
@@ -131,15 +130,13 @@ def edaCatTargetNumFeat(self):
     for feature in self.featureByDtype_['continuous']:
         
         # Bivariate roll-up table
-        biDf = pd.DataFrame(np.stack((self.X_[feature].values, self.y_)
-                                ,axis = -1)
-                            ,columns = [feature, self.target[0]])
+        biDf = pd.concat([self.data[feature], self.target], axis = 1)
         
         # Bivariate summary statistics
         biSummStatsDf = pd.DataFrame(columns = [feature, 'Count', 'Proportion', 'Mean', 'StdDv'])
         
-        for labl in np.unique(self.y_):
-            featureSlice = biDf[biDf[self.target[0]] == labl][feature]
+        for labl in np.unique(self.target):
+            featureSlice = biDf[biDf[self.target.name] == labl][feature]
         
             biSummStatsDf = biSummStatsDf.append({feature : labl
                                                     ,'Count' : len(featureSlice)
@@ -162,9 +159,9 @@ def edaCatTargetNumFeat(self):
         describeDf = describeDf.rename(columns = {'index' : ''})
 
         # Execute z-test or t-test
-        if len(np.unique(self.y_)) == 2:
-            s1 = biDf[(biDf[self.target[0]] == biDf[self.target[0]].unique()[0]) & (biDf[feature].notnull())][feature]
-            s2 = biDf[(biDf[self.target[0]] == biDf[self.target[0]].unique()[1]) & (biDf[feature].notnull())][feature]
+        if len(np.unique(self.target)) == 2:
+            s1 = biDf[(biDf[self.target.name] == biDf[self.target.name].unique()[0]) & (biDf[feature].notnull())][feature]
+            s2 = biDf[(biDf[self.target.name] == biDf[self.target.name].unique()[1]) & (biDf[feature].notnull())][feature]
             if len(s1) > 30 and len(s2) > 30:
                 z, pVal = ztest(s1, s2)
                 
@@ -200,16 +197,16 @@ def edaCatTargetNumFeat(self):
         
         # Bivariate kernel density plot
         ax = p.makeCanvas(title = 'KDE - Faceted by target\n* {}'.format(feature), position = 153)
-        for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target[0]].values)):
-            p.prettyKdePlot(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
+        for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target.name].values)):
+            p.prettyKdePlot(biDf[(biDf[feature].notnull()) & (biDf[self.target.name] == labl)][feature].values
                     ,color = style.styleHexMid[ix]
                     ,yUnits = 'ffff'
                     ,ax = ax)
 
         # Bivariate histogram
         ax = p.makeCanvas(title = 'Hist - Faceted by target\n* {}'.format(feature), position = 154)
-        for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target[0]].values)):
-            p.prettyFacetNum(biDf[(biDf[feature].notnull()) & (biDf[self.target[0]] == labl)][feature].values
+        for ix, labl in enumerate(np.unique(biDf[(biDf[feature].notnull())][self.target.name].values)):
+            p.prettyHist(biDf[(biDf[feature].notnull()) & (biDf[self.target.name] == labl)][feature].values
                         ,color = style.styleHexMid[ix]
                         ,label = labl
                         ,alpha = 0.4)
@@ -217,7 +214,7 @@ def edaCatTargetNumFeat(self):
         # Boxplot histogram
         ax = p.makeCanvas(title = 'Boxplot - Faceted by target\n* {}'.format(feature), position = 155)
         p.prettyBoxPlotH(x = feature
-                    ,y = self.target[0]
+                    ,y = self.target.name
                     ,data = biDf
                     ,ax = ax)
         plt.show()
@@ -234,10 +231,13 @@ def edaNumTargetNumFeat(self):
         
         ### Summary tables
         # Define bivariate dataframe
-        biDf = pd.DataFrame(np.stack((self.X_[feature].values, self.y_)
-                                ,axis = -1)
-                            ,columns = [feature, self.target[0]])
-        biDf[self.target[0]] = biDf[self.target[0]].astype(float)
+        biDf = pd.concat([self.data[feature], self.target], axis = 1)
+        
+        # biDf = pd.DataFrame(np.stack((self.data[feature].values, self.y_)
+        #                         ,axis = -1)
+        #                     ,columns = [feature, self.target.name])
+        
+        biDf[self.target.name] = biDf[self.target.name].astype(float)
 
         # Define summary tables
         describeDf = pd.DataFrame(biDf[feature].describe()).reset_index()
@@ -253,7 +253,7 @@ def edaNumTargetNumFeat(self):
             
             # Bivariate summary statistics
             biSummStatsDf = pd.DataFrame(columns = [feature, 'Count', 'Proportion', 'Mean', 'StdDv'])                            
-            uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
+            uniqueVals, uniqueCounts = np.unique(self.data[self.data[feature].notnull()][feature], return_counts = True)
             for featureVal in np.unique(biDf[feature].values):
                 featureSlice = biDf[(biDf[feature] == featureVal) & (biDf[feature].notnull())][feature]
             
@@ -292,7 +292,7 @@ def edaNumTargetNumFeat(self):
             # Regression plot
             ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), position = 132)
             p.prettyRegPlot(x = feature
-                        ,y = self.target[0]
+                        ,y = self.target.name
                         ,data = biDf[biDf[feature].notnull()]
                         ,x_jitter = .2
                         ,ax = ax)
@@ -305,7 +305,7 @@ def edaNumTargetNumFeat(self):
             # Bivariate box plot
             ax = p.makeCanvas(title = 'Box plot - Faceted by\n* {}'.format(feature), position = 133)
             p.prettyBoxPlotV(x = feature
-                        ,y = self.target[0]
+                        ,y = self.target.name
                         ,data = biDf[biDf[feature].notnull()]
                         ,color = style.genCmap(len(uniqueVals), [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]])
                         ,labelRotate = rotation
@@ -342,7 +342,7 @@ def edaNumTargetNumFeat(self):
             # Regression plot
             ax = p.makeCanvas(title = 'Regression plot\n* {}'.format(feature), position = 133)
             p.prettyRegPlot(x = feature
-                        ,y = self.target[0]
+                        ,y = self.target.name
                         ,data = biDf[biDf[feature].notnull()]
                         ,x_jitter = .1
                         ,xRotate = 45
@@ -362,7 +362,7 @@ def edaNumTargetCatFeat(self):
         ### Summary tables
         # Univariate summary
         uniSummDf = pd.DataFrame(columns = [feature, 'Count', 'Proportion'])
-        uniqueVals, uniqueCounts = np.unique(self.X_[self.X_[feature].notnull()][feature], return_counts = True)
+        uniqueVals, uniqueCounts = np.unique(self.data[self.data[feature].notnull()][feature], return_counts = True)
         for i, j in zip(uniqueVals, uniqueCounts):
             uniSummDf = uniSummDf.append({feature : i
                                     ,'Count' : j
@@ -372,14 +372,17 @@ def edaNumTargetCatFeat(self):
         uniSummDf = uniSummDf.sort_values(by = ['Proportion'], ascending = False)
         
         # Bivariate summary
-        biDf = pd.DataFrame(np.stack((self.X_[feature].values, self.y_)
-                                ,axis = -1)
-                            ,columns = [feature, self.target[0]])
-        biDf[self.target[0]] = biDf[self.target[0]].astype(float)
+        biDf = pd.concat([self.data[feature], self.target], axis = 1)
+        
+        # biDf = pd.DataFrame(np.stack((self.data[feature].values, self.y_)
+        #                         ,axis = -1)
+        #                     ,columns = [feature, self.target.name])
+        
+        biDf[self.target.name] = biDf[self.target.name].astype(float)
         statsDict = {'N' : len, 'Median' : np.nanmedian, 'Mean' : np.nanmean, 'StdDev' : np.nanstd}
         biSummPivDf = pd.pivot_table(biDf
                                     ,index = feature
-                                    ,aggfunc = {self.target[0] : statsDict})
+                                    ,aggfunc = {self.target.name : statsDict})
         multiIndex = biSummPivDf.columns
         singleIndex = pd.Index([i[1] for i in multiIndex.tolist()])
         biSummPivDf.columns = singleIndex
@@ -421,11 +424,12 @@ def edaNumTargetCatFeat(self):
             rotation = 90
 
         p.prettyBarV(x = list(map(str, uniqueVals.tolist()))
-                ,counts = uniqueCounts
-                ,labelRotate = rotation
-                ,color = style.styleHexMid[2]
-                ,yUnits = 'f'
-                ,ax = ax)
+                    ,counts = uniqueCounts
+                    ,labelRotate = rotation
+                    ,color = style.styleHexMid[2]
+                    ,yUnits = 'f'
+                    ,ax = ax
+            )
 
         # hide every other label if total number of levels is greater than 40
         if lenUniqueVal > 40:
@@ -435,11 +439,12 @@ def edaNumTargetCatFeat(self):
         # Bivariate box plot
         ax = p.makeCanvas(title = 'Faceted by target\n* {}'.format(feature), position = 122)
         p.prettyBoxPlotV(x = feature
-                    ,y = self.target[0]
-                    ,data = biDf[biDf[feature].notnull()].sort_values([feature])
-                    ,color = style.genCmap(len(uniqueVals), [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]])
-                    ,labelRotate = rotation
-                    ,ax = ax)                        
+                        ,y = self.target.name
+                        ,data = biDf[biDf[feature].notnull()].sort_values([feature])
+                        ,color = style.genCmap(len(uniqueVals), [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]])
+                        ,labelRotate = rotation
+                        ,ax = ax
+            )                   
         
         # hide every other label if total number of levels is greater than 40
         if lenUniqueVal > 40:

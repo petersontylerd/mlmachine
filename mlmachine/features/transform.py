@@ -12,7 +12,7 @@ def skewSummary(self):
     """
 
     """
-    skewness = self.X_[self.featureByDtype_['continuous']].apply(lambda x: stats.skew(x.dropna())).sort_values(ascending = False)
+    skewness = self.data[self.featureByDtype_['continuous']].apply(lambda x: stats.skew(x.dropna())).sort_values(ascending = False)
     skewness = pd.DataFrame({'Skew' : skewness})
     
     # add column describing percent of values that are zero
@@ -20,7 +20,7 @@ def skewSummary(self):
     for col in self.featureByDtype_['continuous']:
 
         try:
-            skewness.loc[col]['PctZero'] = self.X_[self.X_[col] == 0][col].value_counts() / len(self.X_)
+            skewness.loc[col]['PctZero'] = self.data[self.data[col] == 0][col].value_counts() / len(self.data)
         except ValueError:
             skewness.loc[col]['PctZero'] = 0.0
     skewness = skewness.sort_values(['Skew'])
@@ -323,7 +323,7 @@ def featureDropper(self, cols):
     """
     for col in cols:
         # delete colummn from data from
-        self.X_ = self.X_.drop([col], axis = 1)
+        self.data = self.data.drop([col], axis = 1)
         
         # delete column name from featureByDtype dict
         if col in self.featureByDtype_['categorical']:
