@@ -29,7 +29,7 @@ def edaTransformInitial(self, data, name):
     # Before, distribution / kernel density plot
     ax = p.makeCanvas(title = 'Dist/KDE - {} (Initial)'.format(name), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 221)
-    p.prettyDist(data, color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
+    p.prettyDistPlot(data, color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
     plt.xticks([]); plt.yticks([])
 
     # Before, QQ plot
@@ -49,7 +49,7 @@ def edaTransformLog1(self, data, name):
     
     ax = p.makeCanvas(title = 'Dist/KDE - {} (log+1)'.format(name), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 223)
-    p.prettyDist(np.log1p(data), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
+    p.prettyDistPlot(np.log1p(data), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
     plt.xticks([]); plt.yticks([])
 
     # After, QQ plot
@@ -69,7 +69,7 @@ def edaTransformBoxCox(self, data, name, lmbda):
     
     ax = p.makeCanvas(title = 'Dist/KDE - {} (BoxCox, {})'.format(name,lmbda), xLabel = '', yLabel = ''
                     ,yShift = 0.8, position = 223)
-    p.prettyDist(special.boxcox1p(data, lmbda), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
+    p.prettyDistPlot(special.boxcox1p(data, lmbda), color = style.styleHexMid[0], fit = stats.norm, xRotate = True, ax = ax)
     plt.xticks([]); plt.yticks([])
 
     # After, QQ plot
