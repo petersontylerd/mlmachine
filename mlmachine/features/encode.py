@@ -9,10 +9,12 @@ from collections import defaultdict
 
 def cleanLabel(self, reverse = False):
     """
-    Info:
+    Documentation:
         Description:
-            a
+            Encode label into numerical form.
         Parameters:
+            reverse : boolean, default = False
+                Reverses encoding of target variables back to original variables.
     """
     if self.targetType == 'categorical':
         self.le_ = preprocessing.LabelEncoder()
@@ -22,18 +24,24 @@ def cleanLabel(self, reverse = False):
         print('******************\nCategorical label encoding\n')
         for origLbl, encLbl in zip(np.sort(self.le_.classes_), np.sort(np.unique(self.target))):
             print('{} --> {}'.format(origLbl, encLbl))
-    # if self.targetType == 'continuous':
-    #     self.target = self.target.values.reshape(-1)
-
+    
     if reverse:
         self.target = self.le_.inverse_transform(self.target)
 
 class Dummies(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
-        Description: 
-            Create dummy columns for specified nominal 
-            features.
+    Documentation:
+        Description:
+            Create dummy columns for specified nominal features.
+        Parameters:
+            cols : list
+                List containing column(s) to be transformed.
+            dropFirst : boolean, default = True
+                Dictates whether pd.get_dummies automatically drops of the dummy columns.
+                Help to avoid multicollinearity.        
+        Returns:
+            X : array
+                Dataset with dummy column representation of input variables.
     """
     def __init__(self, cols, dropFirst = True):
         self.cols = cols
@@ -48,14 +56,19 @@ class Dummies(base.TransformerMixin, base.BaseEstimator):
 
 class MissingDummies(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
-        Description: 
-            If the test set is missing a level in a column, and
-            therefore does now have the data necessary to create all dummy columns
-            that were created in the test set, this class will add that dummy 
-            column for the missing level and fill it with zeros.
+    Documentation:
+        Description:
+            Intended to be used on test/validation data sets. If a feature in the test set is 
+            missing a category level, and therefore does not have the data necessary to create 
+            all dummy columns that were created in the training set, this class will add that 
+            dummy column for the missing level and fill it with zeros.
         Parameters:
-
+            trainCols : list
+                List containing the columns of the training dataset that have already been
+                transformed using pd.get_dummies().
+        Returns:
+            X : array
+                Dataset with dummy column representation of input variables.
     """
     def __init__(self, trainCols):
         self.trainCols = trainCols
@@ -72,22 +85,25 @@ class MissingDummies(base.TransformerMixin, base.BaseEstimator):
 
 class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
             Encode ordinal categorical columns. Capable of fit_transforming
             new data, as well as transforming validation data with the same
-            encodings.
+            encodings used on the training data.
         Parameters:
             cols : list
-                List of features to be encoded
+                List of features to be encoded.
             train : boolean, default = True
-                Controls whether to fit_transform training data or
-                transform validation data using encoder fit on 
-                training data
+                Controls whether to fit_transform training data or transform 
+                validation data using encoder fit on training data.
             trainDict : dict, default = None
-                Dictionary containing feature : LabelEncoder() pairs to be used
+                Dictionary containing 'feature : LabelEncoder()' pairs to be used
                 to transform validation data. Only used when train = False.
-                Variable to be retrieved is called colValueDict_
+                Variable to be retrieved from traing pipeline is called colValueDict_.
+        Returns:
+            X : array
+                Dataset with encoded versions of input variables.
+
     """        
     def __init__(self, cols, train = True, trainDict = None):
         self.cols = cols
@@ -110,14 +126,17 @@ class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
 
 class CustomOrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Encode ordinal categorical columns using custom encodings. 
-            
+            Encode ordinal categorical columns using custom encodings. This is useful
+            for ensuring an ordinal column is encoded in a specific order.
         Parameters:
             encodings : dict
-                Dictionary of dictionaries containing columns / encoding
-                instructions
+                Dictionary of dictionaries containing 'columns : encoding'
+                pairs that proscribe encoding instructions.
+        Returns:
+            X : array
+                Dataset with encoded versions of input variables.
     """        
     def __init__(self, encodings):
         self.encodings = encodings

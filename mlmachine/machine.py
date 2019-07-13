@@ -7,15 +7,11 @@ class Machine():
     """
     Info:
         Description:
-            Main class for handling several machine learning tasks, including
-            data cleaning, feature encoding, exploratory data analysis, data
-            prepation, model building, model tuning and model evaluation.
-
-            Consolidates class methods from several different sub-modules.
+            Machine facilitates machine learning tasks spanning a typicaly end-to-end 
+            machine learning pipeline, including data cleaning, feature encoding, exploratory 
+            data analysis, data prepation, model building, model tuning and model evaluation.
     """
-    
-    
-    # Import mlmachine modules
+    # Import mlmachine submodules
     from .explore.edaSuite import edaNumTargetNumFeat, edaCatTargetCatFeat, edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
     from .explore.edaTransform import edaTransformInitial, edaTransformLog1, edaTransformBoxCox
     from .explore.edaMissing import edaMissingSummary
@@ -53,38 +49,37 @@ class Machine():
             Description:
                 __init__ handles ingestion of main data set, identification of select
                 features to be removed (if any), identification of select features to
-                be considered as categorical despite the features' data type (if any), 
+                be considered as categorical despite the feature data type(s) (if any), 
                 identification of select features to be considered as numerical despite 
-                the features' data type (if any), identification of select features to be
-                considered as date features (if any), identification of the feature 
+                the feature data type(s) (if any), identification of select features to be
+                considered as calendar date features (if any), identification of the feature 
                 representing the target (if there is one) and the type of target. Returns
                 data frame of independent variables, series containing dependent variable
                 and a dictionary that categorizes features by data type.
             Parameters:
                 data : Pandas DataFrame
-                    Input data
+                    Input data provided as a Pandas DataFrame.
                 removeFeatures : list, default = []
-                    Features to be completely removed from dataset
+                    Features to be completely removed from dataset.
                 overrideCat : list, default = None
-                    Preidentified categorical features that would otherwise be labeled as continuous
-                overrideCNum : list, default = None
-                    Preidentified continuous features that would otherwise be labeled as categorical
+                    Preidentified categorical features that would otherwise be labeled as continuous.
+                overrideNum : list, default = None
+                    Preidentified continuous features that would otherwise be labeled as categorical.
                 dateFeatures : list, default = None
-                    Features comprised of date values, which will need to be handled differently
+                    Features comprised of calendar date values.
                 target : list, default = None
-                    Name of column containing dependent variable
+                    Name of column containing dependent variable.
                 targetType : list, default = None
                     Target variable type, either 'categorical' or 'continuous'
             Attributes:
                 data : Pandas DataFrame
-                    Independent variables
-                y_ : Pandas Series
-                    Dependent variable
+                    Independent variables returned as a Pandas DataFrame
+                target : Pandas Series
+                    Dependent variable returned as a Pandas Series
                 featuresByDtype_ : dict
-                    Dictionary containing two keys, continuous and categorical, each paired with a
-                    value that is a list of column names that are of that feature type - continuous or categorical.
-        """
-        
+                    Dictionary contains keys 'continuous', 'categorical' and/or 'date'. The corresponding values
+                    are lists of column names that are of that feature type.
+        """        
         self.removeFeatures = removeFeatures
         self.target = data[target].squeeze() if target is not None else None
         self.data = data.drop(self.removeFeatures + [self.target.name], axis = 1)\
@@ -94,7 +89,7 @@ class Machine():
         self.dateFeatures = dateFeatures
         self.targetType = targetType
 
-        # Execute method measLevel
+        # execute method measLevel
         if self.target is not None:
             self.data, self.target, self.featureByDtype_ = self.measLevel()
         else:
@@ -104,17 +99,17 @@ class Machine():
         """
         Documentation:
             Description:
-                If provided, isolate dependent variable y_ and drop from data.
                 Determine level of measurement for each feature as categorical, continuous or date.
+                Isolate dependent variable 'target', if provided, and drop from 'data' object.
         """
-        ### Identify target from features
+        ### identify target from features
         if self.target is not None:
             self.cleanLabel()
             
-        ### Add categorical and continuous keys, and any associated overrides
+        ### add categorical and continuous keys, and any associated overrides
         self.featureByDtype_ = {}
         
-        # Categorical
+        # categorical
         if self.overrideCat is None:
             self.featureByDtype_['categorical'] = []
         else:
@@ -126,29 +121,45 @@ class Machine():
         else:
             self.featureByDtype_['continuous'] = self.overrideNum
         
-        # Date
+        # date
         if self.dateFeatures is None:
             self.featureByDtype_['date'] = []
         else:
             self.featureByDtype_['date'] = self.dateFeatures
         
-        # Combined dictionary values for later filtering
+        # combined dictionary values for later filtering
         handled = [i for i in sum(self.featureByDtype_.values(), [])]
         
-        ### Categorize remaining columns
+        ### categorize remaining columns
         for c in [i for i in self.data.columns if i not in handled]:
             
-            # Identify feature type based on column data type
+            # identify feature type based on column data type
             if str(self.data[c].dtype).startswith(('int','float')):
                 self.featureByDtype_['continuous'].append(c)
             elif str(self.data[c].dtype).startswith(('object')):
                 self.featureByDtype_['categorical'].append(c)
 
-        ### Return objects
+        ### return objects
         if self.target is not None:
             return self.data, self.target, self.featureByDtype_
         else:
             return self.data, self.featureByDtype_
 
     def edaData(self, X, y):
+        """
+        Documentation:
+            Description:
+                Simple helper function for mergeing together the 'data' variable and
+                'target' variable. Intended to be used primarily when when it makes
+                sense to pass the full combined dataset into a data visualization
+                function.
+            Parameters:
+                X : Pandas DataFrame
+                    Pandas DataFrame containing independent variables
+                y : Pandas DataFrame
+                    Pandas Series containing dependent target variable.
+            Return:
+                x : Pandas DataFrame
+                    Pandas DataFrame containing combined independent and dependent variables.
+        """        
         return X.merge(y, left_index = True, right_index = True)

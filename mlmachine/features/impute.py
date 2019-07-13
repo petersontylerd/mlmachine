@@ -6,27 +6,28 @@ import sklearn.base as base
 import sklearn.impute as impute
 
 
-class ModeImputer(base.TransformerMixin):
+class ModeImputer(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Impute columns with mode value. Imputes training data 
-            features, and stores mode values to be used on
-            validation and unseen data.
+            Impute columns with mode value. Imputes training data features, and stores
+            mode values to be used on validation and unseen data.
         Parameters:
             cols : list
-                List of features to be imputer
+                List of features to be imputed.
             train : boolean, default = True
-                Tells class whether we are imputing training data or unseen
-                data.
+                Tells class whether we are imputing training data or unseen data.
             trainDict : dict, default = None
-                Dictionary containing feature : mode pairs to be used
-                to transform validation data. Only used when train = False.
-                Retrieved from training data pipeline using named steps.
-                Variable to be retrieved is called colValueDict_.
+                Dictionary containing 'feature : mode value' pairs to be used to transform 
+                validation data. Only used when train = False. Retrieved from training 
+                data pipeline using named steps. Variable to be retrieved from traing 
+                pipeline is called colValueDict_.
+        Returns:
+            X : array
+                Dataset where each column with missing values has been imputed with the mode
+                value of each particular columns.
     """    
-    def __init__(self, cols, train = True, trainDict = None):
-        
+    def __init__(self, cols, train = True, trainDict = None):        
         self.cols = cols
         self.train = train
         self.trainDict = trainDict
@@ -50,27 +51,30 @@ class ModeImputer(base.TransformerMixin):
                 X[col] = X[col].fillna(self.trainDict[col])
         return X
         
-class NumericalImputer(base.TransformerMixin):
+class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Impute numerical columns with certain value, as specified
-            by the strategy parameter. Imputes training data features, and stores 
-            impute values to be used on validation and unseen data.
+            Impute numerical columns with certain value, as specified by the strategy 
+            parameter. Imputes training data features, and stores imputed values to be 
+            used on validation and unseen data.
         Parameters:
             cols : list
-                List of features to be imputer
+                List of features to be imputed.
             strategy : string, default = 'mean
-                Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'
+                Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'.
             train : boolean, default = True
-                Tells class whether we are imputing training data or unseen
-                data.
+                Tells class whether we are imputing training data or unseen data.
             trainDict : dict, default = None
-                Dictionary containing feature : value pairs to be used
-                to transform validation data. Only used when train = False.
-                Retrieved from training data pipeline using named steps.
-                Variable to be retrieved is called colValueDict_.
-    """    
+                Dictionary containing 'feature : value' pairs to be used to transform 
+                validation data. Only used when train = False. Retrieved from training 
+                data pipeline using named steps. Variable to be retrieved from traing 
+                pipeline is called colValueDict_.
+        Returns:
+            X : array
+                Dataset where each column with missing values has been imputed with a value 
+                learned from a particular strategy.
+        """    
     def __init__(self, cols, strategy = 'mean', train = True, trainDict = None):
         self.cols = cols
         self.strategy = strategy
@@ -97,19 +101,23 @@ class NumericalImputer(base.TransformerMixin):
                 X[col] = X[col].fillna(self.trainDict[col][0])
         return X
 
-class ConstantImputer(base.TransformerMixin):
+class ConstantImputer(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Impute specified columns with a specific value. Intended to
-            be used when a missing value conveys that an observation does not
-            have that attribute. If column dtype is string, fill with 'Absent'.
-            If column dtype is numerical, fill with 0.
+            Impute specified columns with a specific value. Intended to be used when a 
+            missing value conveys that an observation does not have that attribute. If 
+            column dtype is string, fill with 'Absent'. If column dtype is numerical, fill 
+            with 0.
         Parameters:
             cols : list
-                List of features to be imputer
+                List of features to be imputed.
             fill : str, default = 'Absent'
-                Default fill value
+                Default fill value.
+        Returns:
+            X : array
+                Dataset where each column with missing values has been imputed the specified
+                fill value.
     """    
     def __init__(self, cols, fill = 'Absent'):
         self.cols = cols
@@ -125,28 +133,31 @@ class ConstantImputer(base.TransformerMixin):
         return X
 
 
-class ContextImputer(base.TransformerMixin):
+class ContextImputer(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Impute numerical columns with certain value, as specified
-            by the strategy parameter. Imputes training data features, and stores 
-            impute values to be used on validation and unseen data.
+            Impute numerical columns with certain value, as specified by the strategy parameter. Also
+            utilizes one or more additional context columns as a group by value to add more subtlety to 
+            fill-value identification. Imputes training data features, and stores impute values to be used 
+            on validation and unseen data.
         Parameters:
             nullCol : list
-                Column with nulls to be imputed
+                Column with nulls to be imputed.
             contextCol : list
-                Columns to group by 
+                List of one or most columns to group by to add context to null column. 
             strategy : string, default = 'mean'
-                Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'
+                Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'.
             train : boolean, default = True
-                Tells class whether we are imputing training data or unseen
-                data.
+                Tells class whether we are imputing training data or unseen data.
             trainDf : dict, default = None
-                Dataframe containing values to be mapped to replace nulls
-                in validation data. Only used when train = False. Retrieved 
-                from training data pipeline using named steps. Variable to 
-                be retrieved is called fillDf.
+                Dataframe containing values to be mapped to replace nulls in validation data. Only used when 
+                train = False. Retrieved from training data pipeline using named steps. Variable to be retrieved 
+                from training pipeline is called fillDf.
+        Returns:
+            X : array
+                Dataset where each column with missing values has been imputed with a value learned from a particular 
+                strategy while also consider select columns as a group by variable.
     """    
     def __init__(self, nullCol, contextCol, strategy = 'mean', train = True, trainDf = None):
         self.nullCol = nullCol

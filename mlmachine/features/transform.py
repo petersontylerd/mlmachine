@@ -10,7 +10,10 @@ import sklearn.base as base
 
 def skewSummary(self):
     """
-
+    Documentation:
+        Description:
+            Displays Pandas DataFrame summarizing the skew of each continuous variable. Also summarizes
+            the percent of a column that has a value of zero.
     """
     skewness = self.data[self.featureByDtype_['continuous']].apply(lambda x: stats.skew(x.dropna())).sort_values(ascending = False)
     skewness = pd.DataFrame({'Skew' : skewness})
@@ -28,33 +31,31 @@ def skewSummary(self):
     
 class SkewTransform(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Performs Box-Cox +1 transformation on continuous features
-            with an absolute skew value above skewMin. The lambda chosen
-            for each feature is the value that gets the skew closest to
-            zero. The same lambda values are reused on unseen data.
+            Performs Box-Cox + 1 transformation on continuous features with an absolute skew 
+            value above skewMin. The lambda chosen for each feature is the value that gets the 
+            skew closest to zero. The same lambda values are reused on unseen data.
         Parameters:
-            skewMin : float
-                Minimum absolute skew of feature needed in order 
-                for feature to be transformed
-            pctZeroMax : float
-                Maximum percent zero values a column is allowed to have
-                in order to be transformed. Must be a value between 0.0 and 1.0.
-            contCols : list
-                List of columns to be evaluated for transformation
+            cols : list, default = None
+                List of columns to be evaluated for transformation.
+            skewMin : float, default = None
+                Minimum absolute skew of feature needed in order for feature to be transformed.
+            pctZeroMax : float, default = None
+                Maximum percent zero values a column is allowed to have in order to be transformed. 
+                Must be a value between 0.0 and 1.0.
             train : boolean, default = True
-                Controls whether to fit_transform training data or
-                transform validation data using lambdas determined
-                from training data
+                Controls whether to fit_transform training data or transform validation data using 
+                lambdas determined from training data.
             classDict : dict, default = None
-                Dictionary containing feature : lambda pairs to be used
-                to transform validation data using Box-Cox +1 transformation. 
-                Only used when train = False. Variable to be retrieved is 
-                called colValueDict_.
+                Dictionary containing 'feature : lambda' pairs to be used to transform validation data 
+                using Box-Cox + 1 transformation. Only used when train = False. Variable to be retrieved 
+                from train pipeline from traing pipeline is called colValueDict_..
+        Returns:
+            X : array
+                Box-Cox + 1 transformed input data.
     """
-    def __init__(self, cols = None, skewMin = None, pctZeroMax = None, train = True, trainDict = None):
-        
+    def __init__(self, cols = None, skewMin = None, pctZeroMax = None, train = True, trainDict = None):        
         self.cols = cols
         self.skewMin = skewMin
         self.pctZeroMax = pctZeroMax
@@ -99,29 +100,31 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 X[col] = special.boxcox1p(X[col], lmbda)
         return X
 
-class EqualBinner(base.TransformerMixin):
+class EqualBinner(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
             Bin continuous columns into specified segments. Bins training data 
             features, and stores the cut points to be used on validation and
             unseen data.
         Parameters:
-            equalBinDict : dictionary
-                Dictionary containing col : label pairs. Custom bin labels to be 
+            equalBinDict : dictionary, default = None
+                Dictionary containing 'column : label' pairs. Custom bin labels to be 
                 used for each paired column. The bin size is calculated based off 
                 of the label length. The labels are expected to be a list that 
                 describes how the bins should be named, i.e. a label list of
                 ['low','med','high'] will instruct the binner to create three bins
                 and then call each bin 'low','med' and 'high'.
             train : boolean, default = True
-                Tells class whether we are binning training data or unseen
-                data.
+                Tells class whether we are binning training data or unseen data.
             trainDict : dict, default = None
-                Dictionary containing feature : mode pairs to be used
-                to transform validation data. Only used when train = False.
-                Retrieved from training data pipeline using named steps.
-                Variable to be retrieved is called colValueDict_.
+                Dictionary containing 'feature : mode' pairs to be used to transform 
+                validation data. Only used when train = False. Retrieved from training 
+                data pipeline using named steps. Variable to be retrieved from traing 
+                pipeline is called colValueDict_..
+        Returns:
+            X : array
+                Dataset with additional columns represented binned versions of input columns.
     """
     def __init__(self, equalBinDict = None, train = True, trainDict = None):
         self.equalBinDict = equalBinDict
@@ -138,7 +141,7 @@ class EqualBinner(base.TransformerMixin):
             # create shell dictionary to store learned bins for each column
             self.trainDict_ = {}
             
-            # iterate through col : label pairs
+            # iterate through column : label pairs
             for col, label in self.equalBinDict.items():
                 
                 # retrieve bin cutoffs from original column
@@ -170,9 +173,9 @@ class EqualBinner(base.TransformerMixin):
                 # X['{}{}'.format(col,'EqualBin')] = X['{}{}'.format(col,'EqualBin')].astype('int64')
         return X
 
-class PercentileBinner(base.TransformerMixin):
+class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
             Bin continuous columns into segments based on percentile cut-offs.
         Parameters:
@@ -180,11 +183,17 @@ class PercentileBinner(base.TransformerMixin):
                 List of colummns to be binned. The percentiles are derived from 
                 the raw data.
             percs : list
-                a
+                Percentiles for determining cut-off points for bins.
             train : boolean, default = True
-                a
-            trainDict : dict
-                a
+                Tells class whether we are binning training data or unseen data.
+            trainDict : dict, default = None
+                Dictionary containing 'feature : mode' pairs to be used to transform 
+                validation data. Only used when train = False. Retrieved from training 
+                data pipeline using named steps. Variable to be retrieved from traing 
+                pipeline is called colValueDict_..
+        Returns:
+            X : array
+                Dataset with additional columns represented binned versions of input columns.
     """
     def __init__(self, cols = None, percs = None, train = True, trainDict = None):
         self.cols = cols
@@ -207,9 +216,6 @@ class PercentileBinner(base.TransformerMixin):
                 # create empty PercBin column
                 binCol = '{}PercBin'.format(col)
                 X[binCol] = np.nan
-                
-                # append featureDtype dict
-                # self.featureByDtype_['categorical'].append(binCol)
                 
                 # determine percentile cut-offs
                 percVals = []
@@ -247,9 +253,6 @@ class PercentileBinner(base.TransformerMixin):
                 binCol = '{}PercBin'.format(col)
                 X[binCol] = np.nan
 
-                # append featureDtype dict
-                # self.featureByDtype_['categorical'].append(binCol)
-                
                 # iterate through bin values
                 for ix, ceil in enumerate(self.trainDict[col]):
                     # first item
@@ -270,15 +273,18 @@ class PercentileBinner(base.TransformerMixin):
                 X[binCol] = X[binCol].astype('int64')           
         return X
 
-class CustomBinner(base.TransformerMixin):
+class CustomBinner(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
             Bin continuous columns into custom segments.
         Parameters:
             customBinDict : dictionary
-                Dictionary containing col : bin specifcation pairs. Bin
-                specification should be a list.
+                Dictionary containing 'column : bin' specifcation pairs. Bin specifications 
+                should be a list.
+        Returns:
+            X : array
+                Dataset with additional columns represented binned versions of input columns.
     """
     def __init__(self, customBinDict):
         self.customBinDict = customBinDict
@@ -319,7 +325,12 @@ class CustomBinner(base.TransformerMixin):
 
 def featureDropper(self, cols):
     """
-    
+    Documentation:
+        Description:
+            Removes feature from dataset and from self.featureByDtype_.
+        Parameters:
+            cols : list
+                List of features to be dropped.
     """
     for col in cols:
         # delete colummn from data from

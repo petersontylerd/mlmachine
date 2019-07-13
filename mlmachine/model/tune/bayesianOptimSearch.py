@@ -41,7 +41,14 @@ from prettierplot import style
 def objective(space, resultsDir = None, model = '', X = None, y = None, scoring = None
                 ,n_folds = None, n_jobs = None, verbose = None):
     """
-
+    Documentation:
+        Description:
+            desc
+        Parameters:
+            desc : asdf, default = 
+                desc
+        Returns:
+            desc
     """
     global ITERATION
     ITERATION = 0

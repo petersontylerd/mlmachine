@@ -12,24 +12,27 @@ warnings.filterwarnings(action = 'ignore', category = DataConversionWarning)
 
 class Standard(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Apply standard scaling. Capable of fit_transforming new data, 
-            as well as transforming validation data with the same
-            parameters.
+            Apply standard scaling. Capable of fit_transforming new data, as well 
+            as transforming validation data with the same parameters.
         Parameters:
-            cols : str
+            cols : str, default = 'all'
                 String describing which columns to scale. Takes values 'all',
                 which will scale all columns and 'non-binary', which filters out
-                dummy columns. These are identified by virtue of these columns
+                dummy columns. These are identified by virtue of dummy columns
                 having a data type of 'uint8'.
             train : boolean, default = True
-                Controls whether to fit_transform training data or
-                transform validation data using fit on training data
+                Controls whether to fit_transform training data or transform 
+                validation data using parameters learning from the fit on training 
+                data.
             trainDict : dict, default = None
-                Dictionary containing feature : StandardScalar() pairs to be used
-                to transform validation data. Only used when train = False.
-                Variable to be retrieved is called colValueDict_
+                Dictionary containing 'feature : StandardScalar()' pairs to be used
+                to transform validation data. Only used when train = False. Variable 
+                to be retrieved from traing pipeline is called colValueDict_.
+        Returns:
+            X : array
+                Dataset with standard scaled versions of input columns.
     """        
     def __init__(self, cols = 'all', train = True, trainDict = None):
         self.cols = cols
@@ -67,24 +70,26 @@ class Standard(base.TransformerMixin, base.BaseEstimator):
 
 class Robust(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
+    Documentation:
         Description:
-            Apply robust scaling. Capable of fit_transforming new data, 
-            as well as transforming validation data with the same
-            parameters.
+            Apply robust scaling. Capable of fit_transforming new data, as well as 
+            transforming validation data with the same parameters.
         Parameters:
             cols : str
-                String describing which columns to scale. Takes values 'all',
-                which will scale all columns and 'non-binary', which filters out
-                dummy columns. These are identified by virtue of these columns
-                having a data type of 'uint8'.
+                String describing which columns to scale. Takes values 'all', which 
+                will scale all columns and 'non-binary', which filters out dummy columns. 
+                These are identified by virtue of these columns having a data type of 
+                'uint8'.
             train : boolean, default = True
-                Controls whether to fit_transform training data or
-                transform validation data using fit on training data
+                Controls whether to fit_transform training data or transform validation 
+                data using parameters learned from the fit on training data.
             trainDict : dict, default = None
-                Dictionary containing feature : RobustScalar() pairs to be used
+                Dictionary containing 'feature : RobustScalar()' pairs to be used
                 to transform validation data. Only used when train = False.
-                Variable to be retrieved is called colValueDict_
+                Variable to be retrieved from traing pipeline is called colValueDict_.
+        Returns:
+            X : array
+                Dataset with robust scaled versions of input columns.
     """        
     def __init__(self, cols = 'all', train = True, trainDict = None):
         self.cols = cols
@@ -119,4 +124,3 @@ class Robust(base.TransformerMixin, base.BaseEstimator):
                 sc = self.trainDict[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
         return X
-

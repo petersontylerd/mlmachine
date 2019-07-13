@@ -9,9 +9,24 @@ from collections import Counter
 
 class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
     """
-    Info:
-        Description: 
-            a
+    Documentation:
+        Description:
+            Identifies outliers using inter-quartile range method.
+        Parameters:
+            outlierCount : int
+                Minimum number of values across all features that need to be outliers
+                in order for an observation to be flagged.
+            iqrStep : float
+                Multiplier that controls level of sensitivity of outlier detection method. 
+                Higher values for iqrStep will cause OutlierIQR to only detect increasingly
+                extreme values.
+            features : list
+                List of features to be evaluated for outliers.
+            dropOutliers : boolean, default = False
+                If True, drops outliers from the input data.
+        Returns:
+            X : array
+                Dataset with outlier observations removed.
     """
     def __init__(self, outlierCount, iqrStep, features, dropOutliers = False):
         self.outlierCount = outlierCount
@@ -23,7 +38,6 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
         return self
     
     def transform(self, X):
-        
         outlier_indices = []
         
         # iterate over features(columns)
