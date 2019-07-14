@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 import sklearn.preprocessing as prepocessing
@@ -26,15 +25,16 @@ class ModeImputer(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset where each column with missing values has been imputed with the mode
                 value of each particular columns.
-    """    
-    def __init__(self, cols, train = True, trainDict = None):        
+    """
+
+    def __init__(self, cols, train=True, trainDict=None):
         self.cols = cols
         self.train = train
         self.trainDict = trainDict
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # Encode training data
         if self.train:
@@ -50,7 +50,8 @@ class ModeImputer(base.TransformerMixin, base.BaseEstimator):
             for col in self.cols:
                 X[col] = X[col].fillna(self.trainDict[col])
         return X
-        
+
+
 class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
@@ -74,24 +75,27 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset where each column with missing values has been imputed with a value 
                 learned from a particular strategy.
-        """    
-    def __init__(self, cols, strategy = 'mean', train = True, trainDict = None):
+        """
+
+    def __init__(self, cols, strategy="mean", train=True, trainDict=None):
         self.cols = cols
         self.strategy = strategy
         self.train = train
         self.trainDict = trainDict
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # Encode training data
         if self.train:
             self.colValueDict_ = {}
             for col in self.cols:
-                imputed = impute.SimpleImputer(missing_values = np.nan, strategy = self.strategy)
+                imputed = impute.SimpleImputer(
+                    missing_values=np.nan, strategy=self.strategy
+                )
                 X[col] = imputed.fit_transform(X[[col]])
-                
+
                 # build colValueDict
                 self.colValueDict_[col] = imputed.statistics_
 
@@ -100,6 +104,7 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
             for col in self.cols:
                 X[col] = X[col].fillna(self.trainDict[col][0])
         return X
+
 
 class ConstantImputer(base.TransformerMixin, base.BaseEstimator):
     """
@@ -118,18 +123,21 @@ class ConstantImputer(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset where each column with missing values has been imputed the specified
                 fill value.
-    """    
-    def __init__(self, cols, fill = 'Absent'):
+    """
+
+    def __init__(self, cols, fill="Absent"):
         self.cols = cols
         self.fill = fill
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         for col in self.cols:
-            imputed = impute.SimpleImputer(missing_values = np.nan, strategy = 'constant', fill_value = self.fill)
-            X[col] = imputed.fit_transform(X[[col]])            
+            imputed = impute.SimpleImputer(
+                missing_values=np.nan, strategy="constant", fill_value=self.fill
+            )
+            X[col] = imputed.fit_transform(X[[col]])
         return X
 
 
@@ -158,32 +166,48 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset where each column with missing values has been imputed with a value learned from a particular 
                 strategy while also consider select columns as a group by variable.
-    """    
-    def __init__(self, nullCol, contextCol, strategy = 'mean', train = True, trainDf = None):
+    """
+
+    def __init__(self, nullCol, contextCol, strategy="mean", train=True, trainDf=None):
         self.nullCol = nullCol
         self.contextCol = contextCol
         self.strategy = strategy
         self.train = train
         self.trainDf = trainDf
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # Encode training data
         if self.train:
-            if self.strategy == 'mean':
+            if self.strategy == "mean":
                 self.fillDf = X.groupby(self.contextCol).mean()[self.nullCol]
-            elif self.strategy == 'median':
+            elif self.strategy == "median":
                 self.fillDf = X.groupby(self.contextCol).median()[self.nullCol]
-            elif self.strategy == 'most_frequent':
-                self.fillDf = X.groupby(self.contextCol)[self.nullCol].agg(lambda x: x.value_counts().index[0])
+            elif self.strategy == "most_frequent":
+                self.fillDf = X.groupby(self.contextCol)[self.nullCol].agg(
+                    lambda x: x.value_counts().index[0]
+                )
 
             self.fillDf = self.fillDf.reset_index()
-            
-            X[self.nullCol] = np.where(X[self.nullCol].isnull(), X[self.contextCol].map(self.fillDf.set_index(self.contextCol)[self.nullCol]), X[self.nullCol])
+
+            X[self.nullCol] = np.where(
+                X[self.nullCol].isnull(),
+                X[self.contextCol].map(
+                    self.fillDf.set_index(self.contextCol)[self.nullCol]
+                ),
+                X[self.nullCol],
+            )
 
         # For each columns, fill nulls with most frequently occuring value in training data
         else:
-            X[self.nullCol] = np.where(X[self.nullCol].isnull(), X[self.contextCol].map(self.trainDf.set_index(self.contextCol)[self.nullCol]), X[self.nullCol])
+            X[self.nullCol] = np.where(
+                X[self.nullCol].isnull(),
+                X[self.contextCol].map(
+                    self.trainDf.set_index(self.contextCol)[self.nullCol]
+                ),
+                X[self.nullCol],
+            )
         return X
+

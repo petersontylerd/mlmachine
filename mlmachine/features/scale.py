@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 import sklearn.preprocessing as preprocessing
@@ -8,7 +7,9 @@ from collections import defaultdict
 
 import warnings
 from sklearn.exceptions import DataConversionWarning
-warnings.filterwarnings(action = 'ignore', category = DataConversionWarning)
+
+warnings.filterwarnings(action="ignore", category=DataConversionWarning)
+
 
 class Standard(base.TransformerMixin, base.BaseEstimator):
     """
@@ -33,40 +34,44 @@ class Standard(base.TransformerMixin, base.BaseEstimator):
         Returns:
             X : array
                 Dataset with standard scaled versions of input columns.
-    """        
-    def __init__(self, cols = 'all', train = True, trainDict = None):
+    """
+
+    def __init__(self, cols="all", train=True, trainDict=None):
         self.cols = cols
         self.train = train
         self.trainDict = trainDict
 
         self.colValueDict_ = defaultdict(preprocessing.StandardScaler)
 
-    def fit(self, X, y = None):
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
-        if self.cols == 'all':
+        if self.cols == "all":
             self.cols = X.columns
-        elif self.cols == 'non-binary':
-            self.cols = X.select_dtypes(exclude = 'uint8').columns
-        
+        elif self.cols == "non-binary":
+            self.cols = X.select_dtypes(exclude="uint8").columns
+
         # Encode training data
         if self.train:
-            
+
             # build dictionary of StandarScaler transformers
-            self.colValueDict_ = X[self.cols].apply(lambda x: self.colValueDict_[x.name].fit(x.values.reshape(-1, 1)))
-            
+            self.colValueDict_ = X[self.cols].apply(
+                lambda x: self.colValueDict_[x.name].fit(x.values.reshape(-1, 1))
+            )
+
             # apply transformation to columns
             for col in self.cols:
                 sc = self.colValueDict_[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
-            
+
         # apply transformation to columns
         else:
             for col in self.cols:
                 sc = self.trainDict[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
         return X
+
 
 class Robust(base.TransformerMixin, base.BaseEstimator):
     """
@@ -90,34 +95,37 @@ class Robust(base.TransformerMixin, base.BaseEstimator):
         Returns:
             X : array
                 Dataset with robust scaled versions of input columns.
-    """        
-    def __init__(self, cols = 'all', train = True, trainDict = None):
+    """
+
+    def __init__(self, cols="all", train=True, trainDict=None):
         self.cols = cols
         self.train = train
         self.trainDict = trainDict
 
         self.colValueDict_ = defaultdict(preprocessing.RobustScaler)
 
-    def fit(self, X, y = None):
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
-        if self.cols == 'all':
+        if self.cols == "all":
             self.cols = X.columns
-        elif self.cols == 'non-binary':
-            self.cols = X.select_dtypes(exclude = 'uint8').columns
-        
+        elif self.cols == "non-binary":
+            self.cols = X.select_dtypes(exclude="uint8").columns
+
         # Encode training data
         if self.train:
-            
+
             # build dictionary of StandarScaler transformers
-            self.colValueDict_ = X[self.cols].apply(lambda x: self.colValueDict_[x.name].fit(x.values.reshape(-1, 1)))
-            
+            self.colValueDict_ = X[self.cols].apply(
+                lambda x: self.colValueDict_[x.name].fit(x.values.reshape(-1, 1))
+            )
+
             # apply transformation to columns
             for col in self.cols:
                 sc = self.colValueDict_[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
-            
+
         # apply transformation to columns
         else:
             for col in self.cols:
