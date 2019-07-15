@@ -132,7 +132,6 @@ class ConstantImputer(base.TransformerMixin, base.BaseEstimator):
             X[col] = imputed.fit_transform(X[[col]])            
         return X
 
-
 class ContextImputer(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
@@ -183,7 +182,8 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
             
             X[self.nullCol] = np.where(X[self.nullCol].isnull(), X[self.contextCol].map(self.fillDf.set_index(self.contextCol)[self.nullCol]), X[self.nullCol])
 
-        # For each columns, fill nulls with most frequently occuring value in training data
+        # For each column, impute nulls with preferred value as determined in training data
         else:
+            display(self.trainDf.set_index(self.contextCol))
             X[self.nullCol] = np.where(X[self.nullCol].isnull(), X[self.contextCol].map(self.trainDf.set_index(self.contextCol)[self.nullCol]), X[self.nullCol])
         return X
