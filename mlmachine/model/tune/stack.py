@@ -1,4 +1,3 @@
-
 import ast
 
 import numpy as np
@@ -20,6 +19,7 @@ import xgboost
 import lightgbm
 import catboost
 
+
 def modelParamBuilder(self, results, modelIx):
     """
     Documentation:
@@ -40,8 +40,8 @@ def modelParamBuilder(self, results, modelIx):
                 Dictionary containing values for model parameters.
     """
     estimator = results.loc[modelIx][0]
-    params = results.loc[modelIx][5:].dropna(axis = 0)
-    
+    params = results.loc[modelIx][5:].dropna(axis=0)
+
     # convert floats that are effectively ints to ints
     for ix in params.index:
         if not isinstance(params[ix], str):
@@ -50,7 +50,8 @@ def modelParamBuilder(self, results, modelIx):
 
     return estimator, params.to_dict()
 
-class SklearnHelper():
+
+class SklearnHelper:
     """
     Documentation:
         Description:
@@ -71,17 +72,20 @@ class SklearnHelper():
                 Model instantiated using parameter set. Model possesses train, predict, fit
                 and feature_importances methods.
     """
-    def __init__(self, model, seed = 0, params = None, nJobs = 2):
+
+    def __init__(self, model, seed=0, params=None, nJobs=2):
         # ensure that models which do not have an n_jobs parameter do not have that parameter
         # added to the parameter kwargs
-        if model not in [ensemble.GradientBoostingClassifier
-                        ,ensemble.GradientBoostingRegressor
-                        ,ensemble.AdaBoostClassifier
-                        ,ensemble.AdaBoostRegressor
-                        ,naive_bayes.BernoulliNB
-                        ,naive_bayes.GaussianNB
-                        ,svm.SVC]:
-            params['n_jobs'] = nJobs
+        if model not in [
+            ensemble.GradientBoostingClassifier,
+            ensemble.GradientBoostingRegressor,
+            ensemble.AdaBoostClassifier,
+            ensemble.AdaBoostRegressor,
+            naive_bayes.BernoulliNB,
+            naive_bayes.GaussianNB,
+            svm.SVC,
+        ]:
+            params["n_jobs"] = nJobs
         self.model = model(**params)
 
     def train(self, XTrain, yTrain):
@@ -89,14 +93,15 @@ class SklearnHelper():
 
     def predict(self, x):
         return self.model.predict(x)
-    
+
     def fit(self, x, y):
         return self.model.fit(x, y)
-    
+
     def feature_importances(self, x, y):
         return self.model.fit(x, y).feature_importances_
 
-def oofGenerator(self, model, XTrain, yTrain, XValid, nFolds = 10):
+
+def oofGenerator(self, model, XTrain, yTrain, XValid, nFolds=10):
     """
     Documentation:
         Description:
@@ -126,10 +131,10 @@ def oofGenerator(self, model, XTrain, yTrain, XValid, nFolds = 10):
     # row counts
     ntrain = XTrain.shape[0]
     nvalid = XValid.shape[0]
-    
+
     # kfold train/test index generator
-    kf = model_selection.KFold(n_splits = nFolds)
-        
+    kf = model_selection.KFold(n_splits=nFolds)
+
     # create shell arrays for holding results
     oofTrain = np.zeros((ntrain,))
     oofValid = np.zeros((nvalid,))
@@ -145,18 +150,19 @@ def oofGenerator(self, model, XTrain, yTrain, XValid, nFolds = 10):
         # train model based on training variables and labels
         model.train(XTrainFold, yTrainFold)
 
-        # update segment of oofTrain where indices match the indices of the observations 
+        # update segment of oofTrain where indices match the indices of the observations
         # used as test observations. These are the "out of fold" observations that we are not
         # considered in the training phase of the model
         oofTrain[testIx] = model.predict(XTestFold)
-        
+
         # generate predictions using entire validation dataset, otherwise unused up to this point
         # and capture predictions for each folds
         oofValidScores[i, :] = model.predict(XValid)
 
     # determine average score of validation predictions
-    oofValid[:] = oofValidScores.mean(axis = 0)
+    oofValid[:] = oofValidScores.mean(axis=0)
     return oofTrain.reshape(-1, 1), oofValid.reshape(-1, 1)
+
 
 def paramExtractor(self, resultsDf, estimator, iteration):
     """
@@ -175,8 +181,11 @@ def paramExtractor(self, resultsDf, estimator, iteration):
                 Return dictionary containing 'parameter : value' pairs for the the specified
                 model and iteration.
     """
-    params = resultsDf[(resultsDf['estimator'] == estimator) & (resultsDf['iteration'] == iteration)]['params'].values[0]
+    params = resultsDf[
+        (resultsDf["estimator"] == estimator) & (resultsDf["iteration"] == iteration)
+    ]["params"].values[0]
     return ast.literal_eval(params)
+
 
 def modelStacker(self, models, resultsDf, XTrain, yTrain, XValid, nFolds, nJobs):
     """
@@ -211,21 +220,19 @@ def modelStacker(self, models, resultsDf, XTrain, yTrain, XValid, nFolds, nJobs)
     for estimator in models.keys():
         # iterate through parameter set for estimator
         for iteration in models[estimator]:
-            print(estimator + ' ' + str(iteration))
-            params = self.paramExtractor(resultsDf = resultsDf, estimator = estimator, iteration = iteration)
-            columns.append(estimator + '_' + str(iteration))
+            print(estimator + " " + str(iteration))
+            params = self.paramExtractor(
+                resultsDf=resultsDf, estimator=estimator, iteration=iteration
+            )
+            columns.append(estimator + "_" + str(iteration))
 
-            model = SklearnHelper(model = eval(estimator), params = params, nJobs = nJobs)
-            oofTrainModel, oofValidModel =\
-                self.oofGenerator(model = model
-                                 ,XTrain = XTrain
-                                 ,yTrain = yTrain
-                                 ,XValid = XValid
-                                 ,nFolds = nFolds
-                    )
+            model = SklearnHelper(model=eval(estimator), params=params, nJobs=nJobs)
+            oofTrainModel, oofValidModel = self.oofGenerator(
+                model=model, XTrain=XTrain, yTrain=yTrain, XValid=XValid, nFolds=nFolds
+            )
             try:
                 oofTrain = np.hstack((oofTrain, oofTrainModel))
-                oofValid = np.hstack((oofValid, oofValidModel))        
+                oofValid = np.hstack((oofValid, oofValidModel))
             except NameError:
                 oofTrain = oofTrainModel
                 oofValid = oofValidModel

@@ -1,9 +1,10 @@
 import os
 import sys
 import importlib
-import pandas as pd 
+import pandas as pd
 
-class Machine():
+
+class Machine:
     """
     Info:
         Description:
@@ -11,24 +12,70 @@ class Machine():
             machine learning pipeline, including data cleaning, feature encoding, exploratory 
             data analysis, data prepation, model building, model tuning and model evaluation.
     """
+
     # Import mlmachine submodules
-    from .explore.edaSuite import edaNumTargetNumFeat, edaCatTargetCatFeat, edaCatTargetNumFeat, edaNumTargetCatFeat, dfSideBySide
-    from .explore.edaTransform import edaTransformInitial, edaTransformLog1, edaTransformBoxCox
+    from .explore.edaSuite import (
+        edaNumTargetNumFeat,
+        edaCatTargetCatFeat,
+        edaCatTargetNumFeat,
+        edaNumTargetCatFeat,
+        dfSideBySide,
+    )
+    from .explore.edaTransform import (
+        edaTransformInitial,
+        edaTransformLog1,
+        edaTransformBoxCox,
+    )
     from .explore.edaMissing import edaMissingSummary
-    
-    from .features.encode import cleanLabel, Dummies, MissingDummies, OrdinalEncoder, CustomOrdinalEncoder
+
+    from .features.encode import (
+        cleanLabel,
+        Dummies,
+        MissingDummies,
+        OrdinalEncoder,
+        CustomOrdinalEncoder,
+    )
     from .features.importance import featureImportanceSummary
-    from .features.impute import  NumericalImputer, ModeImputer, ConstantImputer, ContextImputer
-    from .features.missing import missingDataDropperAll, featureDropper, missingColCompare
+    from .features.impute import (
+        NumericalImputer,
+        ModeImputer,
+        ConstantImputer,
+        ContextImputer,
+    )
+    from .features.missing import (
+        missingDataDropperAll,
+        featureDropper,
+        missingColCompare,
+    )
     from .features.outlier import OutlierIQR
     from .features.scale import Standard, Robust
-    from .features.transform import skewSummary, SkewTransform, EqualBinner, CustomBinner, PercentileBinner, featureDropper
-    
-    from .model.tune.bayesianOptimSearch import execBayesOptimSearch, objective, unpackParams, lossPlot, paramPlot, samplePlot
+    from .features.transform import (
+        skewSummary,
+        SkewTransform,
+        EqualBinner,
+        CustomBinner,
+        PercentileBinner,
+        featureDropper,
+    )
+
+    from .model.tune.bayesianOptimSearch import (
+        execBayesOptimSearch,
+        objective,
+        unpackParams,
+        lossPlot,
+        paramPlot,
+        samplePlot,
+    )
     from .model.tune.powerGridSearch import PowerGridSearcher
-    from .model.tune.stack import modelParamBuilder, SklearnHelper, oofGenerator, paramExtractor, modelStacker
+    from .model.tune.stack import (
+        modelParamBuilder,
+        SklearnHelper,
+        oofGenerator,
+        paramExtractor,
+        modelStacker,
+    )
     from .model.evaluate.crossvalidate import rmsleCV
-    
+
     # importlib.reload(explore.edaSuite)
     # importlib.reload(explore.edaTransform)
     # importlib.reload(explore.edaMissing)
@@ -43,7 +90,16 @@ class Machine():
     # importlib.reload(model.tune.stack)
     # importlib.reload(model.evaluate.crossvalidate)
 
-    def __init__(self, data, removeFeatures = [], overrideCat = None, overrideNum = None, dateFeatures = None, target = None, targetType = None):
+    def __init__(
+        self,
+        data,
+        removeFeatures=[],
+        overrideCat=None,
+        overrideNum=None,
+        dateFeatures=None,
+        target=None,
+        targetType=None,
+    ):
         """
         Documentation:
             Description:
@@ -79,11 +135,14 @@ class Machine():
                 featuresByDtype_ : dict
                     Dictionary contains keys 'continuous', 'categorical' and/or 'date'. The corresponding values
                     are lists of column names that are of that feature type.
-        """        
+        """
         self.removeFeatures = removeFeatures
         self.target = data[target].squeeze() if target is not None else None
-        self.data = data.drop(self.removeFeatures + [self.target.name], axis = 1)\
-                        if target is not None else data.drop(self.removeFeatures, axis = 1)
+        self.data = (
+            data.drop(self.removeFeatures + [self.target.name], axis=1)
+            if target is not None
+            else data.drop(self.removeFeatures, axis=1)
+        )
         self.overrideCat = overrideCat
         self.overrideNum = overrideNum
         self.dateFeatures = dateFeatures
@@ -94,7 +153,7 @@ class Machine():
             self.data, self.target, self.featureByDtype_ = self.measLevel()
         else:
             self.data, self.featureByDtype_ = self.measLevel()
-    
+
     def measLevel(self):
         """
         Documentation:
@@ -105,39 +164,39 @@ class Machine():
         ### identify target from features
         if self.target is not None:
             self.cleanLabel()
-            
+
         ### add categorical and continuous keys, and any associated overrides
         self.featureByDtype_ = {}
-        
+
         # categorical
         if self.overrideCat is None:
-            self.featureByDtype_['categorical'] = []
+            self.featureByDtype_["categorical"] = []
         else:
-            self.featureByDtype_['categorical'] = self.overrideCat
+            self.featureByDtype_["categorical"] = self.overrideCat
 
         # continuous
         if self.overrideNum is None:
-            self.featureByDtype_['continuous'] = []
+            self.featureByDtype_["continuous"] = []
         else:
-            self.featureByDtype_['continuous'] = self.overrideNum
-        
+            self.featureByDtype_["continuous"] = self.overrideNum
+
         # date
         if self.dateFeatures is None:
-            self.featureByDtype_['date'] = []
+            self.featureByDtype_["date"] = []
         else:
-            self.featureByDtype_['date'] = self.dateFeatures
-        
+            self.featureByDtype_["date"] = self.dateFeatures
+
         # combined dictionary values for later filtering
         handled = [i for i in sum(self.featureByDtype_.values(), [])]
-        
+
         ### categorize remaining columns
         for c in [i for i in self.data.columns if i not in handled]:
-            
+
             # identify feature type based on column data type
-            if str(self.data[c].dtype).startswith(('int','float')):
-                self.featureByDtype_['continuous'].append(c)
-            elif str(self.data[c].dtype).startswith(('object')):
-                self.featureByDtype_['categorical'].append(c)
+            if str(self.data[c].dtype).startswith(("int", "float")):
+                self.featureByDtype_["continuous"].append(c)
+            elif str(self.data[c].dtype).startswith(("object")):
+                self.featureByDtype_["categorical"].append(c)
 
         ### return objects
         if self.target is not None:
@@ -161,5 +220,6 @@ class Machine():
             Return:
                 x : Pandas DataFrame
                     Pandas DataFrame containing combined independent and dependent variables.
-        """        
-        return X.merge(y, left_index = True, right_index = True)
+        """
+        return X.merge(y, left_index=True, right_index=True)
+

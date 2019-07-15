@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 
@@ -15,20 +14,27 @@ def skewSummary(self):
             Displays Pandas DataFrame summarizing the skew of each continuous variable. Also summarizes
             the percent of a column that has a value of zero.
     """
-    skewness = self.data[self.featureByDtype_['continuous']].apply(lambda x: stats.skew(x.dropna())).sort_values(ascending = False)
-    skewness = pd.DataFrame({'Skew' : skewness})
-    
+    skewness = (
+        self.data[self.featureByDtype_["continuous"]]
+        .apply(lambda x: stats.skew(x.dropna()))
+        .sort_values(ascending=False)
+    )
+    skewness = pd.DataFrame({"Skew": skewness})
+
     # add column describing percent of values that are zero
-    skewness['PctZero'] = np.nan
-    for col in self.featureByDtype_['continuous']:
+    skewness["PctZero"] = np.nan
+    for col in self.featureByDtype_["continuous"]:
 
         try:
-            skewness.loc[col]['PctZero'] = self.data[self.data[col] == 0][col].value_counts() / len(self.data)
+            skewness.loc[col]["PctZero"] = self.data[self.data[col] == 0][
+                col
+            ].value_counts() / len(self.data)
         except ValueError:
-            skewness.loc[col]['PctZero'] = 0.0
-    skewness = skewness.sort_values(['Skew'])
+            skewness.loc[col]["PctZero"] = 0.0
+    skewness = skewness.sort_values(["Skew"])
     display(skewness)
-    
+
+
 class SkewTransform(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
@@ -55,20 +61,28 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Box-Cox + 1 transformed input data.
     """
-    def __init__(self, cols = None, skewMin = None, pctZeroMax = None, train = True, trainDict = None):        
+
+    def __init__(
+        self, cols=None, skewMin=None, pctZeroMax=None, train=True, trainDict=None
+    ):
         self.cols = cols
         self.skewMin = skewMin
         self.pctZeroMax = pctZeroMax
         self.train = train
         self.trainDict = trainDict
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # Encode training data
         if self.train:
-            skews = X[self.cols].apply(lambda x: stats.skew(x.dropna())).sort_values(ascending = False).to_dict()
+            skews = (
+                X[self.cols]
+                .apply(lambda x: stats.skew(x.dropna()))
+                .sort_values(ascending=False)
+                .to_dict()
+            )
             self.colValueDict_ = {}
             for col, skew in skews.items():
                 # determine percent of column values that are zero
@@ -77,28 +91,33 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
 
                 except IndexError:
                     pctZero = 0.0
-                
+
                 # if the skew value is greater than the minimum skew allowed and pctZero is lower than a maximum allowed
                 if skew >= self.skewMin and pctZero <= self.pctZeroMax:
-                    
+
                     # build dictionary of lambda : skew pairs
                     lambdaDict = {}
                     for lmbda in np.linspace(-2.0, 2.0, 500):
-                        lambdaDict[lmbda] = abs(stats.skew(special.boxcox1p(X[col], lmbda)))
-                    
+                        lambdaDict[lmbda] = abs(
+                            stats.skew(special.boxcox1p(X[col], lmbda))
+                        )
+
                     # detemine value of lambda that result in a skew closest to 0
 
-                    lowLambda = min(lambdaDict.items(), key = lambda kv : abs(kv[1] - 0.0))[0]
+                    lowLambda = min(
+                        lambdaDict.items(), key=lambda kv: abs(kv[1] - 0.0)
+                    )[0]
 
                     X[col] = special.boxcox1p(X[col], lowLambda)
                     self.colValueDict_[col] = lowLambda
                     # print('transformed {}'.format(col))
-            
+
         # Encode validation data with training data encodings.
         else:
             for col, lmbda in self.trainDict.items():
                 X[col] = special.boxcox1p(X[col], lmbda)
         return X
+
 
 class EqualBinner(base.TransformerMixin, base.BaseEstimator):
     """
@@ -126,52 +145,56 @@ class EqualBinner(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset with additional columns represented binned versions of input columns.
     """
-    def __init__(self, equalBinDict = None, train = True, trainDict = None):
+
+    def __init__(self, equalBinDict=None, train=True, trainDict=None):
         self.equalBinDict = equalBinDict
         self.train = train
         self.trainDict = trainDict
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # Encode training data
         if self.train:
-            
+
             # create shell dictionary to store learned bins for each column
             self.trainDict_ = {}
-            
+
             # iterate through column : label pairs
             for col, label in self.equalBinDict.items():
-                
+
                 # retrieve bin cutoffs from original column
-                _, bins = pd.cut(X[col], bins = len(label), labels = label, retbins = True)
-                
-                # add binned version of original column to dataset 
-                X['{}{}'.format(col,'EqualBin')] = pd.cut(X[col], bins = len(label), labels = label)    
-                
+                _, bins = pd.cut(X[col], bins=len(label), labels=label, retbins=True)
+
+                # add binned version of original column to dataset
+                X["{}{}".format(col, "EqualBin")] = pd.cut(
+                    X[col], bins=len(label), labels=label
+                )
+
                 # append featureDtype dict
                 # self.featureByDtype_['categorical'].append('{}{}'.format(col,'EqualBin'))
-                
+
                 # build colValueDict
                 self.trainDict_[col] = bins
 
                 # set data type
                 # X['{}{}'.format(col,'EqualBin')] = X['{}{}'.format(col,'EqualBin')].astype('int64')
-                
+
         # For each column, bin the values based on the cut-offs learned on training data
         else:
             # iterate through columns and stored bins that were learned from training data
             for col, bins in self.trainDict.items():
                 trainBins = pd.IntervalIndex.from_breaks(bins)
-                X['{}{}'.format(col,'EqualBin')] = pd.cut(X[col], bins = trainBins)
-                
+                X["{}{}".format(col, "EqualBin")] = pd.cut(X[col], bins=trainBins)
+
                 # append featureDtype dict
                 # self.featureByDtype_['categorical'].append('{}{}'.format(col,'EqualBin'))
-                
+
                 # set data type
                 # X['{}{}'.format(col,'EqualBin')] = X['{}{}'.format(col,'EqualBin')].astype('int64')
         return X
+
 
 class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
     """
@@ -195,28 +218,29 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset with additional columns represented binned versions of input columns.
     """
-    def __init__(self, cols = None, percs = None, train = True, trainDict = None):
+
+    def __init__(self, cols=None, percs=None, train=True, trainDict=None):
         self.cols = cols
         self.percs = percs
         self.train = train
         self.trainDict = trainDict
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # bin training data
         if self.train:
-            
+
             # create shell dictionary to store percentile values for each column
             self.trainDict_ = {}
-            
+
             # iterate through columns by name
             for col in self.cols:
                 # create empty PercBin column
-                binCol = '{}PercBin'.format(col)
+                binCol = "{}PercBin".format(col)
                 X[binCol] = np.nan
-                
+
                 # determine percentile cut-offs
                 percVals = []
                 for perc in self.percs:
@@ -227,7 +251,7 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
                     # first item
                     if ix == 0:
                         X.loc[X[col] <= ceil, binCol] = ix
-                    
+
                     # next to last and last item
                     elif ix == len(percVals) - 1:
                         X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
@@ -235,29 +259,29 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
                     # everything in between
                     else:
                         X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
-                    
+
                     # increment the floor
                     floor = ceil
-                
+
                 # build colValueDict
                 self.trainDict_[col] = percVals
 
                 # set data type
-                X[binCol] = X[binCol].astype('int64')
-        
+                X[binCol] = X[binCol].astype("int64")
+
         # bin validation data based on percentile values learned from training data
         else:
             # iterate through columns by name
             for col in self.trainDict.keys():
                 # create empty PercBin column
-                binCol = '{}PercBin'.format(col)
+                binCol = "{}PercBin".format(col)
                 X[binCol] = np.nan
 
                 # iterate through bin values
                 for ix, ceil in enumerate(self.trainDict[col]):
                     # first item
                     if ix == 0:
-                        X.loc[X[col] <= ceil, binCol] = ix                
+                        X.loc[X[col] <= ceil, binCol] = ix
                     # next to last and last item
                     elif ix == len(self.trainDict[col]) - 1:
                         X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
@@ -265,13 +289,14 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
                     # everything in between
                     else:
                         X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
-                    
+
                     # increment the floor
                     floor = ceil
-                
+
                 # set data type
-                X[binCol] = X[binCol].astype('int64')           
+                X[binCol] = X[binCol].astype("int64")
         return X
+
 
 class CustomBinner(base.TransformerMixin, base.BaseEstimator):
     """
@@ -286,27 +311,28 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset with additional columns represented binned versions of input columns.
     """
+
     def __init__(self, customBinDict):
         self.customBinDict = customBinDict
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # iterate through columns by name
         for col in self.customBinDict.keys():
             # create empty CustomBin column
-            binCol = '{}CustomBin'.format(col)
+            binCol = "{}CustomBin".format(col)
             X[binCol] = np.nan
-            
+
             # append featureDtype dict
             # self.featureByDtype_['categorical'].append(binCol)
-                
+
             # iterate through custom binning
             for ix, ceil in enumerate(self.customBinDict[col]):
                 # first item
                 if ix == 0:
-                    X.loc[X[col] <= ceil, binCol] = ix                
+                    X.loc[X[col] <= ceil, binCol] = ix
                 # next to last and last item
                 elif ix == len(self.customBinDict[col]) - 1:
                     X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
@@ -314,12 +340,12 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
                 # everything in between
                 else:
                     X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
-                
+
                 # increment the floor
                 floor = ceil
 
             # set data type
-            X[binCol] = X[binCol].astype('int64')   
+            X[binCol] = X[binCol].astype("int64")
         return X
 
 
@@ -334,10 +360,11 @@ def featureDropper(self, cols):
     """
     for col in cols:
         # delete colummn from data from
-        self.data = self.data.drop([col], axis = 1)
-        
+        self.data = self.data.drop([col], axis=1)
+
         # delete column name from featureByDtype dict
-        if col in self.featureByDtype_['categorical']:
-            self.featureByDtype_['categorical'].remove(col)
-        elif col in self.featureByDtype_['continuous']:
-            self.featureByDtype_['continuous'].remove(col)
+        if col in self.featureByDtype_["categorical"]:
+            self.featureByDtype_["categorical"].remove(col)
+        elif col in self.featureByDtype_["continuous"]:
+            self.featureByDtype_["continuous"].remove(col)
+

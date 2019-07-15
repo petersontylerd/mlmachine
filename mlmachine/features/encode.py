@@ -1,4 +1,3 @@
-
 import sklearn.base as base
 import sklearn.preprocessing as preprocessing
 
@@ -7,7 +6,8 @@ import pandas as pd
 
 from collections import defaultdict
 
-def cleanLabel(self, reverse = False):
+
+def cleanLabel(self, reverse=False):
     """
     Documentation:
         Description:
@@ -16,17 +16,23 @@ def cleanLabel(self, reverse = False):
             reverse : boolean, default = False
                 Reverses encoding of target variables back to original variables.
     """
-    if self.targetType == 'categorical':
+    if self.targetType == "categorical":
         self.le_ = preprocessing.LabelEncoder()
 
-        self.target = pd.Series(self.le_.fit_transform(self.target.values.reshape(-1)), name = self.target.name)
-        
-        print('******************\nCategorical label encoding\n')
-        for origLbl, encLbl in zip(np.sort(self.le_.classes_), np.sort(np.unique(self.target))):
-            print('{} --> {}'.format(origLbl, encLbl))
-    
+        self.target = pd.Series(
+            self.le_.fit_transform(self.target.values.reshape(-1)),
+            name=self.target.name,
+        )
+
+        print("******************\nCategorical label encoding\n")
+        for origLbl, encLbl in zip(
+            np.sort(self.le_.classes_), np.sort(np.unique(self.target))
+        ):
+            print("{} --> {}".format(origLbl, encLbl))
+
     if reverse:
         self.target = self.le_.inverse_transform(self.target)
+
 
 class Dummies(base.TransformerMixin, base.BaseEstimator):
     """
@@ -43,16 +49,18 @@ class Dummies(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset with dummy column representation of input variables.
     """
-    def __init__(self, cols, dropFirst = True):
+
+    def __init__(self, cols, dropFirst=True):
         self.cols = cols
         self.dropFirst = dropFirst
-    
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
-        X = pd.get_dummies(data = X, columns = self.cols, drop_first = self.dropFirst)
+        X = pd.get_dummies(data=X, columns=self.cols, drop_first=self.dropFirst)
         return X
+
 
 class MissingDummies(base.TransformerMixin, base.BaseEstimator):
     """
@@ -70,18 +78,20 @@ class MissingDummies(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset with dummy column representation of input variables.
     """
+
     def __init__(self, trainCols):
         self.trainCols = trainCols
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         missingLevels = set(self.trainCols) - set(X.columns)
         for c in missingLevels:
             X[c] = 0
         X = X[self.trainCols]
         return X
+
 
 class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
     """
@@ -104,25 +114,31 @@ class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
             X : array
                 Dataset with encoded versions of input variables.
 
-    """        
-    def __init__(self, cols, train = True, trainDict = None):
+    """
+
+    def __init__(self, cols, train=True, trainDict=None):
         self.cols = cols
         self.train = train
         self.trainDict = trainDict
 
         self.colValueDict_ = defaultdict(preprocessing.LabelEncoder)
-    
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         # Encode training data
         if self.train:
-            X[self.cols] = X[self.cols].apply(lambda x: self.colValueDict_[x.name].fit_transform(x))
+            X[self.cols] = X[self.cols].apply(
+                lambda x: self.colValueDict_[x.name].fit_transform(x)
+            )
         # Encode validation data with training data encodings.
         else:
-            X[self.cols] = X[self.cols].apply(lambda x: self.trainDict[x.name].transform(x))
+            X[self.cols] = X[self.cols].apply(
+                lambda x: self.trainDict[x.name].transform(x)
+            )
         return X
+
 
 class CustomOrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
     """
@@ -137,13 +153,14 @@ class CustomOrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
         Returns:
             X : array
                 Dataset with encoded versions of input variables.
-    """        
+    """
+
     def __init__(self, encodings):
         self.encodings = encodings
-        
-    def fit(self, X, y = None):
+
+    def fit(self, X, y=None):
         return self
-    
+
     def transform(self, X):
         for key, val in self.encodings.items():
             X[key] = X[key].replace(val)
