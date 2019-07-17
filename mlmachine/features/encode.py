@@ -45,19 +45,30 @@ class Dummies(base.TransformerMixin, base.BaseEstimator):
             dropFirst : boolean, default = True
                 Dictates whether pd.get_dummies automatically drops of the dummy columns.
                 Help to avoid multicollinearity.        
+            train : boolean, default = True
+                Controls whether to fit_transform training data or transform 
+                validation data using encoder fit on training data.
+        Attributes:
+            originalCols : Pandas DataFrame
+                Original columns prior to 
         Returns:
             X : array
                 Dataset with dummy column representation of input variables.
     """
 
-    def __init__(self, cols, dropFirst=True):
+    def __init__(self, cols, dropFirst=True, train=True):
         self.cols = cols
         self.dropFirst = dropFirst
+        self.train = train
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
+        if self.train:
+            self.originalCols_ = X[self.cols]
+        
+        # transform data into dolumn column representation
         X = pd.get_dummies(data=X, columns=self.cols, drop_first=self.dropFirst)
         return X
 
@@ -106,22 +117,22 @@ class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
             train : boolean, default = True
                 Controls whether to fit_transform training data or transform 
                 validation data using encoder fit on training data.
-            trainDict : dict, default = None
+            trainValue : dict, default = None
                 Dictionary containing 'feature : LabelEncoder()' pairs to be used
                 to transform validation data. Only used when train = False.
-                Variable to be retrieved from traing pipeline is called colValueDict_.
+                Variable to be retrieved from traing pipeline is called trainValue_.
         Returns:
             X : array
                 Dataset with encoded versions of input variables.
 
     """
 
-    def __init__(self, cols, train=True, trainDict=None):
+    def __init__(self, cols, train=True, trainValue=None):
         self.cols = cols
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
-        self.colValueDict_ = defaultdict(preprocessing.LabelEncoder)
+        self.trainValue_ = defaultdict(preprocessing.LabelEncoder)
 
     def fit(self, X, y=None):
         return self
@@ -130,12 +141,12 @@ class OrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
         # Encode training data
         if self.train:
             X[self.cols] = X[self.cols].apply(
-                lambda x: self.colValueDict_[x.name].fit_transform(x)
+                lambda x: self.trainValue_[x.name].fit_transform(x)
             )
         # Encode validation data with training data encodings.
         else:
             X[self.cols] = X[self.cols].apply(
-                lambda x: self.trainDict[x.name].transform(x)
+                lambda x: self.trainValue[x.name].transform(x)
             )
         return X
 

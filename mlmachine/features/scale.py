@@ -27,21 +27,21 @@ class Standard(base.TransformerMixin, base.BaseEstimator):
                 Controls whether to fit_transform training data or transform 
                 validation data using parameters learning from the fit on training 
                 data.
-            trainDict : dict, default = None
+            trainValue : dict, default = None
                 Dictionary containing 'feature : StandardScalar()' pairs to be used
                 to transform validation data. Only used when train = False. Variable 
-                to be retrieved from traing pipeline is called colValueDict_.
+                to be retrieved from traing pipeline is called trainValue_.
         Returns:
             X : array
                 Dataset with standard scaled versions of input columns.
     """
 
-    def __init__(self, cols="all", train=True, trainDict=None):
+    def __init__(self, cols="all", train=True, trainValue=None):
         self.cols = cols
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
-        self.colValueDict_ = defaultdict(preprocessing.StandardScaler)
+        self.trainValue_ = defaultdict(preprocessing.StandardScaler)
 
     def fit(self, X, y=None):
         return self
@@ -56,19 +56,19 @@ class Standard(base.TransformerMixin, base.BaseEstimator):
         if self.train:
 
             # build dictionary of StandarScaler transformers
-            self.colValueDict_ = X[self.cols].apply(
-                lambda x: self.colValueDict_[x.name].fit(x.values.reshape(-1, 1))
+            self.trainValue_ = X[self.cols].apply(
+                lambda x: self.trainValue_[x.name].fit(x.values.reshape(-1, 1))
             )
 
             # apply transformation to columns
             for col in self.cols:
-                sc = self.colValueDict_[col]
+                sc = self.trainValue_[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
 
         # apply transformation to columns
         else:
             for col in self.cols:
-                sc = self.trainDict[col]
+                sc = self.trainValue[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
         return X
 
@@ -88,21 +88,21 @@ class Robust(base.TransformerMixin, base.BaseEstimator):
             train : boolean, default = True
                 Controls whether to fit_transform training data or transform validation 
                 data using parameters learned from the fit on training data.
-            trainDict : dict, default = None
+            trainValue : dict, default = None
                 Dictionary containing 'feature : RobustScalar()' pairs to be used
                 to transform validation data. Only used when train = False.
-                Variable to be retrieved from traing pipeline is called colValueDict_.
+                Variable to be retrieved from traing pipeline is called trainValue_.
         Returns:
             X : array
                 Dataset with robust scaled versions of input columns.
     """
 
-    def __init__(self, cols="all", train=True, trainDict=None):
+    def __init__(self, cols="all", train=True, trainValue=None):
         self.cols = cols
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
-        self.colValueDict_ = defaultdict(preprocessing.RobustScaler)
+        self.trainValue_ = defaultdict(preprocessing.RobustScaler)
 
     def fit(self, X, y=None):
         return self
@@ -117,18 +117,18 @@ class Robust(base.TransformerMixin, base.BaseEstimator):
         if self.train:
 
             # build dictionary of StandarScaler transformers
-            self.colValueDict_ = X[self.cols].apply(
-                lambda x: self.colValueDict_[x.name].fit(x.values.reshape(-1, 1))
+            self.trainValue_ = X[self.cols].apply(
+                lambda x: self.trainValue_[x.name].fit(x.values.reshape(-1, 1))
             )
 
             # apply transformation to columns
             for col in self.cols:
-                sc = self.colValueDict_[col]
+                sc = self.trainValue_[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
 
         # apply transformation to columns
         else:
             for col in self.cols:
-                sc = self.trainDict[col]
+                sc = self.trainValue[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
         return X

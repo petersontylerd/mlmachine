@@ -39,9 +39,9 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Performs Box-Cox + 1 transformation on continuous features with an absolute skew 
-            value above skewMin. The lambda chosen for each feature is the value that gets the 
-            skew closest to zero. The same lambda values are reused on unseen data.
+            Performs Box-Cox (or Box-Cox + 1) transformation on continuous features with a skew 
+            value above skewMin. The lambda chosen for each feature is the value that maximizes 
+            the log-likelihood function. The same lambda values are reused on unseen data.
         Parameters:
             cols : list, default = None
                 List of columns to be evaluated for transformation.
@@ -55,21 +55,21 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 lambdas determined from training data.
             classDict : dict, default = None
                 Dictionary containing 'feature : lambda' pairs to be used to transform validation data 
-                using Box-Cox + 1 transformation. Only used when train = False. Variable to be retrieved 
-                from train pipeline from traing pipeline is called colValueDict_..
+                using Box-Cox (or Box-Cox + 1) transformation. Only used when train = False. Variable 
+                to be retrieved from train pipeline from traing pipeline is called trainValue_.
         Returns:
             X : array
-                Box-Cox + 1 transformed input data.
+                Box-Cox (or Box-Cox + 1) transformed input data.
     """
 
     def __init__(
-        self, cols=None, skewMin=None, pctZeroMax=None, train=True, trainDict=None
+        self, cols=None, skewMin=None, pctZeroMax=None, train=True, trainValue=None
     ):
         self.cols = cols
         self.skewMin = skewMin
         self.pctZeroMax = pctZeroMax
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
     def fit(self, X, y=None):
         return self
@@ -83,7 +83,7 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 .sort_values(ascending=False)
                 .to_dict()
             )
-            self.colValueDict_ = {}
+            self.trainValue_ = {}
             for col, skew in skews.items():
                 # determine percent of column values that are zero
                 try:
@@ -95,31 +95,24 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 # if the skew value is greater than the minimum skew allowed and pctZero is lower than a maximum allowed
                 if skew >= self.skewMin and pctZero <= self.pctZeroMax:
 
-                    # build dictionary of lambda : skew pairs
-                    lambdaDict = {}
-                    for lmbda in np.linspace(-2.0, 2.0, 500):
-                        lambdaDict[lmbda] = abs(
-                            stats.skew(special.boxcox1p(X[col], lmbda))
-                        )
+                    try:
+                        X[col], lmbda = stats.boxcox(X[col], lmbda = None)
+                    except ValueError:
+                        X[col], lmbda = stats.boxcox(X[col] + 1, lmbda = None)
 
-                    # detemine value of lambda that result in a skew closest to 0
+                    self.trainValue_[col] = lmbda
 
-                    lowLambda = min(
-                        lambdaDict.items(), key=lambda kv: abs(kv[1] - 0.0)
-                    )[0]
-
-                    X[col] = special.boxcox1p(X[col], lowLambda)
-                    self.colValueDict_[col] = lowLambda
-                    # print('transformed {}'.format(col))
-
-        # Encode validation data with training data encodings.
+        # transform data with lambda learned on training data
         else:
-            for col, lmbda in self.trainDict.items():
-                X[col] = special.boxcox1p(X[col], lmbda)
+            for col, lmbda in self.trainValue.items():
+                try:
+                    X[col] = stats.boxcox(X[col], lmbda = lmbda)
+                except ValueError:
+                    X[col] = stats.boxcox(X[col] + 1, lmbda = lmbda)
         return X
 
 
-class EqualBinner(base.TransformerMixin, base.BaseEstimator):
+class EqualWidthBinner(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
@@ -128,28 +121,28 @@ class EqualBinner(base.TransformerMixin, base.BaseEstimator):
             unseen data.
         Parameters:
             equalBinDict : dictionary, default = None
-                Dictionary containing 'column : label' pairs. Custom bin labels to be 
-                used for each paired column. The bin size is calculated based off 
-                of the label length. The labels are expected to be a list that 
-                describes how the bins should be named, i.e. a label list of
-                ['low','med','high'] will instruct the binner to create three bins
-                and then call each bin 'low','med' and 'high'.
+                Dictionary containing 'column : label' pairs. Label is a list that 
+                proscribes the bin labels to be used for each paired column. The bin 
+                size is calculated based off of the the number of labels. The labels 
+                are expected to be a list that describes how the bins should be named, 
+                i.e. a label list of ['low','med','high'] will instruct the binner to 
+                create three bins and then call each bin 'low','med' and 'high'.
             train : boolean, default = True
                 Tells class whether we are binning training data or unseen data.
-            trainDict : dict, default = None
+            trainValue : dict, default = None
                 Dictionary containing 'feature : mode' pairs to be used to transform 
                 validation data. Only used when train = False. Retrieved from training 
                 data pipeline using named steps. Variable to be retrieved from traing 
-                pipeline is called colValueDict_..
+                pipeline is called trainValue_..
         Returns:
             X : array
                 Dataset with additional columns represented binned versions of input columns.
     """
 
-    def __init__(self, equalBinDict=None, train=True, trainDict=None):
+    def __init__(self, equalBinDict=None, train=True, trainValue=None):
         self.equalBinDict = equalBinDict
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
     def fit(self, X, y=None):
         return self
@@ -159,7 +152,7 @@ class EqualBinner(base.TransformerMixin, base.BaseEstimator):
         if self.train:
 
             # create shell dictionary to store learned bins for each column
-            self.trainDict_ = {}
+            self.trainValue_ = {}
 
             # iterate through column : label pairs
             for col, label in self.equalBinDict.items():
@@ -172,27 +165,19 @@ class EqualBinner(base.TransformerMixin, base.BaseEstimator):
                     X[col], bins=len(label), labels=label
                 )
 
-                # append featureDtype dict
-                # self.featureByDtype_['categorical'].append('{}{}'.format(col,'EqualBin'))
-
                 # build colValueDict
-                self.trainDict_[col] = bins
-
-                # set data type
-                # X['{}{}'.format(col,'EqualBin')] = X['{}{}'.format(col,'EqualBin')].astype('int64')
-
+                self.trainValue_[col] = bins
+                
         # For each column, bin the values based on the cut-offs learned on training data
         else:
+            # TODO - does not currently apply bin label. just the interval index range. not usable.
             # iterate through columns and stored bins that were learned from training data
-            for col, bins in self.trainDict.items():
+            for col, bins in self.trainValue.items():
                 trainBins = pd.IntervalIndex.from_breaks(bins)
+                print(bins)
+                print(trainBins)
+                print(type(trainBins))
                 X["{}{}".format(col, "EqualBin")] = pd.cut(X[col], bins=trainBins)
-
-                # append featureDtype dict
-                # self.featureByDtype_['categorical'].append('{}{}'.format(col,'EqualBin'))
-
-                # set data type
-                # X['{}{}'.format(col,'EqualBin')] = X['{}{}'.format(col,'EqualBin')].astype('int64')
         return X
 
 
@@ -209,21 +194,21 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
                 Percentiles for determining cut-off points for bins.
             train : boolean, default = True
                 Tells class whether we are binning training data or unseen data.
-            trainDict : dict, default = None
+            trainValue : dict, default = None
                 Dictionary containing 'feature : mode' pairs to be used to transform 
                 validation data. Only used when train = False. Retrieved from training 
                 data pipeline using named steps. Variable to be retrieved from traing 
-                pipeline is called colValueDict_..
+                pipeline is called trainValue_..
         Returns:
             X : array
                 Dataset with additional columns represented binned versions of input columns.
     """
 
-    def __init__(self, cols=None, percs=None, train=True, trainDict=None):
+    def __init__(self, cols=None, percs=None, train=True, trainValue=None):
         self.cols = cols
         self.percs = percs
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
     def fit(self, X, y=None):
         return self
@@ -233,7 +218,7 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
         if self.train:
 
             # create shell dictionary to store percentile values for each column
-            self.trainDict_ = {}
+            self.trainValue_ = {}
 
             # iterate through columns by name
             for col in self.cols:
@@ -264,7 +249,7 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
                     floor = ceil
 
                 # build colValueDict
-                self.trainDict_[col] = percVals
+                self.trainValue_[col] = percVals
 
                 # set data type
                 X[binCol] = X[binCol].astype("int64")
@@ -272,18 +257,18 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
         # bin validation data based on percentile values learned from training data
         else:
             # iterate through columns by name
-            for col in self.trainDict.keys():
+            for col in self.trainValue.keys():
                 # create empty PercBin column
                 binCol = "{}PercBin".format(col)
                 X[binCol] = np.nan
 
                 # iterate through bin values
-                for ix, ceil in enumerate(self.trainDict[col]):
+                for ix, ceil in enumerate(self.trainValue[col]):
                     # first item
                     if ix == 0:
                         X.loc[X[col] <= ceil, binCol] = ix
                     # next to last and last item
-                    elif ix == len(self.trainDict[col]) - 1:
+                    elif ix == len(self.trainValue[col]) - 1:
                         X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
                         X.loc[X[col] > ceil, binCol] = ix + 1
                     # everything in between

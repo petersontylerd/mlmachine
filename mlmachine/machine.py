@@ -52,7 +52,7 @@ class Machine:
     from .features.transform import (
         skewSummary,
         SkewTransform,
-        EqualBinner,
+        EqualWidthBinner,
         CustomBinner,
         PercentileBinner,
         featureDropper,

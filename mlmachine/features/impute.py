@@ -16,21 +16,26 @@ class ModeImputer(base.TransformerMixin, base.BaseEstimator):
                 List of features to be imputed.
             train : boolean, default = True
                 Tells class whether we are imputing training data or unseen data.
-            trainDict : dict, default = None
-                Dictionary containing 'feature : mode value' pairs to be used to transform 
-                validation data. Only used when train = False. Retrieved from training 
-                data pipeline using named steps. Variable to be retrieved from traing 
-                pipeline is called colValueDict_.
+            trainValue : dict, default = None
+                Only used when train = False. Either a dictionary containing 'feature : value' pairs 
+                or a Pandas DataFrame containing the full training dataset. Dictionary is retrieved from 
+                training data pipeline using named steps. The attribute is called trainValue_. 
+                
+                DataFrame is used in instances when the feature to be imputed in the validation dataset 
+                did not have any missing values in the training dataset. This occurs in two circumstances:
+                First, the feature was fully populated in the training dataset. Second, when following 
+                ContextImputer, the context value in the was fully populated in the training dataset 
+                but not the validation dataset. 
         Returns:
             X : array
                 Dataset where each column with missing values has been imputed with the mode
                 value of each particular columns.
     """
 
-    def __init__(self, cols, train=True, trainDict=None):
+    def __init__(self, cols, train=True, trainValue=None):
         self.cols = cols
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
     def fit(self, X, y=None):
         return self
@@ -38,17 +43,32 @@ class ModeImputer(base.TransformerMixin, base.BaseEstimator):
     def transform(self, X):
         # Encode training data
         if self.train:
-            self.colValueDict_ = {}
+            self.trainValue_ = {}
             for col in self.cols:
                 X[col] = X[col].fillna(X[col].value_counts().index[0])
 
                 # build colValueDict
-                self.colValueDict_[col] = X[col].value_counts().index[0]
+                self.trainValue_[col] = X[col].value_counts().index[0]
 
         # For each columns, fill nulls with most frequently occuring value in training data
         else:
-            for col in self.cols:
-                X[col] = X[col].fillna(self.trainDict[col])
+            # derive from dictionary learned from training data
+            if isinstance(self.trainValue, dict):
+                for col in self.cols:
+                    X[col] = X[col].fillna(self.trainValue[col])
+                    
+            # use the training dataset when learned data is not available
+            elif isinstance(self.trainValue, pd.DataFrame):
+                try:
+                    self.trainValue = self.trainValue[self.cols].mode()
+                except KeyError as e:
+                    print(e)
+                    print('\nModeImputer failed: the issue is likely that one or more of the specified columns was converted to a set of dummy columns in the training dataset, meaning the original column no longer exists in the training dataset.')
+                    print('A potential solution is to pass this to trainValue:\n\t train.data.merge(trainPipe.named_steps["dummyNominal"].originalCols_, right_index = True, left_index = True)')
+                    raise
+            
+                for col in self.cols:
+                    X[col] = X[col].fillna(self.trainValue[col][0])
         return X
 
 
@@ -66,22 +86,27 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
                 Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'.
             train : boolean, default = True
                 Tells class whether we are imputing training data or unseen data.
-            trainDict : dict, default = None
-                Dictionary containing 'feature : value' pairs to be used to transform 
-                validation data. Only used when train = False. Retrieved from training 
-                data pipeline using named steps. Variable to be retrieved from traing 
-                pipeline is called colValueDict_.
+            trainValue : dict or Pandas DataFrame, default = None
+                Only used when train = False. Either a dictionary containing 'feature : value' pairs 
+                or a Pandas DataFrame containing the full training dataset. Dictionary is retrieved from 
+                training data pipeline using named steps. The attribute is called trainValue_. 
+                
+                DataFrame is used in instances when the feature to be imputed in the validation dataset 
+                did not have any missing values in the training dataset. This occurs in two circumstances:
+                First, the feature was fully populated in the training dataset. Second, when following 
+                ContextImputer, the context value in the was fully populated in the training dataset 
+                but not the validation dataset.
         Returns:
             X : array
                 Dataset where each column with missing values has been imputed with a value 
                 learned from a particular strategy.
         """
 
-    def __init__(self, cols, strategy="mean", train=True, trainDict=None):
+    def __init__(self, cols, strategy="mean", train=True, trainValue=None):
         self.cols = cols
         self.strategy = strategy
         self.train = train
-        self.trainDict = trainDict
+        self.trainValue = trainValue
 
     def fit(self, X, y=None):
         return self
@@ -89,7 +114,7 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
     def transform(self, X):
         # Encode training data
         if self.train:
-            self.colValueDict_ = {}
+            self.trainValue_ = {}
             for col in self.cols:
                 imputed = impute.SimpleImputer(
                     missing_values=np.nan, strategy=self.strategy
@@ -97,12 +122,26 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
                 X[col] = imputed.fit_transform(X[[col]])
 
                 # build colValueDict
-                self.colValueDict_[col] = imputed.statistics_
-
+                self.trainValue_[col] = imputed.statistics_
         # For each columns, fill nulls with most frequently occuring value in training data
         else:
-            for col in self.cols:
-                X[col] = X[col].fillna(self.trainDict[col][0])
+            
+            # derive from dictionary learned from training data
+            if isinstance(self.trainValue, dict):
+                for col in self.cols:
+                    X[col] = X[col].fillna(self.trainValue[col][0])
+            
+            # use the training dataset when learned data is not available
+            elif isinstance(self.trainValue, pd.DataFrame):
+                if self.strategy == "mean":
+                    self.trainValue = self.trainValue[self.cols].mean().to_frame().T
+                elif self.strategy == "median":
+                    self.trainValue = self.trainValue[self.cols].median().to_frame().T
+                elif self.strategy == "most_frequent":
+                    self.trainValue = self.trainValue[self.cols].mode()
+                    
+                for col in self.cols:
+                    X[col] = X[col].fillna(self.trainValue[col][0])
         return X
 
 
@@ -140,6 +179,7 @@ class ConstantImputer(base.TransformerMixin, base.BaseEstimator):
             X[col] = imputed.fit_transform(X[[col]])
         return X
 
+
 class ContextImputer(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
@@ -157,56 +197,58 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
                 Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'.
             train : boolean, default = True
                 Tells class whether we are imputing training data or unseen data.
-            trainDf : dict, default = None
-                Dataframe containing values to be mapped to replace nulls in validation data. Only used when 
-                train = False. Retrieved from training data pipeline using named steps. Variable to be retrieved 
-                from training pipeline is called fillDf.
+            trainValue : dict, default = None
+                Only used when train = False. Value is a dictionary containing 'feature : value' pairs. 
+                Dictionary is retrieved from training data pipeline using named steps. The attribute is 
+                called trainValue_. 
         Returns:
             X : array
                 Dataset where each column with missing values has been imputed with a value learned from a particular 
                 strategy while also consider select columns as a group by variable.
     """
 
-    def __init__(self, nullCol, contextCol, strategy="mean", train=True, trainDf=None):
+    def __init__(self, nullCol, contextCol, strategy="mean", train=True, trainValue=None):
         self.nullCol = nullCol
         self.contextCol = contextCol
         self.strategy = strategy
         self.train = train
-        self.trainDf = trainDf
+        self.trainValue = trainValue
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X):
-        # Encode training data
+        # encode training data
         if self.train:
             if self.strategy == "mean":
-                self.fillDf = X.groupby(self.contextCol).mean()[self.nullCol]
+                self.trainValue_ = X[X[self.nullCol].notnull()].groupby(self.contextCol).mean()[self.nullCol]
             elif self.strategy == "median":
-                self.fillDf = X.groupby(self.contextCol).median()[self.nullCol]
+                self.trainValue_ = X[X[self.nullCol].notnull()].groupby(self.contextCol).median()[self.nullCol]
             elif self.strategy == "most_frequent":
-                self.fillDf = X.groupby(self.contextCol)[self.nullCol].agg(
+                self.trainValue_ = X[X[self.nullCol].notnull()].groupby(self.contextCol)[self.nullCol].agg(
                     lambda x: x.value_counts().index[0]
                 )
+            
+            self.trainValue_ = self.trainValue_.reset_index()
 
-            self.fillDf = self.fillDf.reset_index()
-
+            # impute missing values based on trainValue_
             X[self.nullCol] = np.where(
                 X[self.nullCol].isnull(),
                 X[self.contextCol].map(
-                    self.fillDf.set_index(self.contextCol)[self.nullCol]
+                    self.trainValue_.set_index(self.contextCol)[self.nullCol]
                 ),
                 X[self.nullCol],
             )
 
-        # For each column, impute nulls with preferred value as determined in training data
+        # for each column, impute nulls with preferred value as determined in training data
         else:
-            X[self.nullCol] = np.where(
-                X[self.nullCol].isnull(),
-                X[self.contextCol].map(
-                    self.trainDf.set_index(self.contextCol)[self.nullCol]
-                ),
-                X[self.nullCol],
-            )
+            if isinstance(self.trainValue, pd.DataFrame):
+                # impute missing values based on trainValue_
+                X[self.nullCol] = np.where(
+                    X[self.nullCol].isnull(),
+                    X[self.contextCol].map(
+                        self.trainValue.set_index(self.contextCol)[self.nullCol]
+                    ),
+                    X[self.nullCol],
+                )
         return X
-
