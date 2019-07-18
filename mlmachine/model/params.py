@@ -1,4 +1,4 @@
-# parameter space
+# classifier space
 allSpace = {
     "lightgbm.LGBMClassifier": {
         "class_weight": hp.choice("class_weight", [None, "balanced"]),
@@ -85,7 +85,7 @@ allSpace = {
 }
 
 
-# parameter space
+# regression parameter space
 allSpace = {
     "linear_model.Lasso": {"alpha": hp.uniform("alpha", 0.0000001, 10)},
     "linear_model.Ridge": {"alpha": hp.uniform("alpha", 0.0001, 20)},

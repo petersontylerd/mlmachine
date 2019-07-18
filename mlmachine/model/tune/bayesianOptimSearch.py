@@ -4,10 +4,10 @@ import sys
 import time
 from timeit import default_timer as timer
 
-global ITERATION
 import time
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
 import numpy as np
 import pandas as pd
@@ -17,7 +17,6 @@ from hyperopt.pyll.stochastic import sample
 
 import sklearn.model_selection as model_selection
 
-# Modeling extensions
 import sklearn.decomposition as decomposition
 import sklearn.discriminant_analysis as discriminant_analysis
 import sklearn.ensemble as ensemble
@@ -33,34 +32,47 @@ import xgboost
 import lightgbm
 import catboost
 
-# sys.path.append('/main')
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
+
 # set optimization parameters
-def objective(
-    space,
-    resultsDir=None,
-    model="",
-    X=None,
-    y=None,
-    scoring=None,
-    n_folds=None,
-    n_jobs=None,
-    verbose=None,
-):
+def objective(space, resultsDir, model, X, y, scoring, n_folds, n_jobs, verbose):
     """
     Documentation:
         Description:
-            desc
+            Customizable objective function to be minimized in the Bayesian hyper-parameter optimization
+            process.
         Parameters:
-            desc : asdf, default = 
-                desc
+            space : dictionary
+                Dictionary containg 'parameter : value distribution' key/value pairs. The key specifies the 
+                parameter of the model and optimization process draws trial values from the distribution.
+            resultsDir : string
+                File destination for results summary CSV.
+            model : string
+                The model to be fit.
+            X : array
+                Input dataset.
+            y : array
+                Input dataset labels.
+            scoring : string (sklearn evaluation method)
+                Evaluation method for scoring model performance. Takes values "neg_mean_squared_error",
+                 "accuracy", and "rmsle". Please note that "rmsle" is not an actual sklearn evaluation
+                 method. If "rmsle" is specified, model is optimized using "neg_mean_squared_error" and
+                 then the square root is taken of the absolute value of the results, effectively creating
+                 the "rmsle" score to be minimized.
+            n_folds : int
+                Number of folds for cross-validation.
+            n_jobs : int
+                Number of works to deploy upon execution, if applicable.
+            verbose : int
+                Controls amount of information printed to console during fit.
         Returns:
-            desc
+            results : dictionary
+                Dictionary containing details for each individual trial. Details include model type, 
+                iteration, parameter values, run time, and cross-validation summary statistics.
     """
     global ITERATION
-    ITERATION = 0
     ITERATION += 1
     start = timer()
 
@@ -80,7 +92,7 @@ def objective(
     )
     run_time = timer() - start
 
-    # Extract the best score
+    # calculate loss based on scoring method
     if scoring == "accuracy":
         loss = 1 - cv.mean()
     elif scoring == "neg_mean_squared_error":
@@ -112,22 +124,50 @@ def objective(
         "iteration": ITERATION,
         "estimator": model,
         "params": space,
-        "loss": loss,  # required
+        "loss": loss,
         "min": cv.min(),
         "mean": cv.mean(),
         "max": cv.max(),
         "std": cv.std(),
         "train_time": run_time,
         "status": STATUS_OK,
-    }  # required
+    }
 
 
-def execBayesOptimSearch(
-    self, allSpace, resultsDir, X, y, scoring, n_folds, n_jobs, iters, verbose
-):
+def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, n_folds, n_jobs, iters, verbose):
     """
-
+    Documentation:
+        Definition:
+            Perform Bayesian hyper-parameter optimization across a set of models and parameter value
+            distribution.
+        Parameters:
+            allSpace : dictionary of dictionaries
+                Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is 
+                a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value 
+                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the 
+                value is a distribution of values from which trial values are drawn.
+            resultsDir : string
+                File destination for results summary CSV.
+            model : string
+                The model to be fit.
+            X : array
+                Input dataset.
+            y : array
+                Input dataset labels.
+            scoring : string (sklearn evaluation method)
+                Evaluation method for scoring model performance. Takes values "neg_mean_squared_error",
+                 "accuracy", and "rmsle". Please note that "rmsle" is not an actual sklearn evaluation
+                 method. If "rmsle" is specified, model is optimized using "neg_mean_squared_error" and
+                 then the square root is taken of the absolute value of the results, effectively creating
+                 the "rmsle" score to be minimized.
+            n_folds : int
+                Number of folds for cross-validation.
+            n_jobs : int
+                Number of works to deploy upon execution, if applicable.
+            verbose : int
+                Controls amount of information printed to console during fit.
     """
+    # add file header
     with open(resultsDir, "w", newline="") as outfile:
         writer = csv.writer(outfile)
         writer.writerow(
@@ -145,10 +185,15 @@ def execBayesOptimSearch(
             ]
         )
 
+    # iterate through each model 
     for estimator in allSpace.keys():
+        global ITERATION
+        ITERATION = 0
+        
+        # establish feature space for hyper-parameter search
         space = allSpace[estimator]
-        print(estimator)
-        # reset objective function defaults
+        
+        # override default arguments with next estimator and the CV parameters
         objective.__defaults__ = (
             resultsDir,
             estimator,
@@ -160,7 +205,7 @@ def execBayesOptimSearch(
             verbose,
         )
 
-        # Run optimization
+        # run optimization
         print("#" * 100)
         print("\nTuning {0}\n".format(estimator))
         best = fmin(
@@ -169,15 +214,30 @@ def execBayesOptimSearch(
             algo=tpe.suggest,
             max_evals=iters,
             trials=Trials(),
-            verbose=1,
+            verbose=verbose,
         )
 
 
-def unpackParams(self, results):
-    clfs = results["estimator"].unique()
-    resultsDf = {}
+
+def unpackRawParams(self, resultsRaw):
+    """
+    Documentation:
+        Definition:
+            Unpack results data into a dictionary with model names as the keys and
+            Pandas DataFrames as the values. In each DataFrame, there is one column per
+            parameter evaluated in the associated model.
+        Parameters
+            resultsRaw : Pandas DataFrame
+                Pandas DataFrame containing results from Bayesian Optimization.
+        Returns:
+            resultsDict : dictionary of Pandas DataFrames
+                Dictionary of 'model name : parameter results' key/value pairs.
+    """
+    
+    clfs = resultsRaw["estimator"].unique()
+    resultsDict = {}
     for clf in clfs:
-        resultsClf = results[results["estimator"] == clf].reset_index(drop=True)
+        resultsClf = resultsRaw[resultsRaw["estimator"] == clf].reset_index(drop=True)
 
         # Create a new dataframe for storing parameters
         paramsClf = pd.DataFrame(
@@ -193,24 +253,53 @@ def unpackParams(self, results):
         paramsClf["loss"] = resultsClf["loss"]
         paramsClf["iteration"] = resultsClf["iteration"]
 
-        resultsDf[clf] = paramsClf
-    return resultsDf
+        resultsDict[clf] = paramsClf
+    return resultsDict
 
 
-def lossPlot(self, resultsDf):
-    for clf, df in resultsDf.items():
+def lossPlot(self, resultsAsDict, chartProp=15):
+    """
+    Documentation:
+        Definition:
+            Visualize how the Bayesian Optimization loss change over time across all iterations
+        Parameters
+            resultsAsDict : dictionary
+                Dictionary of 'model : Pandas DataFrame' pairs, where the DataFrame contains
+                the parameter set utilized in each iteration for the model specified as the key.
+    """
+    for clf, df in resultsAsDict.items():
+        
+        # build dataset to be plotted
         lossDf = pd.DataFrame(
             np.stack((df["loss"], df["iteration"]), axis=-1),
             columns=["loss", "iteration"],
         )
-        p = PrettierPlot(fig=plt.figure(), chartProp=8, plotOrientation="square")
+        
+        # create regression plot
+        p = PrettierPlot(chartProp=chartProp)
         ax = p.makeCanvas(
             title="Regression plot\n* {}".format(clf), yShift=0.8, position=111
         )
-        p.prettierRegPlot(x="iteration", y="loss", data=lossDf, yUnits="fff", ax=ax)
+        p.prettyRegPlot(x="iteration", y="loss", data=lossDf, yUnits="fff", ax=ax)
 
 
-def samplePlot(self, sampleSpace, nIter):
+def samplePlot(self, sampleSpace, nIter, chartProp=15):
+    """
+    Documentation:
+        Definition:
+            Visualizes a single hyperopt theoretical distribution. Useful for helping to determine a 
+            distribution to use when setting up hyperopt distribution objects for actual parameter
+            tuning.
+        Parameters
+            sampleSpace : dictionary
+                Dictionary of 'param name : hyperopt distribution object' key/value pairs. The name can
+                be arbitrarily chosen, and the value is a defined hyperopt distribution.
+            nIter : int
+                Number of iterations to draw from theoretical distribution in order to visualize the
+                theoretical distribution. Higher number leader to more robust distribution but can take
+                considerably longer to create.
+    """
+
     # iterate through each parameter
     for param in sampleSpace.keys():
         # create data to represent theoretical distribution
@@ -219,13 +308,13 @@ def samplePlot(self, sampleSpace, nIter):
             theoreticalDist.append(sample(sampleSpace)[param])
         theoreticalDist = np.array(theoreticalDist)
 
-        p = PrettierPlot(fig=plt.figure(), chartProp=8, plotOrientation="square")
+        p = PrettierPlot(chartProp=chartProp)
         ax = p.makeCanvas(
             title="Actual vs. theoretical plot\n* {}".format(param),
             yShift=0.8,
             position=111,
         )
-        p.prettierKdePlot(
+        p.prettyKdePlot(
             theoreticalDist,
             color=style.styleHexMid[0],
             yUnits="p",
@@ -234,12 +323,33 @@ def samplePlot(self, sampleSpace, nIter):
         )
 
 
-def paramPlot(self, results, allSpace, nIter):
+def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
     """
-
+    Documentation:
+        Definition:
+            Visualize hyper-parameter optimization over the iterations. Compares theoretical
+            distribution to the distribution of values that were actually chosen. For parameters
+            with a continuous range of values, this function also visualizes how the parameter 
+            value changes over time.
+        Parameters
+            resultsAsDict : dictionary
+                Dictionary of 'model : Pandas DataFrame' pairs, where the DataFrame contains
+                the parameter set utilized in each iteration for the model specified as the key.
+            allSpace : dictionary of dictionaries
+                Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is 
+                a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value 
+                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the 
+                value is a distribution of values from which trial values are drawn.
+            nIter : int
+                Number of iterations to draw from theoretical distribution in order to visualize the
+                theoretical distribution. Higher number leader to more robust distribution but can take
+                considerably longer to create.
+            chartProp : float, default = 10
+                Controls proportions of visualizations. Larger values scale visual up in size, smaller values
+                scale visual down in size.
     """
     # iterate through model name/df result key/value pairs
-    for clf, df in results.items():
+    for clf, df in resultsAsDict.items():
         # return space belonging to clf
         clfSpace = allSpace[clf]
 
@@ -267,9 +377,7 @@ def paramPlot(self, results, allSpace, nIter):
             # plot distributions for categorical params
             if any(isinstance(d, str) for d in theoreticalDist):
 
-                p = PrettierPlot(
-                    fig=plt.figure(), chartProp=8, plotOrientation="square"
-                )
+                p = PrettierPlot(chartProp=chartProp)
                 # theoretical plot
                 uniqueVals, uniqueCounts = np.unique(
                     theoreticalDist, return_counts=True
@@ -279,7 +387,7 @@ def paramPlot(self, results, allSpace, nIter):
                     yShift=0.8,
                     position=121,
                 )
-                p.prettierBarV(
+                p.prettyBarV(
                     x=uniqueVals,
                     counts=uniqueCounts,
                     labelRotate=90 if len(uniqueVals) >= 4 else 0,
@@ -293,7 +401,7 @@ def paramPlot(self, results, allSpace, nIter):
                 ax = p.makeCanvas(
                     title="Actual plot\n* {}".format(param), yShift=0.8, position=122
                 )
-                p.prettierBarV(
+                p.prettyBarV(
                     x=uniqueVals,
                     counts=uniqueCounts,
                     labelRotate=90 if len(uniqueVals) >= 4 else 0,
@@ -311,32 +419,57 @@ def paramPlot(self, results, allSpace, nIter):
 
                 actualIterDf = actualIterDf.astype(convert_dict)
 
-                p = PrettierPlot(
-                    chartProp=8, plotOrientation="square"
-                )
+                p = PrettierPlot(chartProp=chartProp)
+                # p = PrettierPlot(chartProp=8, plotOrientation="square")
                 ax = p.makeCanvas(
                     title="Actual vs. theoretical plot\n* {}".format(param),
                     yShift=0.8,
                     position=121,
                 )
-                p.prettierKdePlot(
+                p.prettyKdePlot(
                     theoreticalDist,
                     color=style.styleHexMid[0],
                     yUnits="p",
                     xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
                     ax=ax,
                 )
-                p.prettierKdePlot(
+                p.prettyKdePlot(
                     actualDist,
                     color=style.styleHexMid[1],
                     yUnits="p",
                     xUnits="fff" if np.max(actualDist) <= 5.0 else "ff",
                     ax=ax,
                 )
+
+                ## create custom legend
+                # create labels
+                labelColor = {}
+                legendLabels = ['Theoretical','Actual']
+                for ix, i in enumerate(legendLabels):
+                    labelColor[i] = style.styleHexMid[ix]
+
+                # create patches
+                patches = [Patch(color=v, label=k) for k, v in labelColor.items()]
+
+                # draw legend
+                leg = plt.legend(
+                    handles=patches,
+                    fontsize=0.8 * chartProp,
+                    loc="upper right",
+                    markerscale=0.3 * chartProp,
+                    ncol=1,
+                    bbox_to_anchor=(1.05, 1.1),
+                )
+
+                # label font color
+                for text in leg.get_texts():
+                    plt.setp(text, color="Grey")
+
+
                 ax = p.makeCanvas(
                     title="Regression plot\n* {}".format(clf), yShift=0.8, position=122
                 )
-                p.prettierRegPlot(
+                p.prettyRegPlot(
                     x="iteration", y=param, data=actualIterDf, yUnits="fff", ax=ax
                 )
                 plt.show()

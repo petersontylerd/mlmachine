@@ -61,17 +61,17 @@ class Machine:
     from .model.tune.bayesianOptimSearch import (
         execBayesOptimSearch,
         objective,
-        unpackParams,
+        unpackRawParams,
         lossPlot,
         paramPlot,
         samplePlot,
     )
     from .model.tune.powerGridSearch import PowerGridSearcher
     from .model.tune.stack import (
-        modelParamBuilder,
+        powerGridModelBuilder,
+        bayesOptimModelBuilder,
         SklearnHelper,
         oofGenerator,
-        paramExtractor,
         modelStacker,
     )
     from .model.evaluate.crossvalidate import rmsleCV
