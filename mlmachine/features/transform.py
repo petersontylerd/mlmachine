@@ -57,19 +57,22 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 Dictionary containing 'feature : lambda' pairs to be used to transform validation data 
                 using Box-Cox (or Box-Cox + 1) transformation. Only used when train = False. Variable 
                 to be retrieved from train pipeline from traing pipeline is called trainValue_.
+            verbose : boolean, default = False
+                If True display previous and post-transformation skew values for each feature.
         Returns:
             X : array
                 Box-Cox (or Box-Cox + 1) transformed input data.
     """
 
     def __init__(
-        self, cols=None, skewMin=None, pctZeroMax=None, train=True, trainValue=None
+        self, cols=None, skewMin=None, pctZeroMax=None, train=True, trainValue=None, verbose = False
     ):
         self.cols = cols
         self.skewMin = skewMin
         self.pctZeroMax = pctZeroMax
         self.train = train
         self.trainValue = trainValue
+        self.verbose = verbose
 
     def fit(self, X, y=None):
         return self
@@ -101,6 +104,9 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                         X[col], lmbda = stats.boxcox(X[col] + 1, lmbda = None)
 
                     self.trainValue_[col] = lmbda
+
+                    if self.verbose:
+                        print('{}: {:.5f} --> {:.5f}'.format(col,skew,stats.skew(X[col].dropna())))
 
         # transform data with lambda learned on training data
         else:

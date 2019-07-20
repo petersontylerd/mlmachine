@@ -5,6 +5,7 @@ import sklearn.base as base
 
 from collections import Counter
 
+import eif
 
 class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
     """
@@ -62,6 +63,65 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
 
         self.outliers_ = list(
             k for k, v in outlier_indices.items() if v >= self.outlierCount
+        )
+
+        if self.dropOutliers:
+            X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
+
+        return X
+
+
+class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
+    """
+    Documentation:
+        Description:
+            Identifies outliers using Extended Isolation Forest method.
+        Parameters:
+            cols : list
+                Columns to be evaluated by Extended Isolation Forest
+            nTrees : int
+                Number of trees to be used.
+            sampleSize : int
+                Sub-sample size for creating each trees. Values must be smaller that input dataset 
+                row count.
+            ExtensionLevel : int
+                Degrees of freedom for choosing hyperplanes that divide data. Value must be smaller 
+                than input dataset column count.
+            anomaliesRatio : float
+                Percent of input dataset observations to identify as outliers.
+            dropOutliers : boolean, default = False
+                Dictates whether identified outliers are removed from input dataset.            
+        Returns:
+            X : array
+                Dataset with outlier observations removed.
+    """
+
+    def __init__(self, cols, nTrees, sampleSize, ExtensionLevel, anomaliesRatio, dropOutliers=False):
+        self.cols= cols
+        self.nTrees = nTrees
+        self.sampleSize = sampleSize
+        self.ExtensionLevel = ExtensionLevel
+        self.anomaliesRatio = anomaliesRatio
+        self.dropOutliers = dropOutliers        
+        
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        extIso = eif.iForest(
+            X = X[self.cols].values,
+            ntrees=self.nTrees,
+            sample_size=self.sampleSize,
+            ExtensionLevel=self.ExtensionLevel,
+        )
+
+        # calculate anomaly scores
+        anomalyScores = extIso.compute_paths(
+            X_in=X[self.cols].values
+        )
+        anomalyScoresSorted = np.argsort(anomalyScores)
+        self.outliers_ = np.array(
+            anomalyScoresSorted[-int(np.ceil(self.anomaliesRatio * X.shape[0])):]
         )
 
         if self.dropOutliers:

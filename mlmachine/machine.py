@@ -26,8 +26,9 @@ class Machine:
         edaTransformLog1,
         edaTransformBoxCox,
     )
-    from .explore.edaMissing import edaMissingSummary
-
+    from .explore.edaMissing import (
+        edaMissingSummary
+    )
     from .features.encode import (
         cleanLabel,
         Dummies,
@@ -35,7 +36,9 @@ class Machine:
         OrdinalEncoder,
         CustomOrdinalEncoder,
     )
-    from .features.importance import featureImportanceSummary
+    from .features.importance import (
+        featureImportanceSummary
+    )
     from .features.impute import (
         NumericalImputer,
         ModeImputer,
@@ -47,8 +50,14 @@ class Machine:
         featureDropper,
         missingColCompare,
     )
-    from .features.outlier import OutlierIQR
-    from .features.scale import Standard, Robust
+    from .features.outlier import (
+        OutlierIQR,
+        ExtendedIsoForest
+    )
+    from .features.scale import (
+        Standard,
+        Robust
+    )
     from .features.transform import (
         skewSummary,
         SkewTransform,
@@ -66,7 +75,9 @@ class Machine:
         paramPlot,
         samplePlot,
     )
-    from .model.tune.powerGridSearch import PowerGridSearcher
+    from .model.tune.powerGridSearch import (
+        PowerGridSearcher
+    )
     from .model.tune.stack import (
         powerGridModelBuilder,
         bayesOptimModelBuilder,
@@ -74,7 +85,9 @@ class Machine:
         oofGenerator,
         modelStacker,
     )
-    from .model.evaluate.crossvalidate import rmsleCV
+    from .model.evaluate.crossvalidate import (
+        rmsleCV
+    )
 
     # importlib.reload(explore.edaSuite)
     # importlib.reload(explore.edaTransform)
