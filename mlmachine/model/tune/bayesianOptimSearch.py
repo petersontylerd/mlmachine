@@ -250,14 +250,14 @@ def unpackRawParams(self, resultsRaw):
             paramsClf.loc[i, :] = list(ast.literal_eval(params).values())
 
         # add columns for loss and iter number
-        paramsClf["loss"] = resultsClf["loss"]
+        paramsClf["iterLoss"] = resultsClf["loss"]
         paramsClf["iteration"] = resultsClf["iteration"]
 
         resultsDict[clf] = paramsClf
     return resultsDict
 
 
-def lossPlot(self, resultsAsDict, chartProp=15):
+def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True):
     """
     Documentation:
         Definition:
@@ -266,21 +266,40 @@ def lossPlot(self, resultsAsDict, chartProp=15):
             resultsAsDict : dictionary
                 Dictionary of 'model : Pandas DataFrame' pairs, where the DataFrame contains
                 the parameter set utilized in each iteration for the model specified as the key.
+            chartProp : float, default = 15
+                Control chart proportions. Higher values scale up size of chart objects, lower
+                values scale down size of chart objects.
+            trimOutliers : boolean, default = True
+                This removes extremely high (poor) results by trimming values that observations where
+                the loss is greater than 2 standard deviations away from the mean.
     """
     for clf, df in resultsAsDict.items():
         
         # build dataset to be plotted
         lossDf = pd.DataFrame(
-            np.stack((df["loss"], df["iteration"]), axis=-1),
-            columns=["loss", "iteration"],
+            np.stack((df["iterLoss"], df["iteration"]), axis=-1),
+            columns=["iterLoss", "iteration"],
         )
+
+        if trimOutliers:
+            mean = lossDf['iterLoss'].mean()
+            median = lossDf['iterLoss'].median()        
+            std = lossDf['iterLoss'].std()
+            cap = mean + (2.0*std)
+            lossDf = lossDf[(lossDf['iterLoss'] < cap) & (lossDf['iterLoss'] < 50 * median)]
+        
         
         # create regression plot
         p = PrettierPlot(chartProp=chartProp)
         ax = p.makeCanvas(
             title="Regression plot\n* {}".format(clf), yShift=0.8, position=111
         )
-        p.prettyRegPlot(x="iteration", y="loss", data=lossDf, yUnits="fff", ax=ax)
+        p.prettyRegPlot(x="iteration",
+            y="iterLoss",
+            data=lossDf,
+            yUnits="ffff",
+            ax=ax
+        )
 
 
 def samplePlot(self, sampleSpace, nIter, chartProp=15):
@@ -353,6 +372,10 @@ def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
         # return space belonging to clf
         clfSpace = allSpace[clf]
 
+        print('*' * 100)
+        print('* {}'.format(clf))
+        print('*' * 100)
+
         # iterate through each parameter
         for param in clfSpace.keys():
             # create data to represent theoretical distribution
@@ -398,6 +421,10 @@ def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
 
                 # actual plot
                 uniqueVals, uniqueCounts = np.unique(actualDist, return_counts=True)
+                if param == 'loss':
+                    print(uniqueVals)
+                    print(uniqueCounts)
+
                 ax = p.makeCanvas(
                     title="Actual plot\n* {}".format(param), yShift=0.8, position=122
                 )
@@ -429,14 +456,14 @@ def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
                 p.prettyKdePlot(
                     theoreticalDist,
                     color=style.styleHexMid[0],
-                    yUnits="p",
+                    yUnits="ppp",
                     xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
                     ax=ax,
                 )
                 p.prettyKdePlot(
                     actualDist,
                     color=style.styleHexMid[1],
-                    yUnits="p",
+                    yUnits="ppp",
                     xUnits="fff" if np.max(actualDist) <= 5.0 else "ff",
                     ax=ax,
                 )
