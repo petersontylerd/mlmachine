@@ -147,7 +147,7 @@ def edaCatTargetCatFeat(self, skipCols=[]):
                 yUnits="f",
                 ax=ax,
             )
-
+            
             # bivariate plot
             ax = p.makeCanvas(
                 title="Faceted by target\n* {}".format(feature), position=122
@@ -257,7 +257,7 @@ def edaCatTargetNumFeat(self, skipCols=[]):
             p.prettyDistPlot(
                 biDf[(biDf[feature].notnull())][feature].values,
                 color=style.styleHexMid[2],
-                yUnits="ffff",
+                yUnits="f",
                 ax=ax,
             )
 
