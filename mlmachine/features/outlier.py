@@ -119,12 +119,63 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
         anomalyScores = extIso.compute_paths(
             X_in=X[self.cols].values
         )
-        anomalyScoresSorted = np.argsort(anomalyScores)
+
+        anomalyScoresSorted = pd.DataFrame(
+            anomalyScores,
+            index = X.index,
+            columns = ['Anomaly score']
+        ).sort_values(
+            ['Anomaly score'],
+            ascending = False
+        )
+
         self.outliers_ = np.array(
-            anomalyScoresSorted[-int(np.ceil(self.anomaliesRatio * X.shape[0])):]
+            anomalyScoresSorted[:int(np.ceil(self.anomaliesRatio * X.shape[0]))].index
         )
 
         if self.dropOutliers:
             X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
 
         return X
+
+def outlierSummary(self, iqrOutliers, ifOutliers, eifOutliers):
+    """
+    Documentation:
+        Description:
+            Creates Pandas DataFrame summarizing which observations were flagged
+            as outliers and by which outlier detection method each observation was
+            identified.
+        Parameters:
+            iqrOutliers : array
+                Array contains indexes of observations identified as outliers using
+                IQR method.
+            ifOutliers : array
+                Array contains indexes of observations identified as outliers using
+                Isolition Forest method.
+            eifOutliers : array
+                Array contains indexes of observations identified as outliers using
+                Extended Isolition Forest method.
+        Returns:
+            outlierSummary : Pandas DataFrame
+                DataFrame summarizing outlier 
+    """
+    # merge and de-duplicate outlier index values
+    outlierIxs = np.unique(np.concatenate([iqrOutliers, ifOutliers, eifOutliers]))
+
+    # create shell dataframe
+    outlierSummary = pd.DataFrame(
+        columns = ['IQR','IF','EIF'],
+        index = outlierIxs
+    )
+    
+    # fill nulls based on index value match
+    outlierSummary['IQR'] = outlierSummary['IQR'].loc[iqrOutliers].fillna(value='X')
+    outlierSummary['IF'] = outlierSummary['IF'].loc[ifOutliers].fillna(value='X')
+    outlierSummary['EIF'] = outlierSummary['EIF'].loc[eifOutliers].fillna(value='X')
+    
+    # add summary columns and sort
+    outlierSummary['Count'] = outlierSummary.count(axis = 1)
+    outlierSummary = outlierSummary.sort_values(['Count'], ascending = False)    
+    
+    outlierSummary = outlierSummary.fillna('')
+    return outlierSummary

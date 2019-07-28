@@ -18,12 +18,13 @@ def cleanLabel(self, reverse=False):
     """
     if self.targetType == "categorical":
         self.le_ = preprocessing.LabelEncoder()
-
+        
         self.target = pd.Series(
             self.le_.fit_transform(self.target.values.reshape(-1)),
             name=self.target.name,
+            index=self.target.index
         )
-
+                
         print("******************\nCategorical label encoding\n")
         for origLbl, encLbl in zip(
             np.sort(self.le_.classes_), np.sort(np.unique(self.target))

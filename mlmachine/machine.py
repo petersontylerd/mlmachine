@@ -3,6 +3,7 @@ import sys
 import importlib
 import pandas as pd
 
+import sklearn.model_selection as model_selection
 
 class Machine:
     """
@@ -52,7 +53,8 @@ class Machine:
     )
     from .features.outlier import (
         OutlierIQR,
-        ExtendedIsoForest
+        ExtendedIsoForest,
+        outlierSummary
     )
     from .features.scale import (
         Standard,
@@ -103,16 +105,8 @@ class Machine:
     # importlib.reload(model.tune.stack)
     # importlib.reload(model.evaluate.crossvalidate)
 
-    def __init__(
-        self,
-        data,
-        removeFeatures=[],
-        overrideCat=None,
-        overrideNum=None,
-        dateFeatures=None,
-        target=None,
-        targetType=None,
-    ):
+    def __init__(self, data, removeFeatures=[], overrideCat=None, overrideNum=None,
+                dateFeatures=None, target=None, targetType=None):
         """
         Documentation:
             Description:
@@ -228,7 +222,7 @@ class Machine:
             Parameters:
                 X : Pandas DataFrame
                     Pandas DataFrame containing independent variables
-                y : Pandas DataFrame
+                y : Pandas Series
                     Pandas Series containing dependent target variable.
             Return:
                 x : Pandas DataFrame
@@ -236,3 +230,37 @@ class Machine:
         """
         return X.merge(y, left_index=True, right_index=True)
 
+def trainTestCompile(data, targetCol, testSize = 0.2, randomState = 1):
+    """
+    Description:
+        Intakes a dataset and returns 
+    Parameters:
+        data: Pandas DataFrame or array
+            Dataset to be deconstructed into train and test sets.
+        targetCol : string
+            Name of target column in data parameter
+        testSize : float, default = 0.2
+            Proportion of dataset to be set aside as "unseen" test data.
+        randomState : int
+            random number seed
+    Returns:
+        dfTrain : Pandas DataFrame
+            Training dataset to be passed into mlmachine pipeline
+        dfValid : Pandas DataFrame
+            Validation dataset to be passed into mlmachine pipeline
+    """
+    if isinstance(data, pd.DataFrame):
+        y = data[targetCol]
+        X = data.drop([targetCol], axis=1)
+
+    XTrain, XValid, yTrain, yValid = model_selection.train_test_split(
+            X, y, test_size=0.2, random_state=1, stratify=y
+        )
+
+    dfTrain = XTrain.merge(yTrain, left_index=True, right_index=True)
+    dfValid = XValid.merge(yValid, left_index=True, right_index=True)
+
+    return dfTrain, dfValid
+
+        
+        

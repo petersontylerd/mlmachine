@@ -171,7 +171,7 @@ def edaCatTargetNumFeat(self, skipCols=[]):
         if feature not in skipCols:
             # bivariate roll-up table
             biDf = pd.concat([self.data[feature], self.target], axis=1)
-
+            
             # bivariate summary statistics
             biSummStatsDf = pd.DataFrame(
                 columns=[feature, "Count", "Proportion", "Mean", "StdDv"]
@@ -269,6 +269,7 @@ def edaCatTargetNumFeat(self, skipCols=[]):
             ax = p.makeCanvas(
                 title="KDE - Faceted by target\n* {}".format(feature), position=153
             )
+
             for ix, labl in enumerate(
                 np.unique(biDf[(biDf[feature].notnull())][self.target.name].values)
             ):
