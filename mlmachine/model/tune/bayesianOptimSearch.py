@@ -304,11 +304,6 @@ def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlierCont
             cap = mean + (2.0*std)
             lossDf = lossDf[(lossDf['iterLoss'] < cap) & (lossDf['iterLoss'] < outlierControl * median)]
 
-            print(median)
-            print(outlierControl)
-            print(outlierControl * median)
-        
-        
         # create regression plot
         p = PrettierPlot(chartProp=chartProp)
         ax = p.makeCanvas(
