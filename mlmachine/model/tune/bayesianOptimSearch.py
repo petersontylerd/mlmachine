@@ -56,11 +56,15 @@ def objective(space, resultsDir, model, X, y, scoring, n_folds, n_jobs, verbose)
             y : array
                 Input dataset labels.
             scoring : string (sklearn evaluation method)
-                Evaluation method for scoring model performance. Takes values "neg_mean_squared_error",
-                 "accuracy", and "rmsle". Please note that "rmsle" is not an actual sklearn evaluation
-                 method. If "rmsle" is specified, model is optimized using "neg_mean_squared_error" and
-                 then the square root is taken of the absolute value of the results, effectively creating
-                 the "rmsle" score to be minimized.
+                Evaluation method for scoring model performance. The following metrics are supported:
+                    - "neg_mean_squared_error"
+                    - "f1_macro"
+                    - "f1_micro"
+                    - "accuracy"
+                    - "rmsle"
+                Please note that "rmsle" is not implemented in sklearn. If "rmsle" is specified, model 
+                is optimized using "neg_mean_squared_error" and then the square root is taken of the 
+                absolute value of the results, effectively creating the "rmsle" score to be minimized.
             n_folds : int
                 Number of folds for cross-validation.
             n_jobs : int
@@ -94,6 +98,10 @@ def objective(space, resultsDir, model, X, y, scoring, n_folds, n_jobs, verbose)
 
     # calculate loss based on scoring method
     if scoring == "accuracy":
+        loss = 1 - cv.mean()
+    elif scoring == "f1_macro":
+        loss = 1 - cv.mean()
+    elif scoring == "f1_micro":
         loss = 1 - cv.mean()
     elif scoring == "neg_mean_squared_error":
         loss = abs(cv.mean())
@@ -257,11 +265,15 @@ def unpackRawParams(self, resultsRaw):
     return resultsDict
 
 
-def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True):
+def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlierControl=1.5):
     """
     Documentation:
         Definition:
-            Visualize how the Bayesian Optimization loss change over time across all iterations
+            Visualize how the Bayesian Optimization loss change over time across all iterations.
+            Extremely poor results are removed from visualized dataset by two filters.
+                1) Loss values worse than [loss mean + (2 x loss std)]
+                2) Los values worse than [median * outliersControl]. 'outlierControl' is a parameter
+                   that can be set during function execution.
         Parameters
             resultsAsDict : dictionary
                 Dictionary of 'model : Pandas DataFrame' pairs, where the DataFrame contains
@@ -272,6 +284,10 @@ def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True):
             trimOutliers : boolean, default = True
                 This removes extremely high (poor) results by trimming values that observations where
                 the loss is greater than 2 standard deviations away from the mean.
+            outlierControl : float: default = 1.5
+                Controls enforcement of outlier trimming. Value is multiplied by median, and the resulting
+                product is the cap placed on loss values. Values higher than this cap will be excluded.
+                Lower values of outlierControl apply more extreme filtering of loss values.
     """
     for clf, df in resultsAsDict.items():
         
@@ -286,7 +302,11 @@ def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True):
             median = lossDf['iterLoss'].median()        
             std = lossDf['iterLoss'].std()
             cap = mean + (2.0*std)
-            lossDf = lossDf[(lossDf['iterLoss'] < cap) & (lossDf['iterLoss'] < 50 * median)]
+            lossDf = lossDf[(lossDf['iterLoss'] < cap) & (lossDf['iterLoss'] < outlierControl * median)]
+
+            print(median)
+            print(outlierControl)
+            print(outlierControl * median)
         
         
         # create regression plot

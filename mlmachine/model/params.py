@@ -1,4 +1,4 @@
-# classifier space
+# model/parameter space
 allSpace = {
     "lightgbm.LGBMClassifier": {
         "class_weight": hp.choice("class_weight", [None, "balanced"]),
@@ -57,11 +57,6 @@ allSpace = {
         "learning_rate": hp.uniform("learning_rate", 0.000001, 0.2),
         "algorithm": hp.choice("algorithm", ["SAMME", "SAMME.R"]),
     },
-    "naive_bayes.BernoulliNB": {"alpha": hp.uniform("alpha", 0.01, 10)},
-    "ensemble.BaggingClassifier": {
-        "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
-        "max_samples": hp.uniform("max_samples", 0.2, 1),
-    },
     "ensemble.ExtraTreesClassifier": {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
@@ -85,12 +80,12 @@ allSpace = {
 }
 
 
-# regression parameter space
+# model/parameter space
 allSpace = {
-    "linear_model.Lasso": {"alpha": hp.uniform("alpha", 0.0000001, 10)},
-    "linear_model.Ridge": {"alpha": hp.uniform("alpha", 0.0001, 20)},
+    "linear_model.Lasso": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
+    "linear_model.Ridge": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
     "linear_model.ElasticNet": {
-        "alpha": hp.uniform("alpha", 0.0000001, 10),
+        "alpha": hp.uniform("alpha", 0.0000001, 20),
         "l1_ratio": hp.uniform("l1_ratio", 0.0, 0.2),
     },
     "kernel_ridge.KernelRidge": {
@@ -124,9 +119,7 @@ allSpace = {
         "learning_rate": hp.uniform("learning_rate", 0.000001, 0.2),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
         "min_child_weight": hp.uniform("min_child_weight", 1, 20),
-        "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int))
-        # ,'objective' : hp.choice('objective', ['binary:logistic'])
-        ,
+        "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
         "subsample": hp.uniform("subsample", 0.5, 1),
     },
     "ensemble.RandomForestRegressor": {
