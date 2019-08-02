@@ -15,6 +15,9 @@ class Machine:
     """
 
     # Import mlmachine submodules
+    from .explore.edaMissing import (
+        edaMissingSummary,
+    )
     from .explore.edaSuite import (
         edaNumTargetNumFeat,
         edaCatTargetCatFeat,
@@ -27,9 +30,6 @@ class Machine:
         edaTransformLog1,
         edaTransformBoxCox,
     )
-    from .explore.edaMissing import (
-        edaMissingSummary
-    )
     from .features.encode import (
         cleanLabel,
         Dummies,
@@ -38,7 +38,7 @@ class Machine:
         CustomOrdinalEncoder,
     )
     from .features.importance import (
-        featureImportanceSummary
+        featureImportanceSummary,
     )
     from .features.impute import (
         NumericalImputer,
@@ -54,11 +54,11 @@ class Machine:
     from .features.outlier import (
         OutlierIQR,
         ExtendedIsoForest,
-        outlierSummary
+        outlierSummary,
     )
     from .features.scale import (
         Standard,
-        Robust
+        Robust,
     )
     from .features.transform import (
         skewSummary,
@@ -68,43 +68,34 @@ class Machine:
         PercentileBinner,
         featureDropper,
     )
-
+    from .model.evaluate.summarize import (
+        topBayesOptimModels,
+    )    
+    from .model.evaluate.visualize import (
+        testFunc,
+    )    
     from .model.tune.bayesianOptimSearch import (
+        bayesOptimModelBuilder,
         execBayesOptimSearch,
         objective,
-        unpackRawParams,
-        lossPlot,
+        unpackBayesOptimResults,
+        modelLossPlot,
         paramPlot,
         samplePlot,
     )
     from .model.tune.powerGridSearch import (
-        PowerGridSearcher
+        PowerGridSearcher,
+        powerGridModelBuilder,
     )
     from .model.tune.stack import (
-        powerGridModelBuilder,
-        bayesOptimModelBuilder,
-        SklearnHelper,
         oofGenerator,
         modelStacker,
     )
-    from .model.evaluate.crossvalidate import (
-        rmsleCV
+    from .utils.sklearnUtils import (
+        SklearnHelper,
     )
 
-    # importlib.reload(explore.edaSuite)
-    # importlib.reload(explore.edaTransform)
-    # importlib.reload(explore.edaMissing)
-    # importlib.reload(features.encode)
-    # importlib.reload(features.impute)
-    # importlib.reload(features.missing)
-    # importlib.reload(features.outlier)
-    # importlib.reload(features.scale)
-    # importlib.reload(features.transform)
-    # importlib.reload(model.tune.bayesianOptimSearch)
-    # importlib.reload(model.tune.powerGridSearch)
-    # importlib.reload(model.tune.stack)
-    # importlib.reload(model.evaluate.crossvalidate)
-
+    
     def __init__(self, data, removeFeatures=[], overrideCat=None, overrideNum=None,
                 dateFeatures=None, target=None, targetType=None):
         """

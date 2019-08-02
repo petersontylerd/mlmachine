@@ -226,8 +226,30 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, n_folds, n_j
         )
 
 
+def bayesOptimModelBuilder(self, resultsRaw, estimator, iteration):
+    """
+    Documentation:
+        Description:
+            Extract parameter dictionary from the input resultsRaw DataFrame
+        Parameters:
+            resultsRaw : Pandas DataFrame
+                Pandas DataFrame summarzing models and associated parameters.
+            estimator : string
+                Subset resultDf based on this estimator.
+            iteration : int
+                Number for identifying specific model parameters to capture from resultsRaw.
+        Returns:
+            params : dictionary
+                Return dictionary containing 'parameter : value' pairs for the the specified
+                model and iteration.
+    """
+    params = resultsRaw[
+        (resultsRaw["estimator"] == estimator) & (resultsRaw["iteration"] == iteration)
+    ]["params"].values[0]
+    return ast.literal_eval(params)
 
-def unpackRawParams(self, resultsRaw):
+
+def unpackBayesOptimResults(self, resultsRaw):
     """
     Documentation:
         Definition:
@@ -265,7 +287,7 @@ def unpackRawParams(self, resultsRaw):
     return resultsDict
 
 
-def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlierControl=1.5):
+def modelLossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlierControl=1.5):
     """
     Documentation:
         Definition:
@@ -314,46 +336,6 @@ def lossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlierCont
             data=lossDf,
             yUnits="ffff",
             ax=ax
-        )
-
-
-def samplePlot(self, sampleSpace, nIter, chartProp=15):
-    """
-    Documentation:
-        Definition:
-            Visualizes a single hyperopt theoretical distribution. Useful for helping to determine a 
-            distribution to use when setting up hyperopt distribution objects for actual parameter
-            tuning.
-        Parameters
-            sampleSpace : dictionary
-                Dictionary of 'param name : hyperopt distribution object' key/value pairs. The name can
-                be arbitrarily chosen, and the value is a defined hyperopt distribution.
-            nIter : int
-                Number of iterations to draw from theoretical distribution in order to visualize the
-                theoretical distribution. Higher number leader to more robust distribution but can take
-                considerably longer to create.
-    """
-
-    # iterate through each parameter
-    for param in sampleSpace.keys():
-        # create data to represent theoretical distribution
-        theoreticalDist = []
-        for _ in range(nIter):
-            theoreticalDist.append(sample(sampleSpace)[param])
-        theoreticalDist = np.array(theoreticalDist)
-
-        p = PrettierPlot(chartProp=chartProp)
-        ax = p.makeCanvas(
-            title="Actual vs. theoretical plot\n* {}".format(param),
-            yShift=0.8,
-            position=111,
-        )
-        p.prettyKdePlot(
-            theoreticalDist,
-            color=style.styleHexMid[0],
-            yUnits="p",
-            xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
-            ax=ax,
         )
 
 
@@ -515,4 +497,44 @@ def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
                     x="iteration", y=param, data=actualIterDf, yUnits="fff", ax=ax
                 )
                 plt.show()
+
+
+def samplePlot(self, sampleSpace, nIter, chartProp=15):
+    """
+    Documentation:
+        Definition:
+            Visualizes a single hyperopt theoretical distribution. Useful for helping to determine a 
+            distribution to use when setting up hyperopt distribution objects for actual parameter
+            tuning.
+        Parameters
+            sampleSpace : dictionary
+                Dictionary of 'param name : hyperopt distribution object' key/value pairs. The name can
+                be arbitrarily chosen, and the value is a defined hyperopt distribution.
+            nIter : int
+                Number of iterations to draw from theoretical distribution in order to visualize the
+                theoretical distribution. Higher number leader to more robust distribution but can take
+                considerably longer to create.
+    """
+
+    # iterate through each parameter
+    for param in sampleSpace.keys():
+        # create data to represent theoretical distribution
+        theoreticalDist = []
+        for _ in range(nIter):
+            theoreticalDist.append(sample(sampleSpace)[param])
+        theoreticalDist = np.array(theoreticalDist)
+
+        p = PrettierPlot(chartProp=chartProp)
+        ax = p.makeCanvas(
+            title="Actual vs. theoretical plot\n* {}".format(param),
+            yShift=0.8,
+            position=111,
+        )
+        p.prettyKdePlot(
+            theoreticalDist,
+            color=style.styleHexMid[0],
+            yUnits="p",
+            xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
+            ax=ax,
+        )
 
