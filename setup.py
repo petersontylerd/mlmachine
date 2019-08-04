@@ -15,25 +15,27 @@ PROJECT_URLS = {
     "Source Code": "https://github.com/Petersontylerd/mlmachine",
 }
 URL = "https://github.com/Petersontylerd/mlmachine"
-VERSION = "0.0.12"
+VERSION = "0.0.14"
 
 
 def setup_package():
     metadata = dict(
         name=DISTNAME,
+        packages=[
+            "mlmachine",
+            "mlmachine.explore",
+            "mlmachine.features",
+            "mlmachine.model",
+            "mlmachine.model.evaluate",
+            "mlmachine.model.tune",
+        ],
         maintainer=MAINTAINER,
         maintainer_email=MAINTAINER_EMAIL,
         description=DESCRIPTION,
         keywords=["Machine learning", "Data science"],
         license=LICENSE,
-        url=URL
-        # ,download_url = DOWNLOAD_URL
-        ,
-        packages=setuptools.find_packages()
-        # ,package_dir = {
-        #     '' : 'mlmachine'
-        # }
-        ,
+        url=URL,
+        # download_url = DOWNLOAD_URL,
         project_urls=PROJECT_URLS,
         version=VERSION,
         long_description=LONG_DESCRIPTION,
@@ -51,10 +53,9 @@ def setup_package():
             "Programming Language :: Python :: 3",
             "Operating System :: OS Independent",
         ],
-        python_requires=">=3.5"
-        # ,install_requires = []
-        ,
-        dependency_links=["https://github.com/Petersontylerd/prettierplot"],
+        python_requires=">=3.5",
+        install_requires=[i.strip() for i in open("requirements.txt").readlines()],
+        # dependency_links=["https://github.com/petersontylerd/prettierplot"],
     )
 
     setuptools.setup(**metadata)

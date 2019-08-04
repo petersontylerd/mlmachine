@@ -72,15 +72,16 @@ class Machine:
         topBayesOptimModels,
     )    
     from .model.evaluate.visualize import (
-        testFunc,
+        classificationPanel,
     )    
     from .model.tune.bayesianOptimSearch import (
         bayesOptimModelBuilder,
+        BayesOptimModelBuilder,
         execBayesOptimSearch,
         objective,
-        unpackBayesOptimResults,
+        unpackBayesOptimSummary,
         modelLossPlot,
-        paramPlot,
+        modelParamPlot,
         samplePlot,
     )
     from .model.tune.powerGridSearch import (

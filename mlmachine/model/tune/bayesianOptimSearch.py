@@ -226,68 +226,142 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, n_folds, n_j
         )
 
 
-def bayesOptimModelBuilder(self, resultsRaw, estimator, iteration):
+def bayesOptimModelBuilder(self, bayesOptimSummary, estimator, modelIter, nJobs=4):
     """
     Documentation:
         Description:
             Extract parameter dictionary from the input resultsRaw DataFrame
         Parameters:
-            resultsRaw : Pandas DataFrame
+            bayesOptimSummary : Pandas DataFrame
+                Pandas DataFrame containing results from Bayesian Optimization.
                 Pandas DataFrame summarzing models and associated parameters.
             estimator : string
-                Subset resultDf based on this estimator.
+                TODO
             iteration : int
                 Number for identifying specific model parameters to capture from resultsRaw.
+            nJobs : int
+                TODO
         Returns:
             params : dictionary
                 Return dictionary containing 'parameter : value' pairs for the the specified
                 model and iteration.
     """
-    params = resultsRaw[
-        (resultsRaw["estimator"] == estimator) & (resultsRaw["iteration"] == iteration)
+    params = bayesOptimSummary[
+        (bayesOptimSummary["estimator"] == estimator) & (bayesOptimSummary["iteration"] == modelIter)
     ]["params"].values[0]
-    return ast.literal_eval(params)
+
+    # turn string into dict
+    params = ast.literal_eval(params)
+
+    try:
+        params['n_jobs'] = nJobs
+        model = eval("{0}(**{1})".format(estimator, params))
+    except TypeError:
+        del params['n_jobs']
+        model = eval("{0}(**{1})".format(estimator, params))
+
+    return model
 
 
-def unpackBayesOptimResults(self, resultsRaw):
+class BayesOptimModelBuilder:
+    """
+    Documentation:
+        Description:
+            Helper class for instantiating an input model type with a provided
+            parameter set.
+        Parameters:
+            model : sklearn model
+                Model to instantiate.
+            seed : int
+                Random number seed.
+            params : dictionary
+                Dictionary containing 'parameter : value' pairs.
+            nJobs : int, default = 2
+                Number of works to use when training the model. This parameter will be 
+                ignored if the model does not have this parameter.
+        Returns:
+            model : model object
+                Model instantiated using parameter set. Model possesses train, predict, fit
+                and feature_importances methods.
+    """
+
+    def __init__(self, bayesOptimSummary, estimator, modelIter, nJobs=4):
+        self.bayesOptimSummary=bayesOptimSummary
+        self.estimator=estimator
+        self.modelIter=modelIter
+        self.nJobs=nJobs
+        
+
+        params = self.bayesOptimSummary[
+            (self.bayesOptimSummary["estimator"] == self.estimator) & (self.bayesOptimSummary["iteration"] == self.modelIter)
+        ]["params"].values[0]
+
+        # turn string into dict
+        params = ast.literal_eval(params)
+
+        if estimator in ['svm.SVC']:
+            params['probability'] = True
+
+        try:
+            params['n_jobs'] = self.nJobs
+            self.model = eval("{0}(**{1})".format(self.estimator, params))
+        except TypeError:
+            del params['n_jobs']
+            self.model = eval("{0}(**{1})".format(self.estimator, params))
+
+        
+    def train(self, XTrain, yTrain):
+        self.model.fit(XTrain, yTrain)
+
+    def predict(self, x):
+        return self.model.predict(x)
+    
+    def predict_proba(self, x):
+        return self.model.predict_proba(x)
+
+    def fit(self, x, y):
+        return self.model.fit(x, y)
+
+    def feature_importances(self, x, y):
+        return self.model.fit(x, y).feature_importances_
+
+def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
     """
     Documentation:
         Definition:
-            Unpack results data into a dictionary with model names as the keys and
-            Pandas DataFrames as the values. In each DataFrame, there is one column per
-            parameter evaluated in the associated model.
+            Unpack Bayesian Optimization results summary data for a specified estimator
+            into a Pandas DataFrame where there is one column for each parameter.
         Parameters
-            resultsRaw : Pandas DataFrame
+            bayesOptimSummary : Pandas DataFrame
                 Pandas DataFrame containing results from Bayesian Optimization.
+            estimator : string
+                TODO
         Returns:
-            resultsDict : dictionary of Pandas DataFrames
-                Dictionary of 'model name : parameter results' key/value pairs.
+            estimatorParamSummary : Pandas DataFrame
+                TODO
     """
     
-    clfs = resultsRaw["estimator"].unique()
-    resultsDict = {}
-    for clf in clfs:
-        resultsClf = resultsRaw[resultsRaw["estimator"] == clf].reset_index(drop=True)
+    estimatorDf = bayesOptimSummary[bayesOptimSummary["estimator"] == estimator].reset_index(drop=True)
 
-        # Create a new dataframe for storing parameters
-        paramsClf = pd.DataFrame(
-            columns=list(ast.literal_eval(resultsClf.loc[0, "params"]).keys()),
-            index=list(range(len(resultsClf))),
-        )
+    # Create a new dataframe for storing parameters
+    estimatorSummary = pd.DataFrame(
+        columns=list(ast.literal_eval(estimatorDf.loc[0, "params"]).keys()),
+        index=list(range(len(estimatorDf))),
+    )
 
-        # Add the results with each parameter a different column
-        for i, params in enumerate(resultsClf["params"]):
-            paramsClf.loc[i, :] = list(ast.literal_eval(params).values())
+    # Add the results with each parameter a different column
+    for i, params in enumerate(estimatorDf["params"]):
+        estimatorSummary.loc[i, :] = list(ast.literal_eval(params).values())
 
-        # add columns for loss and iter number
-        paramsClf["iterLoss"] = resultsClf["loss"]
-        paramsClf["iteration"] = resultsClf["iteration"]
+    # add columns for loss and iter number
+    estimatorSummary["iterLoss"] = estimatorDf["loss"]
+    estimatorSummary["iteration"] = estimatorDf["iteration"]
+    estimatorSummary["estimator"] = estimator
 
-        resultsDict[clf] = paramsClf
-    return resultsDict
+    return estimatorSummary
 
 
-def modelLossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlierControl=1.5):
+def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers = True, outlierControl=1.5):
     """
     Documentation:
         Definition:
@@ -297,9 +371,10 @@ def modelLossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlie
                 2) Los values worse than [median * outliersControl]. 'outlierControl' is a parameter
                    that can be set during function execution.
         Parameters
-            resultsAsDict : dictionary
-                Dictionary of 'model : Pandas DataFrame' pairs, where the DataFrame contains
-                the parameter set utilized in each iteration for the model specified as the key.
+            bayesOptimSummary : Pandas DataFrame
+                TODO
+            estimator : string
+                TODO
             chartProp : float, default = 15
                 Control chart proportions. Higher values scale up size of chart objects, lower
                 values scale down size of chart objects.
@@ -311,35 +386,30 @@ def modelLossPlot(self, resultsAsDict, chartProp=15, trimOutliers = True, outlie
                 product is the cap placed on loss values. Values higher than this cap will be excluded.
                 Lower values of outlierControl apply more extreme filtering of loss values.
     """
-    for clf, df in resultsAsDict.items():
-        
-        # build dataset to be plotted
-        lossDf = pd.DataFrame(
-            np.stack((df["iterLoss"], df["iteration"]), axis=-1),
-            columns=["iterLoss", "iteration"],
-        )
+    estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary = bayesOptimSummary, estimator = estimator)
+    if trimOutliers:
+        mean = estimatorSummary['iterLoss'].mean()
+        median = estimatorSummary['iterLoss'].median()        
+        std = estimatorSummary['iterLoss'].std()
+        cap = mean + (2.0*std)
+        estimatorSummary = estimatorSummary[(estimatorSummary['iterLoss'] < cap) & (estimatorSummary['iterLoss'] < outlierControl * median)]
 
-        if trimOutliers:
-            mean = lossDf['iterLoss'].mean()
-            median = lossDf['iterLoss'].median()        
-            std = lossDf['iterLoss'].std()
-            cap = mean + (2.0*std)
-            lossDf = lossDf[(lossDf['iterLoss'] < cap) & (lossDf['iterLoss'] < outlierControl * median)]
-
-        # create regression plot
-        p = PrettierPlot(chartProp=chartProp)
-        ax = p.makeCanvas(
-            title="Regression plot\n* {}".format(clf), yShift=0.8, position=111
-        )
-        p.prettyRegPlot(x="iteration",
-            y="iterLoss",
-            data=lossDf,
-            yUnits="ffff",
-            ax=ax
-        )
+    # create regression plot
+    p = PrettierPlot(chartProp=chartProp)
+    ax = p.makeCanvas(
+        title="Regression plot\n* {}".format(estimatorSummary['estimator'].iloc[0]),
+        yShift=0.8,
+        position=111,
+    )
+    p.prettyRegPlot(x="iteration",
+        y="iterLoss",
+        data=estimatorSummary,
+        yUnits="ffff",
+        ax=ax
+    )
 
 
-def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
+def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartProp = 10):
     """
     Documentation:
         Definition:
@@ -348,9 +418,10 @@ def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
             with a continuous range of values, this function also visualizes how the parameter 
             value changes over time.
         Parameters
-            resultsAsDict : dictionary
-                Dictionary of 'model : Pandas DataFrame' pairs, where the DataFrame contains
-                the parameter set utilized in each iteration for the model specified as the key.
+            bayesOptimSummary : Pandas DataFrame
+                TODO
+            estimator : string
+                TODO
             allSpace : dictionary of dictionaries
                 Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is 
                 a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value 
@@ -364,139 +435,136 @@ def paramPlot(self, resultsAsDict, allSpace, nIter, chartProp = 10):
                 Controls proportions of visualizations. Larger values scale visual up in size, smaller values
                 scale visual down in size.
     """
-    # iterate through model name/df result key/value pairs
-    for clf, df in resultsAsDict.items():
-        # return space belonging to clf
-        clfSpace = allSpace[clf]
+    estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary = bayesOptimSummary, estimator = estimator)
+    
+    # return space belonging to estimator
+    estimatorSpace = allSpace[estimator]
 
-        print('*' * 100)
-        print('* {}'.format(clf))
-        print('*' * 100)
+    print('*' * 100)
+    print('* {}'.format(estimator))
+    print('*' * 100)
 
-        # iterate through each parameter
-        for param in clfSpace.keys():
-            # create data to represent theoretical distribution
-            theoreticalDist = []
-            for _ in range(nIter):
-                theoreticalDist.append(sample(clfSpace)[param])
+    # iterate through each parameter
+    for param in estimatorSpace.keys():
+        # create data to represent theoretical distribution
+        theoreticalDist = []
+        for _ in range(nIter):
+            theoreticalDist.append(sample(estimatorSpace)[param])
 
-            # clean up
-            theoreticalDist = ["None" if v is None else v for v in theoreticalDist]
-            theoreticalDist = np.array(theoreticalDist)
+        # clean up
+        theoreticalDist = ["None" if v is None else v for v in theoreticalDist]
+        theoreticalDist = np.array(theoreticalDist)
 
-            # clean up
-            actualDist = df[param].tolist()
-            actualDist = ["None" if v is None else v for v in actualDist]
-            actualDist = np.array(actualDist)
+        # clean up
+        actualDist = estimatorSummary[param].tolist()
+        actualDist = ["None" if v is None else v for v in actualDist]
+        actualDist = np.array(actualDist)
 
-            actualIterDf = pd.DataFrame(
-                np.stack((df["iteration"], df[param]), axis=-1),
-                columns=["iteration", param],
+        actualIterDf = estimatorSummary[["iteration",param]]
+                
+        # plot distributions for categorical params
+        if any(isinstance(d, str) for d in theoreticalDist):
+
+            p = PrettierPlot(chartProp=chartProp)
+            # theoretical plot
+            uniqueVals, uniqueCounts = np.unique(
+                theoreticalDist, return_counts=True
+            )
+            ax = p.makeCanvas(
+                title="Theoretical plot\n* {}".format(param),
+                yShift=0.8,
+                position=121,
+            )
+            p.prettyBarV(
+                x=uniqueVals,
+                counts=uniqueCounts,
+                labelRotate=90 if len(uniqueVals) >= 4 else 0,
+                color=style.styleHexMid[2],
+                yUnits="f",
+                ax=ax,
             )
 
-            # plot distributions for categorical params
-            if any(isinstance(d, str) for d in theoreticalDist):
+            # actual plot
+            uniqueVals, uniqueCounts = np.unique(actualDist, return_counts=True)
+            if param == 'loss':
+                print(uniqueVals)
+                print(uniqueCounts)
 
-                p = PrettierPlot(chartProp=chartProp)
-                # theoretical plot
-                uniqueVals, uniqueCounts = np.unique(
-                    theoreticalDist, return_counts=True
-                )
-                ax = p.makeCanvas(
-                    title="Theoretical plot\n* {}".format(param),
-                    yShift=0.8,
-                    position=121,
-                )
-                p.prettyBarV(
-                    x=uniqueVals,
-                    counts=uniqueCounts,
-                    labelRotate=90 if len(uniqueVals) >= 4 else 0,
-                    color=style.styleHexMid[2],
-                    yUnits="f",
-                    ax=ax,
-                )
+            ax = p.makeCanvas(
+                title="Actual plot\n* {}".format(param), yShift=0.8, position=122
+            )
+            p.prettyBarV(
+                x=uniqueVals,
+                counts=uniqueCounts,
+                labelRotate=90 if len(uniqueVals) >= 4 else 0,
+                color=style.styleHexMid[2],
+                yUnits="f",
+                ax=ax,
+            )
 
-                # actual plot
-                uniqueVals, uniqueCounts = np.unique(actualDist, return_counts=True)
-                if param == 'loss':
-                    print(uniqueVals)
-                    print(uniqueCounts)
+            plt.show()
 
-                ax = p.makeCanvas(
-                    title="Actual plot\n* {}".format(param), yShift=0.8, position=122
-                )
-                p.prettyBarV(
-                    x=uniqueVals,
-                    counts=uniqueCounts,
-                    labelRotate=90 if len(uniqueVals) >= 4 else 0,
-                    color=style.styleHexMid[2],
-                    yUnits="f",
-                    ax=ax,
-                )
+        # plot distributions for continuous params
+        else:
+            # using dictionary to convert specific columns
+            convertDict = {"iteration": int, param: float}
 
-                plt.show()
+            actualIterDf = actualIterDf.astype(convertDict)
 
-            # plot distributions for continuous params
-            else:
-                # using dictionary to convert specific columns
-                convert_dict = {"iteration": int, param: float}
+            p = PrettierPlot(chartProp=chartProp)
+            # p = PrettierPlot(chartProp=8, plotOrientation="square")
+            ax = p.makeCanvas(
+                title="Actual vs. theoretical plot\n* {}".format(param),
+                yShift=0.8,
+                position=121,
+            )
+            p.prettyKdePlot(
+                theoreticalDist,
+                color=style.styleHexMid[0],
+                yUnits="ppp",
+                xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
+                ax=ax,
+            )
+            p.prettyKdePlot(
+                actualDist,
+                color=style.styleHexMid[1],
+                yUnits="ppp",
+                xUnits="fff" if np.max(actualDist) <= 5.0 else "ff",
+                ax=ax,
+            )
 
-                actualIterDf = actualIterDf.astype(convert_dict)
+            ## create custom legend
+            # create labels
+            labelColor = {}
+            legendLabels = ['Theoretical','Actual']
+            for ix, i in enumerate(legendLabels):
+                labelColor[i] = style.styleHexMid[ix]
 
-                p = PrettierPlot(chartProp=chartProp)
-                # p = PrettierPlot(chartProp=8, plotOrientation="square")
-                ax = p.makeCanvas(
-                    title="Actual vs. theoretical plot\n* {}".format(param),
-                    yShift=0.8,
-                    position=121,
-                )
-                p.prettyKdePlot(
-                    theoreticalDist,
-                    color=style.styleHexMid[0],
-                    yUnits="ppp",
-                    xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
-                    ax=ax,
-                )
-                p.prettyKdePlot(
-                    actualDist,
-                    color=style.styleHexMid[1],
-                    yUnits="ppp",
-                    xUnits="fff" if np.max(actualDist) <= 5.0 else "ff",
-                    ax=ax,
-                )
+            # create patches
+            patches = [Patch(color=v, label=k) for k, v in labelColor.items()]
 
-                ## create custom legend
-                # create labels
-                labelColor = {}
-                legendLabels = ['Theoretical','Actual']
-                for ix, i in enumerate(legendLabels):
-                    labelColor[i] = style.styleHexMid[ix]
+            # draw legend
+            leg = plt.legend(
+                handles=patches,
+                fontsize=0.8 * chartProp,
+                loc="upper right",
+                markerscale=0.3 * chartProp,
+                ncol=1,
+                bbox_to_anchor=(1.05, 1.1),
+            )
 
-                # create patches
-                patches = [Patch(color=v, label=k) for k, v in labelColor.items()]
-
-                # draw legend
-                leg = plt.legend(
-                    handles=patches,
-                    fontsize=0.8 * chartProp,
-                    loc="upper right",
-                    markerscale=0.3 * chartProp,
-                    ncol=1,
-                    bbox_to_anchor=(1.05, 1.1),
-                )
-
-                # label font color
-                for text in leg.get_texts():
-                    plt.setp(text, color="Grey")
+            # label font color
+            for text in leg.get_texts():
+                plt.setp(text, color="Grey")
 
 
-                ax = p.makeCanvas(
-                    title="Regression plot\n* {}".format(clf), yShift=0.8, position=122
-                )
-                p.prettyRegPlot(
-                    x="iteration", y=param, data=actualIterDf, yUnits="fff", ax=ax
-                )
-                plt.show()
+            ax = p.makeCanvas(
+                title="Regression plot\n* {}".format(estimator), yShift=0.8, position=122
+            )
+            p.prettyRegPlot(
+                x="iteration", y=param, data=actualIterDf, yUnits="fff", ax=ax
+            )
+            plt.show()
 
 
 def samplePlot(self, sampleSpace, nIter, chartProp=15):
