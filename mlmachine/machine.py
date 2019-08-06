@@ -73,6 +73,12 @@ class Machine:
     )    
     from .model.evaluate.visualize import (
         classificationPanel,
+        singleShapValueTree,
+        singleShapVizTree,
+        multiShapValueTree,
+        multiShapVizTree,
+        shapDependencePlot,
+        shapSummaryPlot,
     )    
     from .model.tune.bayesianOptimSearch import (
         bayesOptimModelBuilder,
@@ -92,19 +98,15 @@ class Machine:
         oofGenerator,
         modelStacker,
     )
-    from .utils.sklearnUtils import (
-        SklearnHelper,
-    )
-
     
     def __init__(self, data, removeFeatures=[], overrideCat=None, overrideNum=None,
                 dateFeatures=None, target=None, targetType=None):
         """
         Documentation:
             Description:
-                __init__ handles ingestion of main data set, identification of select
-                features to be removed (if any), identification of select features to
-                be considered as categorical despite the feature data type(s) (if any), 
+                __init__ handles initial processing of main data set, identification of 
+                select features to be removed (if any), identification of select features
+                to be considered as categorical despite the feature data type(s) (if any), 
                 identification of select features to be considered as numerical despite 
                 the feature data type(s) (if any), identification of select features to be
                 considered as calendar date features (if any), identification of the feature 

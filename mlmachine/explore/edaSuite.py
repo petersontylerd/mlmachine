@@ -32,7 +32,7 @@ def edaCatTargetCatFeat(self, feature, levelCountCap=50):
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap then the feature is skipped.
     """
-    if len(np.unique(self.data[self.data[feature].notnull()][feature])) < levelCountCap:
+    if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < levelCountCap:
     
         # univariate summary
         uniSummDf = pd.DataFrame(columns=[feature, "Count", "Proportion"])
@@ -489,7 +489,7 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50):
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap then the feature is skipped
     """
-    if len(self.data[self.data[feature].notnull()][feature]) < levelCountCap:
+    if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < levelCountCap:
     
         ### summary tables
         # univariate summary

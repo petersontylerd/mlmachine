@@ -233,14 +233,14 @@ def bayesOptimModelBuilder(self, bayesOptimSummary, estimator, modelIter, nJobs=
             Extract parameter dictionary from the input resultsRaw DataFrame
         Parameters:
             bayesOptimSummary : Pandas DataFrame
-                Pandas DataFrame containing results from Bayesian Optimization.
-                Pandas DataFrame summarzing models and associated parameters.
+                Pandas DataFrame containing results from Bayesian Optimization process 
+                execution. 
             estimator : string
-                TODO
+                Name of estimator to build. Needs the format of [submodule].[estimator].
             iteration : int
                 Number for identifying specific model parameters to capture from resultsRaw.
             nJobs : int
-                TODO
+                Number of workers provided to estimator.
         Returns:
             params : dictionary
                 Return dictionary containing 'parameter : value' pairs for the the specified
@@ -333,12 +333,14 @@ def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
             into a Pandas DataFrame where there is one column for each parameter.
         Parameters
             bayesOptimSummary : Pandas DataFrame
-                Pandas DataFrame containing results from Bayesian Optimization.
+                Pandas DataFrame containing results from Bayesian Optimization process 
+                execution. 
             estimator : string
-                TODO
+                Name of estimator to build. Needs the format of [submodule].[estimator].
         Returns:
             estimatorParamSummary : Pandas DataFrame
-                TODO
+                Pandas DataFrame where each row is a record of the parameters used and the 
+                loss recorded in an iteration.
     """
     
     estimatorDf = bayesOptimSummary[bayesOptimSummary["estimator"] == estimator].reset_index(drop=True)
@@ -372,9 +374,10 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
                    that can be set during function execution.
         Parameters
             bayesOptimSummary : Pandas DataFrame
-                TODO
+                Pandas DataFrame containing results from Bayesian Optimization process 
+                execution. 
             estimator : string
-                TODO
+                Name of estimator to build. Needs the format of [submodule].[estimator].
             chartProp : float, default = 15
                 Control chart proportions. Higher values scale up size of chart objects, lower
                 values scale down size of chart objects.
@@ -419,9 +422,10 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
             value changes over time.
         Parameters
             bayesOptimSummary : Pandas DataFrame
-                TODO
+                Pandas DataFrame containing results from Bayesian Optimization process 
+                execution. 
             estimator : string
-                TODO
+                Name of estimator to build. Needs the format of [submodule].[estimator].
             allSpace : dictionary of dictionaries
                 Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is 
                 a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value 
