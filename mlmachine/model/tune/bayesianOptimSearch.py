@@ -37,7 +37,7 @@ from prettierplot import style
 
 
 # set optimization parameters
-def objective(space, resultsDir, model, X, y, scoring, n_folds, n_jobs, verbose):
+def objective(space, resultsDir, model, X, y, scoring, nFolds, nJobs, verbose):
     """
     Documentation:
         Description:
@@ -90,24 +90,29 @@ def objective(space, resultsDir, model, X, y, scoring, n_folds, n_jobs, verbose)
         X=X,
         y=y,
         verbose=verbose,
-        n_jobs=n_jobs,
-        cv=n_folds,
+        n_jobs=nJobs,
+        cv=nFolds,
         scoring="neg_mean_squared_error" if scoring == "rmsle" else scoring,
     )
-    run_time = timer() - start
+    runTime = timer() - start
 
     # calculate loss based on scoring method
-    if scoring == "accuracy":
+    if scoring in ["accuracy","f1_micro","f1_macro"]:
         loss = 1 - cv.mean()
-    elif scoring == "f1_macro":
-        loss = 1 - cv.mean()
-    elif scoring == "f1_micro":
-        loss = 1 - cv.mean()
+        bestLoss = 1 - cv.max()
+        worstLoss = 1 - cv.min()
+        stdLoss = cv.std()
     elif scoring == "neg_mean_squared_error":
         loss = abs(cv.mean())
+        bestLoss = abs(cv.min())
+        worstLoss = abs(cv.max())
+        stdLoss = abs(cv.std())
     elif scoring == "rmsle":
         cv = np.sqrt(abs(cv))
         loss = np.mean(cv)
+        bestLoss = np.min(cv)
+        worstLoss = np.max(cv)
+        stdLoss = np.std(cv)
 
     # export results to CSV
     outFile = resultsDir
@@ -118,12 +123,11 @@ def objective(space, resultsDir, model, X, y, scoring, n_folds, n_jobs, verbose)
                 ITERATION,
                 model,
                 space,
+                worstLoss,
                 loss,
-                cv.min(),
-                cv.mean(),
-                cv.max(),
-                cv.std(),
-                run_time,
+                bestLoss,
+                stdLoss,
+                runTime,
                 STATUS_OK,
             ]
         )
@@ -132,17 +136,16 @@ def objective(space, resultsDir, model, X, y, scoring, n_folds, n_jobs, verbose)
         "iteration": ITERATION,
         "estimator": model,
         "params": space,
+        "worstLoss": worstLoss,
         "loss": loss,
-        "min": cv.min(),
-        "mean": cv.mean(),
-        "max": cv.max(),
-        "std": cv.std(),
-        "train_time": run_time,
+        "bestLoss": bestLoss,
+        "stdLoss": stdLoss,
+        "trainTime": runTime,
         "status": STATUS_OK,
     }
 
 
-def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, n_folds, n_jobs, iters, verbose):
+def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, nFolds, nJobs, iters, verbose):
     """
     Documentation:
         Definition:
@@ -183,12 +186,11 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, n_folds, n_j
                 "iteration",
                 "estimator",
                 "params",
-                "loss",
-                "min",
-                "mean",
-                "max",
-                "std",
-                "train_time",
+                "worstLoss",
+                "meanLoss",
+                "bestLoss",
+                "stdLoss",
+                "trainTime",
                 "status",
             ]
         )
@@ -208,8 +210,8 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, n_folds, n_j
             X,
             y,
             scoring,
-            n_folds,
-            n_jobs,
+            nFolds,
+            nJobs,
             verbose,
         )
 
@@ -325,6 +327,7 @@ class BayesOptimModelBuilder:
     def feature_importances(self, x, y):
         return self.model.fit(x, y).feature_importances_
 
+
 def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
     """
     Documentation:
@@ -356,14 +359,14 @@ def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
         estimatorSummary.loc[i, :] = list(ast.literal_eval(params).values())
 
     # add columns for loss and iter number
-    estimatorSummary["iterLoss"] = estimatorDf["loss"]
+    estimatorSummary["iterLoss"] = estimatorDf["meanLoss"]
     estimatorSummary["iteration"] = estimatorDf["iteration"]
     estimatorSummary["estimator"] = estimator
 
     return estimatorSummary
 
 
-def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers = True, outlierControl=1.5):
+def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers=True, outlierControl=1.5):
     """
     Documentation:
         Definition:
@@ -389,7 +392,7 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
                 product is the cap placed on loss values. Values higher than this cap will be excluded.
                 Lower values of outlierControl apply more extreme filtering of loss values.
     """
-    estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary = bayesOptimSummary, estimator = estimator)
+    estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary=bayesOptimSummary, estimator=estimator)
     if trimOutliers:
         mean = estimatorSummary['iterLoss'].mean()
         median = estimatorSummary['iterLoss'].median()        
@@ -410,6 +413,7 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
         yUnits="ffff",
         ax=ax
     )
+    plt.show()
 
 
 def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartProp = 10):
