@@ -83,7 +83,7 @@ def oofGenerator(self, model, XTrain, yTrain, XValid, nFolds=10):
     return oofTrain.reshape(-1, 1), oofValid.reshape(-1, 1)
 
 
-def modelStacker(self, models, resultsRaw, XTrain, yTrain, XValid, nFolds, nJobs):
+def modelStacker(self, models, bayesOptimSummary, XTrain, yTrain, XValid, nFolds, nJobs):
     """
     Documentation:
         Description:
@@ -91,6 +91,9 @@ def modelStacker(self, models, resultsRaw, XTrain, yTrain, XValid, nFolds, nJobs
         Parameters:
             models : dictionary
                 Dictionary of 'X : y' pairs  to be fit.
+            bayesOptimSummary : Pandas DataFrame
+                Pandas DataFrame containing results from Bayesian Optimization process 
+                execution. 
             XTrain : array
                 Training dataset.
             yTrain : array
@@ -117,14 +120,14 @@ def modelStacker(self, models, resultsRaw, XTrain, yTrain, XValid, nFolds, nJobs
     for estimator in models.keys():
     
         # iterate through parameter set for estimator
-        for iteration in models[estimator]:
-            print(estimator + " " + str(iteration))
-            params = self.bayesOptimModelBuilder(
-                resultsRaw=resultsRaw, estimator=estimator, iteration=iteration
+        for modelIter in models[estimator]:
+            print(estimator + " " + str(modelIter))
+            columns.append(estimator + "_" + str(modelIter))
+            
+            model = self.BayesOptimModelBuilder(
+                bayesOptimSummary=bayesOptimSummary, estimator=estimator, modelIter=modelIter
             )
-            columns.append(estimator + "_" + str(iteration))
 
-            model = self.SklearnHelper(model=eval(estimator), params=params, nJobs=nJobs)
             oofTrainModel, oofValidModel = self.oofGenerator(
                 model=model, XTrain=XTrain, yTrain=yTrain, XValid=XValid, nFolds=nFolds
             )

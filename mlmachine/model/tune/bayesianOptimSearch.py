@@ -228,43 +228,6 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, nFolds, nJob
         )
 
 
-def bayesOptimModelBuilder(self, bayesOptimSummary, estimator, modelIter, nJobs=4):
-    """
-    Documentation:
-        Description:
-            Extract parameter dictionary from the input resultsRaw DataFrame
-        Parameters:
-            bayesOptimSummary : Pandas DataFrame
-                Pandas DataFrame containing results from Bayesian Optimization process 
-                execution. 
-            estimator : string
-                Name of estimator to build. Needs the format of [submodule].[estimator].
-            iteration : int
-                Number for identifying specific model parameters to capture from resultsRaw.
-            nJobs : int
-                Number of workers provided to estimator.
-        Returns:
-            params : dictionary
-                Return dictionary containing 'parameter : value' pairs for the the specified
-                model and iteration.
-    """
-    params = bayesOptimSummary[
-        (bayesOptimSummary["estimator"] == estimator) & (bayesOptimSummary["iteration"] == modelIter)
-    ]["params"].values[0]
-
-    # turn string into dict
-    params = ast.literal_eval(params)
-
-    try:
-        params['n_jobs'] = nJobs
-        model = eval("{0}(**{1})".format(estimator, params))
-    except TypeError:
-        del params['n_jobs']
-        model = eval("{0}(**{1})".format(estimator, params))
-
-    return model
-
-
 class BayesOptimModelBuilder:
     """
     Documentation:

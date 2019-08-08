@@ -81,7 +81,6 @@ class Machine:
         shapSummaryPlot,
     )    
     from .model.tune.bayesianOptimSearch import (
-        bayesOptimModelBuilder,
         BayesOptimModelBuilder,
         execBayesOptimSearch,
         objective,
