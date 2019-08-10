@@ -12,7 +12,7 @@ from prettierplot import style
 import shap
 
 
-def classificationPanel(self, model, nFolds=3, randomState=1):
+def classificationPanel(self, model, labels, XTrain, yTrain, XValid=None, yValid=None, nFolds=3, randomState=1):
     """
     Documentation:
         Description:
@@ -21,24 +21,18 @@ def classificationPanel(self, model, nFolds=3, randomState=1):
         Paramaters:
             model : model object
                 Instantiated model object.
-            nFols : int, default = 3
+            nFolds : int, default = 3
                 Number of cross-validation folds to use when generating
                 CV ROC graph.
             randomState : int, default = 1
                 Random number seed.
     """
 
-    model.fit(self.data, self.target)
-    yPred = model.predict(self.data)
-
     print('*' * 55)
     print('* Estimator: {}'.format(model.estimator.split(".")[1]))
     print('* Parameter set: {}'.format(model.modelIter))
     print('*' * 55)
-
-    # generate simple classification report
-    print(metrics.classification_report(self.target, yPred, labels=[0, 1]))
-
+        
     # visualize results with confusion matrix
     p = PrettierPlot()
     ax = p.makeCanvas(
@@ -51,58 +45,81 @@ def classificationPanel(self, model, nFolds=3, randomState=1):
         xShift=0.35,
         position=211,
     )
-    p.prettyConfusionMatrix(
-        yTrue=self.target, yPred=yPred, labels=["Survived", "Died"], ax=None
-    )
+    
+    # conditional control for which data is used to generate predictions
+    if XValid is not None:
+        yPred = model.fit(XTrain, yTrain).predict(XValid)
+        print(metrics.classification_report(yValid, yPred, labels=labels))
+        p.prettyConfusionMatrix(
+            yTrue=yValid, yPred=yPred, labels=labels, ax=None
+        )
+    else:
+        yPred = model.fit(XTrain, yTrain).predict(XTrain)
+        print(metrics.classification_report(yTrain, yPred, labels=labels))
+        p.prettyConfusionMatrix(
+            yTrue=yTrain, yPred=yPred, labels=labels, ax=None
+        )
     plt.show()
 
-    # standard ROC curve
+    # standard ROC curve for full training dataset or validation dataset
+    # if XValid is passed in as None, generate ROC curve for training data
     p = PrettierPlot(chartProp=15)
     ax = p.makeCanvas(
-        title="Model: {}\nParameter set: {}".format(
-            model.estimator.split(".")[1], model.modelIter
+        title="ROC curve - {} data\nModel: {}\nParameter set: {}".format(
+            'training' if XValid is None else 'validation',
+             model.estimator.split(".")[1],
+             model.modelIter
         ),
         xLabel="false positive rate",
         yLabel="true positive rate",
         yShift=0.43,
-        position=121,
+        position=111 if XValid is not None else 121,
     )
     p.prettyRocCurve(
         model=model,
-        XTrain=self.data,
-        yTrain=self.target,
+        XTrain=XTrain,
+        yTrain=yTrain,
+        XValid=XValid,
+        yValid=yValid,
         linecolor=style.styleHexMid[0],
         ax=ax,
     )
 
-    # cross-validated ROC curve
-    cv = list(
-        model_selection.StratifiedKFold(
-            n_splits=nFolds, random_state=randomState
-        ).split(self.data, self.target)
-    )
-
-    # plot ROC curves
-    ax = p.makeCanvas(
-        title="Model: {}\nParameter set: {}".format(
-            model.estimator.split(".")[1], model.modelIter
-        ),
-        xLabel="false positive rate",
-        yLabel="true positive rate",
-        yShift=0.43,
-        position=122,
-    )
-    for i, (trainIx, _) in enumerate(cv):
-        XTrainCV = self.data.iloc[trainIx]
-        yTrainCV = self.target.iloc[trainIx]
-
-        p.prettyRocCurve(
-            model=model,
-            XTrain=XTrainCV,
-            yTrain=yTrainCV,
-            linecolor=style.styleHexMid[i],
-            ax=ax,
+    # if no validation data is passed, then perform k-fold cross validation and generate
+    # an ROC curve for each held out validation set.
+    if XValid is None:
+        # cross-validated ROC curve
+        cv = list(
+            model_selection.StratifiedKFold(
+                n_splits=nFolds, random_state=randomState
+            ).split(XTrain, yTrain)
         )
+
+        # plot ROC curves
+        ax = p.makeCanvas(
+            title="ROC curve - training data, {}-fold CV\nModel: {}\nParameter set: {}".format(
+                nFolds, model.estimator.split(".")[1], model.modelIter
+            ),
+            xLabel="false positive rate",
+            yLabel="true positive rate",
+            yShift=0.43,
+            position=122,
+        )
+        for i, (trainIx, validIx) in enumerate(cv):
+            XTrainCV = XTrain.iloc[trainIx]
+            yTrainCV = yTrain.iloc[trainIx]
+            XValidCV = XTrain.iloc[validIx]
+            yValidCV = yTrain.iloc[validIx]
+
+            p.prettyRocCurve(
+                model=model,
+                XTrain=XTrainCV,
+                yTrain=yTrainCV,
+                XValid=XValidCV,
+                yValid=yValidCV,
+                linecolor=style.styleHexMid[i],
+                ax=ax,
+            )
     plt.show()
 
 def singleShapValueTree(self, obsIx, model, data):

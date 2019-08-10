@@ -125,7 +125,10 @@ def modelStacker(self, models, bayesOptimSummary, XTrain, yTrain, XValid, nFolds
             columns.append(estimator + "_" + str(modelIter))
             
             model = self.BayesOptimModelBuilder(
-                bayesOptimSummary=bayesOptimSummary, estimator=estimator, modelIter=modelIter
+                bayesOptimSummary=bayesOptimSummary,
+                estimator=estimator,
+                modelIter=modelIter,
+                nJobs=nJobs,
             )
 
             oofTrainModel, oofValidModel = self.oofGenerator(

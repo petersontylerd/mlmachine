@@ -16,7 +16,7 @@ def topBayesOptimModels(self, bayesOptimSummary, numModels):
     models = {}
     for estimator in bayesOptimSummary["estimator"].unique():
         estDf = bayesOptimSummary[bayesOptimSummary["estimator"] == estimator].sort_values(
-            ["meanLoss"], ascending=[True]
+            ["meanLoss","stdLoss","trainTime"], ascending=[True,True,True]
         )["iteration"][:numModels]
         models[estimator] = estDf.values.tolist()
     return models
