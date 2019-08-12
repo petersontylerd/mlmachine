@@ -151,7 +151,7 @@ def singleShapValueTree(self, obsIx, model, data):
     """
     # collect observation feature values, model expected value and observation 
     # SHAP values
-    obsData = data.iloc[obsIx].values.reshape(1, -1)
+    obsData = data.loc[obsIx].values.reshape(1, -1)
     explainer = shap.TreeExplainer(model.model)
     obsShapValues = explainer.shap_values(obsData)
     
@@ -170,7 +170,7 @@ def singleShapValueTree(self, obsIx, model, data):
     return obsData, baseValue, obsShapValues
 
 
-def singleShapVizTree(self, obsIx, model, data, target=None):
+def singleShapVizTree(self, obsIx, model, data, target, classification=True):
     """
     Documentation:
         Description:
@@ -188,23 +188,32 @@ def singleShapVizTree(self, obsIx, model, data, target=None):
                 Instantiated model object.
             data : Pandas DataFrame
                 Dataset from which to slice indiviudal observation.
+            target : Pandas Series
+                True labels for observations
+            classification : boolean, default = True
+                Boolean argument indicating whether the supervised learning
+                task is classification or regression.
     """
     # create SHAP value objects
     obsData, baseValue, obsShapValues = self.singleShapValueTree(obsIx=obsIx, model=model, data=data)
-    
+        
     # display summary information about prediction
-    probas = model.predict_proba(obsData)
-    print('Negative class probability: {:.6f}'.format(probas[0][0]))
-    print('Positive class probability: {:.6f}'.format(probas[0][1]))
-    
-    if target is not None:
-        print('True label: {}'.format(target[obsIx]))
+    if classification:
+        probas = model.predict_proba(obsData)
+        print('Negative class probability: {:.6f}'.format(probas[0][0]))
+        print('Positive class probability: {:.6f}'.format(probas[0][1]))        
+        print('True label: {}'.format(target.loc[obsIx]))
+    else:
+        print('Prediction: {:.6f}'.format(model.predict(obsData)[0]))
+        print('True label: {:.6f}'.format(target.loc[obsIx]))
     
     # display force plot
     shap.force_plot(
         base_value=baseValue,
-        shap_values=obsShapValues,
-        features=obsData,
+        # shap_values=obsShapValues,
+        # features=obsData,
+        shap_values=np.around(obsShapValues.astype(np.double),3),
+        features=np.around(obsData.astype(np.double),3),
         feature_names=data.columns.tolist(),
         matplotlib=True,
         show=False
@@ -244,7 +253,7 @@ def multiShapValueTree(self, obsIxs, model, data):
                 Data array containing the SHAP values for the specified
                 observations.
     """
-    obsData = data.iloc[obsIxs].values
+    obsData = data.loc[obsIxs].values
     explainer = shap.TreeExplainer(model.model)
     obsShapValues = explainer.shap_values(obsData)
     
@@ -294,7 +303,8 @@ def multiShapVizTree(self, obsIxs, model, data):
     return visual
     
 
-def shapDependencePlot(self, obsData, obsShapValues, scatterFeature, colorFeature, featureNames, xJitter=0.08):
+def shapDependencePlot(self, obsData, obsShapValues, scatterFeature, colorFeature, featureNames, 
+                        xJitter=0.08, dotSize=25, alpha=0.7, show=True, ax=None):
     """
     Documentation:
         Description:
@@ -317,6 +327,12 @@ def shapDependencePlot(self, obsData, obsShapValues, scatterFeature, colorFeatur
                 List of all feature names in the dataset.
             xJitter : float, default = 0.08
                 Controls displacement of dots along x-axis.
+            dotSize : float, default = 25
+                Size of dots.
+            alpha : float, default = 0.7
+                Transparency of dots.
+            ax : Axes object, default = None
+                Axis on which to place visual.
     """
     
     # generate force plot
@@ -328,10 +344,46 @@ def shapDependencePlot(self, obsData, obsShapValues, scatterFeature, colorFeatur
             interaction_index = colorFeature,
             show=False,
             x_jitter=xJitter,
+            dot_size=dotSize,
+            alpha=alpha,
+            ax=ax,
         )
     plt.rcParams['axes.facecolor'] = 'white'
     plt.rcParams['figure.facecolor'] = 'white'
     plt.grid(b=False)
+    
+    if show:
+        plt.show()
+
+
+def shapDependenceGrid(self, obsData, obsShapValues, gridFeatures, allFeatures, dotSize, alpha):
+    """
+    
+    """
+
+    fig, ax = plt.subplots(
+        ncols=len(gridFeatures),
+        nrows=len(gridFeatures),
+        constrained_layout=True,
+        figsize=(len(gridFeatures) * 3.5, len(gridFeatures) * 2.5),
+    )
+
+    for colIx, colFeature in enumerate(gridFeatures):
+        for rowIx, rowFeature in enumerate(gridFeatures):
+            self.shapDependencePlot(
+                obsData=obsData,
+                obsShapValues=obsShapValues,
+                scatterFeature=colFeature,
+                colorFeature=rowFeature,
+                featureNames=allFeatures,
+                dotSize=dotSize,
+                alpha=alpha,
+                show=False,
+                ax=ax[rowIx, colIx],
+            )
+            ax[rowIx, colIx].yaxis.set_visible(False)
+            if rowIx != colIx:
+                ax[rowIx, colIx].set_xlabel("{},\nby {}".format(colFeature, rowFeature))
     plt.show()
 
 
@@ -377,7 +429,7 @@ def shapSummaryPlot(self, obsData, obsShapValues, featureNames, alpha=0.7):
 
 # def shapValsKernelViz(obsIx, explainer, obsShapValues, nSummaryDisplay = 5, featureNames=featureNames):
 #     obsData = train.data
-#     obs = obsData.iloc[obsIx].values.reshape(1,-1)
+#     obs = obsData.loc[obsIx].values.reshape(1,-1)
 
 #     probas = model.predict_proba(obs)
     

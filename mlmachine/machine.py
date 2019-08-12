@@ -78,6 +78,7 @@ class Machine:
         multiShapValueTree,
         multiShapVizTree,
         shapDependencePlot,
+        shapDependenceGrid,
         shapSummaryPlot,
     )    
     from .model.tune.bayesianOptimSearch import (
