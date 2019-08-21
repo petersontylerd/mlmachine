@@ -7,14 +7,23 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def edaMissingSummary(self):
+def edaMissingSummary(self, data=None):
     """
     Documentation:
         Description:
             Creates vertical bar chart visualizating the percent of rows of a feature that is missing.
+        Parameters:
+            data : Pandas DataFrame, default = None
+                Pandas DataFrame containing independent variables. If left as None,
+                the feature dataset provided to Machine during instantiation is used.
     """
-    totalMissing = self.data.isnull().sum()
-    percentMissing = self.data.isnull().sum() / len(self.data) * 100
+    # use data/target provided during instantiation if left unspecified
+    if data is None:
+        data = self.data
+
+    # calcule missing data statistics
+    totalMissing = data.isnull().sum()
+    percentMissing = data.isnull().sum() / len(data) * 100
     percentMissing = pd.DataFrame(
         {"Total missing": totalMissing, "Percent missing": percentMissing}
     )

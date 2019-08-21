@@ -17,15 +17,15 @@ class ModeImputer(base.TransformerMixin, base.BaseEstimator):
             train : boolean, default = True
                 Tells class whether we are imputing training data or unseen data.
             trainValue : dict, default = None
-                Only used when train = False. Either a dictionary containing 'feature : value' pairs 
-                or a Pandas DataFrame containing the full training dataset. Dictionary is retrieved from 
-                training data pipeline using named steps. The attribute is called trainValue_. 
-                
-                DataFrame is used in instances when the feature to be imputed in the validation dataset 
+                Only used when train = False. Either a dictionary containing 'feature : value' pairs
+                or a Pandas DataFrame containing the full training dataset. Dictionary is retrieved from
+                training data pipeline using named steps. The attribute is called trainValue_.
+
+                DataFrame is used in instances when the feature to be imputed in the validation dataset
                 did not have any missing values in the training dataset. This occurs in two circumstances:
-                First, the feature was fully populated in the training dataset. Second, when following 
-                ContextImputer, the context value in the was fully populated in the training dataset 
-                but not the validation dataset. 
+                First, the feature was fully populated in the training dataset. Second, when following
+                ContextImputer, the context value in the was fully populated in the training dataset
+                but not the validation dataset.
         Returns:
             X : array
                 Dataset where each column with missing values has been imputed with the mode
@@ -56,7 +56,7 @@ class ModeImputer(base.TransformerMixin, base.BaseEstimator):
             if isinstance(self.trainValue, dict):
                 for col in self.cols:
                     X[col] = X[col].fillna(self.trainValue[col])
-                    
+
             # use the training dataset when learned data is not available
             elif isinstance(self.trainValue, pd.DataFrame):
                 try:
@@ -66,7 +66,7 @@ class ModeImputer(base.TransformerMixin, base.BaseEstimator):
                     print('\nModeImputer failed: the issue is likely that one or more of the specified columns was converted to a set of dummy columns in the training dataset, meaning the original column no longer exists in the training dataset.')
                     print('A potential solution is to pass this to trainValue:\n\t train.data.merge(trainPipe.named_steps["dummyNominal"].originalCols_, right_index = True, left_index = True)')
                     raise
-            
+
                 for col in self.cols:
                     X[col] = X[col].fillna(self.trainValue[col][0])
         return X
@@ -76,8 +76,8 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Impute numerical columns with certain value, as specified by the strategy 
-            parameter. Imputes training data features, and stores imputed values to be 
+            Impute numerical columns with certain value, as specified by the strategy
+            parameter. Imputes training data features, and stores imputed values to be
             used on validation and unseen data.
         Parameters:
             cols : list
@@ -87,18 +87,18 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
             train : boolean, default = True
                 Tells class whether we are imputing training data or unseen data.
             trainValue : dict or Pandas DataFrame, default = None
-                Only used when train = False. Either a dictionary containing 'feature : value' pairs 
-                or a Pandas DataFrame containing the full training dataset. Dictionary is retrieved from 
-                training data pipeline using named steps. The attribute is called trainValue_. 
-                
-                DataFrame is used in instances when the feature to be imputed in the validation dataset 
+                Only used when train = False. Either a dictionary containing 'feature : value' pairs
+                or a Pandas DataFrame containing the full training dataset. Dictionary is retrieved from
+                training data pipeline using named steps. The attribute is called trainValue_.
+
+                DataFrame is used in instances when the feature to be imputed in the validation dataset
                 did not have any missing values in the training dataset. This occurs in two circumstances:
-                First, the feature was fully populated in the training dataset. Second, when following 
-                ContextImputer, the context value in the was fully populated in the training dataset 
+                First, the feature was fully populated in the training dataset. Second, when following
+                ContextImputer, the context value in the was fully populated in the training dataset
                 but not the validation dataset.
         Returns:
             X : array
-                Dataset where each column with missing values has been imputed with a value 
+                Dataset where each column with missing values has been imputed with a value
                 learned from a particular strategy.
         """
 
@@ -125,12 +125,12 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
                 self.trainValue_[col] = imputed.statistics_
         # For each columns, fill nulls with most frequently occuring value in training data
         else:
-            
+
             # derive from dictionary learned from training data
             if isinstance(self.trainValue, dict):
                 for col in self.cols:
                     X[col] = X[col].fillna(self.trainValue[col][0])
-            
+
             # use the training dataset when learned data is not available
             elif isinstance(self.trainValue, pd.DataFrame):
                 if self.strategy == "mean":
@@ -139,7 +139,7 @@ class NumericalImputer(base.TransformerMixin, base.BaseEstimator):
                     self.trainValue = self.trainValue[self.cols].median().to_frame().T
                 elif self.strategy == "most_frequent":
                     self.trainValue = self.trainValue[self.cols].mode()
-                    
+
                 for col in self.cols:
                     X[col] = X[col].fillna(self.trainValue[col][0])
         return X
@@ -149,9 +149,9 @@ class ConstantImputer(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Impute specified columns with a specific value. Intended to be used when a 
-            missing value conveys that an observation does not have that attribute. If 
-            column dtype is string, fill with 'Absent'. If column dtype is numerical, fill 
+            Impute specified columns with a specific value. Intended to be used when a
+            missing value conveys that an observation does not have that attribute. If
+            column dtype is string, fill with 'Absent'. If column dtype is numerical, fill
             with 0.
         Parameters:
             cols : list
@@ -185,25 +185,25 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
     Documentation:
         Description:
             Impute numerical columns with certain value, as specified by the strategy parameter. Also
-            utilizes one or more additional context columns as a group by value to add more subtlety to 
-            fill-value identification. Imputes training data features, and stores impute values to be used 
+            utilizes one or more additional context columns as a group by value to add more subtlety to
+            fill-value identification. Imputes training data features, and stores impute values to be used
             on validation and unseen data.
         Parameters:
             nullCol : list
                 Column with nulls to be imputed.
             contextCol : list
-                List of one or most columns to group by to add context to null column. 
+                List of one or most columns to group by to add context to null column.
             strategy : string, default = 'mean'
                 Imputing stategy. Takes values 'mean', 'median' and 'most_frequent'.
             train : boolean, default = True
                 Tells class whether we are imputing training data or unseen data.
             trainValue : dict, default = None
-                Only used when train = False. Value is a dictionary containing 'feature : value' pairs. 
-                Dictionary is retrieved from training data pipeline using named steps. The attribute is 
-                called trainValue_. 
+                Only used when train = False. Value is a dictionary containing 'feature : value' pairs.
+                Dictionary is retrieved from training data pipeline using named steps. The attribute is
+                called trainValue_.
         Returns:
             X : array
-                Dataset where each column with missing values has been imputed with a value learned from a particular 
+                Dataset where each column with missing values has been imputed with a value learned from a particular
                 strategy while also consider select columns as a group by variable.
     """
 
@@ -228,7 +228,7 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
                 self.trainValue_ = X[X[self.nullCol].notnull()].groupby(self.contextCol)[self.nullCol].agg(
                     lambda x: x.value_counts().index[0]
                 )
-            
+
             self.trainValue_ = self.trainValue_.reset_index()
 
             # impute missing values based on trainValue_

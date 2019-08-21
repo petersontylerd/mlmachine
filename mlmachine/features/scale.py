@@ -15,7 +15,7 @@ class Standard(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Apply standard scaling. Capable of fit_transforming new data, as well 
+            Apply standard scaling. Capable of fit_transforming new data, as well
             as transforming validation data with the same parameters.
         Parameters:
             cols : str, default = 'all'
@@ -24,12 +24,12 @@ class Standard(base.TransformerMixin, base.BaseEstimator):
                 dummy columns. These are identified by virtue of dummy columns
                 having a data type of 'uint8'.
             train : boolean, default = True
-                Controls whether to fit_transform training data or transform 
-                validation data using parameters learning from the fit on training 
+                Controls whether to fit_transform training data or transform
+                validation data using parameters learning from the fit on training
                 data.
             trainValue : dict, default = None
                 Dictionary containing 'feature : StandardScalar()' pairs to be used
-                to transform validation data. Only used when train = False. Variable 
+                to transform validation data. Only used when train = False. Variable
                 to be retrieved from traing pipeline is called trainValue_.
         Returns:
             X : array
@@ -77,16 +77,16 @@ class Robust(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Apply robust scaling. Capable of fit_transforming new data, as well as 
+            Apply robust scaling. Capable of fit_transforming new data, as well as
             transforming validation data with the same parameters.
         Parameters:
             cols : str
-                String describing which columns to scale. Takes values 'all', which 
-                will scale all columns and 'non-binary', which filters out dummy columns. 
-                These are identified by virtue of these columns having a data type of 
+                String describing which columns to scale. Takes values 'all', which
+                will scale all columns and 'non-binary', which filters out dummy columns.
+                These are identified by virtue of these columns having a data type of
                 'uint8'.
             train : boolean, default = True
-                Controls whether to fit_transform training data or transform validation 
+                Controls whether to fit_transform training data or transform validation
                 data using parameters learned from the fit on training data.
             trainValue : dict, default = None
                 Dictionary containing 'feature : RobustScalar()' pairs to be used

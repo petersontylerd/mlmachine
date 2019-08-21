@@ -7,15 +7,28 @@ from scipy import special
 import sklearn.base as base
 
 
-def skewSummary(self):
+def skewSummary(self, data=None, columns=None):
     """
     Documentation:
         Description:
             Displays Pandas DataFrame summarizing the skew of each continuous variable. Also summarizes
             the percent of a column that has a value of zero.
+        Parameters:
+            data : Pandas DataFrame, default = None
+                Pandas DataFrame containing independent variables. If left as None,
+                the feature dataset provided to Machine during instantiation is used.
+            columns : list of strings, default = None
+                List containing string names of columns. If left as None, the value associated
+                with sel.featureByDtype["continuous"] will be used as the column list.
     """
+    # use data/featureByDtype["continuous"] columns provided during instantiation if left unspecified
+    if data is None:
+        data = self.data
+    if columns is None:
+        columns = self.featureByDtype["continuous"]
+
     skewness = (
-        self.data[self.featureByDtype_["continuous"]]
+        data[columns]
         .apply(lambda x: stats.skew(x.dropna()))
         .sort_values(ascending=False)
     )
@@ -23,12 +36,12 @@ def skewSummary(self):
 
     # add column describing percent of values that are zero
     skewness["PctZero"] = np.nan
-    for col in self.featureByDtype_["continuous"]:
+    for col in columns:
 
         try:
-            skewness.loc[col]["PctZero"] = self.data[self.data[col] == 0][
+            skewness.loc[col]["PctZero"] = data[data[col] == 0][
                 col
-            ].value_counts() / len(self.data)
+            ].value_counts() / len(data)
         except ValueError:
             skewness.loc[col]["PctZero"] = 0.0
     skewness = skewness.sort_values(["Skew"])
@@ -39,8 +52,8 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Performs Box-Cox (or Box-Cox + 1) transformation on continuous features with a skew 
-            value above skewMin. The lambda chosen for each feature is the value that maximizes 
+            Performs Box-Cox (or Box-Cox + 1) transformation on continuous features with a skew
+            value above skewMin. The lambda chosen for each feature is the value that maximizes
             the log-likelihood function. The same lambda values are reused on unseen data.
         Parameters:
             cols : list, default = None
@@ -48,14 +61,14 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
             skewMin : float, default = None
                 Minimum absolute skew of feature needed in order for feature to be transformed.
             pctZeroMax : float, default = None
-                Maximum percent zero values a column is allowed to have in order to be transformed. 
+                Maximum percent zero values a column is allowed to have in order to be transformed.
                 Must be a value between 0.0 and 1.0.
             train : boolean, default = True
-                Controls whether to fit_transform training data or transform validation data using 
+                Controls whether to fit_transform training data or transform validation data using
                 lambdas determined from training data.
             classDict : dict, default = None
-                Dictionary containing 'feature : lambda' pairs to be used to transform validation data 
-                using Box-Cox (or Box-Cox + 1) transformation. Only used when train = False. Variable 
+                Dictionary containing 'feature : lambda' pairs to be used to transform validation data
+                using Box-Cox (or Box-Cox + 1) transformation. Only used when train = False. Variable
                 to be retrieved from train pipeline from traing pipeline is called trainValue_.
             verbose : boolean, default = False
                 If True display previous and post-transformation skew values for each feature.
@@ -122,23 +135,23 @@ class EqualWidthBinner(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Bin continuous columns into specified segments. Bins training data 
+            Bin continuous columns into specified segments. Bins training data
             features, and stores the cut points to be used on validation and
             unseen data.
         Parameters:
             equalBinDict : dictionary, default = None
-                Dictionary containing 'column : label' pairs. Label is a list that 
-                proscribes the bin labels to be used for each paired column. The bin 
-                size is calculated based off of the the number of labels. The labels 
-                are expected to be a list that describes how the bins should be named, 
-                i.e. a label list of ['low','med','high'] will instruct the binner to 
+                Dictionary containing 'column : label' pairs. Label is a list that
+                proscribes the bin labels to be used for each paired column. The bin
+                size is calculated based off of the the number of labels. The labels
+                are expected to be a list that describes how the bins should be named,
+                i.e. a label list of ['low','med','high'] will instruct the binner to
                 create three bins and then call each bin 'low','med' and 'high'.
             train : boolean, default = True
                 Tells class whether we are binning training data or unseen data.
             trainValue : dict, default = None
-                Dictionary containing 'feature : mode' pairs to be used to transform 
-                validation data. Only used when train = False. Retrieved from training 
-                data pipeline using named steps. Variable to be retrieved from traing 
+                Dictionary containing 'feature : mode' pairs to be used to transform
+                validation data. Only used when train = False. Retrieved from training
+                data pipeline using named steps. Variable to be retrieved from traing
                 pipeline is called trainValue_..
         Returns:
             X : array
@@ -173,7 +186,7 @@ class EqualWidthBinner(base.TransformerMixin, base.BaseEstimator):
 
                 # build colValueDict
                 self.trainValue_[col] = bins
-                
+
         # For each column, bin the values based on the cut-offs learned on training data
         else:
             # TODO - does not currently apply bin label. just the interval index range. not usable.
@@ -194,16 +207,16 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
             Bin continuous columns into segments based on percentile cut-offs.
         Parameters:
             cols : list
-                List of colummns to be binned. The percentiles are derived from 
+                List of colummns to be binned. The percentiles are derived from
                 the raw data.
             percs : list
                 Percentiles for determining cut-off points for bins.
             train : boolean, default = True
                 Tells class whether we are binning training data or unseen data.
             trainValue : dict, default = None
-                Dictionary containing 'feature : mode' pairs to be used to transform 
-                validation data. Only used when train = False. Retrieved from training 
-                data pipeline using named steps. Variable to be retrieved from traing 
+                Dictionary containing 'feature : mode' pairs to be used to transform
+                validation data. Only used when train = False. Retrieved from training
+                data pipeline using named steps. Variable to be retrieved from traing
                 pipeline is called trainValue_..
         Returns:
             X : array
@@ -296,7 +309,7 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
             Bin continuous columns into custom segments.
         Parameters:
             customBinDict : dictionary
-                Dictionary containing 'column : bin' specifcation pairs. Bin specifications 
+                Dictionary containing 'column : bin' specifcation pairs. Bin specifications
                 should be a list.
         Returns:
             X : array
@@ -317,7 +330,7 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
             X[binCol] = np.nan
 
             # append featureDtype dict
-            # self.featureByDtype_['categorical'].append(binCol)
+            # self.featureByDtype['categorical'].append(binCol)
 
             # iterate through custom binning
             for ix, ceil in enumerate(self.customBinDict[col]):
@@ -340,22 +353,34 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
         return X
 
 
-def featureDropper(self, cols):
+def featureDropper(self, cols, data, featureByDtype):
     """
     Documentation:
         Description:
-            Removes feature from dataset and from self.featureByDtype_.
+            Removes feature from dataset and from self.featureByDtype.
         Parameters:
             cols : list
                 List of features to be dropped.
+            data : Pandas DataFrame, default = None
+                Pandas DataFrame containing independent variables.
+            featureByDtype : dictionary, default = None
+                Dictionary containing string/list key/value pairs, where the key is the feature
+                type and the value is a list of features of that type.
+        Returns:
+            data : Pandas DataFrame
+                Modified input with all specified columns data removed.
+            featureByDtype : dictionary
+                Modified input with all specified column names data removed.
     """
     for col in cols:
         # delete colummn from data from
-        self.data = self.data.drop([col], axis=1)
+        data = data.drop([col], axis=1)
 
         # delete column name from featureByDtype dict
-        if col in self.featureByDtype_["categorical"]:
-            self.featureByDtype_["categorical"].remove(col)
-        elif col in self.featureByDtype_["continuous"]:
-            self.featureByDtype_["continuous"].remove(col)
+        if col in featureByDtype["categorical"]:
+            featureByDtype["categorical"].remove(col)
+        elif col in featureByDtype["continuous"]:
+            featureByDtype["continuous"].remove(col)
+
+    return data, featureByDtype
 

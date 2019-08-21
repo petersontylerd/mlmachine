@@ -45,7 +45,7 @@ def objective(space, resultsDir, model, X, y, scoring, nFolds, nJobs, verbose):
             process.
         Parameters:
             space : dictionary
-                Dictionary containg 'parameter : value distribution' key/value pairs. The key specifies the 
+                Dictionary containg 'parameter : value distribution' key/value pairs. The key specifies the
                 parameter of the model and optimization process draws trial values from the distribution.
             resultsDir : string
                 File destination for results summary CSV.
@@ -62,8 +62,8 @@ def objective(space, resultsDir, model, X, y, scoring, nFolds, nJobs, verbose):
                     - "f1_micro"
                     - "accuracy"
                     - "rmsle"
-                Please note that "rmsle" is not implemented in sklearn. If "rmsle" is specified, model 
-                is optimized using "neg_mean_squared_error" and then the square root is taken of the 
+                Please note that "rmsle" is not implemented in sklearn. If "rmsle" is specified, model
+                is optimized using "neg_mean_squared_error" and then the square root is taken of the
                 absolute value of the results, effectively creating the "rmsle" score to be minimized.
             n_folds : int
                 Number of folds for cross-validation.
@@ -73,7 +73,7 @@ def objective(space, resultsDir, model, X, y, scoring, nFolds, nJobs, verbose):
                 Controls amount of information printed to console during fit.
         Returns:
             results : dictionary
-                Dictionary containing details for each individual trial. Details include model type, 
+                Dictionary containing details for each individual trial. Details include model type,
                 iteration, parameter values, run time, and cross-validation summary statistics.
     """
     global ITERATION
@@ -153,9 +153,9 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, nFolds, nJob
             distribution.
         Parameters:
             allSpace : dictionary of dictionaries
-                Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is 
-                a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value 
-                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the 
+                Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is
+                a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value
+                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
             resultsDir : string
                 File destination for results summary CSV.
@@ -195,14 +195,14 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, nFolds, nJob
             ]
         )
 
-    # iterate through each model 
+    # iterate through each model
     for estimator in allSpace.keys():
         global ITERATION
         ITERATION = 0
-        
+
         # establish feature space for hyper-parameter search
         space = allSpace[estimator]
-        
+
         # override default arguments with next estimator and the CV parameters
         objective.__defaults__ = (
             resultsDir,
@@ -235,14 +235,16 @@ class BayesOptimModelBuilder:
             Helper class for instantiating an input model type with a provided
             parameter set.
         Parameters:
-            model : sklearn model
-                Model to instantiate.
-            seed : int
-                Random number seed.
-            params : dictionary
-                Dictionary containing 'parameter : value' pairs.
+            bayesOptimSummary : Pandas DataFrame
+                Pandas DataFrame containing results from Bayesian Optimization process
+                execution.
+            estimator : string
+                Name of estimator to build. Needs the format of [submodule].[estimator].
+            modelIter : int
+                Numerical identifier for a specific parameter set used in a training
+                iteration.
             nJobs : int, default = 2
-                Number of works to use when training the model. This parameter will be 
+                Number of works to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             model : model object
@@ -255,7 +257,7 @@ class BayesOptimModelBuilder:
         self.estimator=estimator
         self.modelIter=modelIter
         self.nJobs=nJobs
-        
+
 
         params = self.bayesOptimSummary[
             (self.bayesOptimSummary["estimator"] == self.estimator) & (self.bayesOptimSummary["iteration"] == self.modelIter)
@@ -274,13 +276,72 @@ class BayesOptimModelBuilder:
             del params['n_jobs']
             self.model = eval("{0}(**{1})".format(self.estimator, params))
 
-        
+
     def train(self, XTrain, yTrain):
         self.model.fit(XTrain, yTrain)
 
     def predict(self, x):
         return self.model.predict(x)
-    
+
+    def predict_proba(self, x):
+        return self.model.predict_proba(x)
+
+    def fit(self, x, y):
+        return self.model.fit(x, y)
+
+    def feature_importances(self, x, y):
+        return self.model.fit(x, y).feature_importances_
+
+
+class BasicModelBuilder:
+    """
+    Documentation:
+        Description:
+            Helper class for instantiating an input model type.
+        Parameters:
+            estimator : sklearn model, as either an uncalled object or a string.
+                Model to instantiate.
+            params : dictionary, default = {}
+                Dictionary containing 'parameter : value' pairs. If no dictionary is provided,
+                then an empty dictionary is passed by default, which instantiates the model with
+                its default parameter values.
+            nJobs : int, default = 2
+                Number of works to use when training the model. This parameter will be
+                ignored if the model does not have this parameter.
+        Returns:
+            model : model object
+                Model instantiated using parameter set. Model possesses train, predict, fit
+                and feature_importances methods.
+    """
+
+    def __init__(self, estimator, params={}, nJobs=4):
+        self.estimator=estimator
+        self.params=params
+        self.nJobs=nJobs
+
+        if estimator in ['svm.SVC',svm.SVC]:
+            params['probability'] = True
+
+        try:
+            params['n_jobs'] = self.nJobs
+            if isinstance(self.estimator, str):
+                self.model = eval("{0}(**{1})".format(self.estimator, params))
+            else:
+                self.model = estimator(**params)
+        except TypeError:
+            del params['n_jobs']
+            if isinstance(self.estimator, str):
+                self.model = eval("{0}(**{1})".format(self.estimator, params))
+            else:
+                self.model = estimator(**params)
+
+
+    def train(self, XTrain, yTrain):
+        self.model.fit(XTrain, yTrain)
+
+    def predict(self, x):
+        return self.model.predict(x)
+
     def predict_proba(self, x):
         return self.model.predict_proba(x)
 
@@ -299,16 +360,16 @@ def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
             into a Pandas DataFrame where there is one column for each parameter.
         Parameters
             bayesOptimSummary : Pandas DataFrame
-                Pandas DataFrame containing results from Bayesian Optimization process 
-                execution. 
+                Pandas DataFrame containing results from Bayesian Optimization process
+                execution.
             estimator : string
                 Name of estimator to build. Needs the format of [submodule].[estimator].
         Returns:
             estimatorParamSummary : Pandas DataFrame
-                Pandas DataFrame where each row is a record of the parameters used and the 
+                Pandas DataFrame where each row is a record of the parameters used and the
                 loss recorded in an iteration.
     """
-    
+
     estimatorDf = bayesOptimSummary[bayesOptimSummary["estimator"] == estimator].reset_index(drop=True)
 
     # Create a new dataframe for storing parameters
@@ -340,8 +401,8 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
                    that can be set during function execution.
         Parameters
             bayesOptimSummary : Pandas DataFrame
-                Pandas DataFrame containing results from Bayesian Optimization process 
-                execution. 
+                Pandas DataFrame containing results from Bayesian Optimization process
+                execution.
             estimator : string
                 Name of estimator to build. Needs the format of [submodule].[estimator].
             chartProp : float, default = 15
@@ -358,7 +419,7 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
     estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary=bayesOptimSummary, estimator=estimator)
     if trimOutliers:
         mean = estimatorSummary['iterLoss'].mean()
-        median = estimatorSummary['iterLoss'].median()        
+        median = estimatorSummary['iterLoss'].median()
         std = estimatorSummary['iterLoss'].std()
         cap = mean + (2.0*std)
         estimatorSummary = estimatorSummary[(estimatorSummary['iterLoss'] < cap) & (estimatorSummary['iterLoss'] < outlierControl * median)]
@@ -385,18 +446,18 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
         Definition:
             Visualize hyper-parameter optimization over the iterations. Compares theoretical
             distribution to the distribution of values that were actually chosen. For parameters
-            with a continuous range of values, this function also visualizes how the parameter 
+            with a continuous range of values, this function also visualizes how the parameter
             value changes over time.
         Parameters
             bayesOptimSummary : Pandas DataFrame
-                Pandas DataFrame containing results from Bayesian Optimization process 
-                execution. 
+                Pandas DataFrame containing results from Bayesian Optimization process
+                execution.
             estimator : string
                 Name of estimator to build. Needs the format of [submodule].[estimator].
             allSpace : dictionary of dictionaries
-                Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is 
-                a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value 
-                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the 
+                Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is
+                a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value
+                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
             nIter : int
                 Number of iterations to draw from theoretical distribution in order to visualize the
@@ -407,7 +468,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
                 scale visual down in size.
     """
     estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary = bayesOptimSummary, estimator = estimator)
-    
+
     # return space belonging to estimator
     estimatorSpace = allSpace[estimator]
 
@@ -432,7 +493,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
         actualDist = np.array(actualDist)
 
         actualIterDf = estimatorSummary[["iteration",param]]
-                
+
         # plot distributions for categorical params
         if any(isinstance(d, str) for d in theoreticalDist):
 
@@ -542,7 +603,7 @@ def samplePlot(self, sampleSpace, nIter, chartProp=15):
     """
     Documentation:
         Definition:
-            Visualizes a single hyperopt theoretical distribution. Useful for helping to determine a 
+            Visualizes a single hyperopt theoretical distribution. Useful for helping to determine a
             distribution to use when setting up hyperopt distribution objects for actual parameter
             tuning.
         Parameters

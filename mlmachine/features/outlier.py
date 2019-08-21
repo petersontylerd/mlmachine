@@ -17,7 +17,7 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
                 Minimum number of values across all features that need to be outliers
                 in order for an observation to be flagged.
             iqrStep : float
-                Multiplier that controls level of sensitivity of outlier detection method. 
+                Multiplier that controls level of sensitivity of outlier detection method.
                 Higher values for iqrStep will cause OutlierIQR to only detect increasingly
                 extreme values.
             features : list
@@ -82,15 +82,15 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
             nTrees : int
                 Number of trees to be used.
             sampleSize : int
-                Sub-sample size for creating each trees. Values must be smaller that input dataset 
+                Sub-sample size for creating each trees. Values must be smaller that input dataset
                 row count.
             ExtensionLevel : int
-                Degrees of freedom for choosing hyperplanes that divide data. Value must be smaller 
+                Degrees of freedom for choosing hyperplanes that divide data. Value must be smaller
                 than input dataset column count.
             anomaliesRatio : float
                 Percent of input dataset observations to identify as outliers.
             dropOutliers : boolean, default = False
-                Dictates whether identified outliers are removed from input dataset.            
+                Dictates whether identified outliers are removed from input dataset.
         Returns:
             X : array
                 Dataset with outlier observations removed.
@@ -102,8 +102,8 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
         self.sampleSize = sampleSize
         self.ExtensionLevel = ExtensionLevel
         self.anomaliesRatio = anomaliesRatio
-        self.dropOutliers = dropOutliers        
-        
+        self.dropOutliers = dropOutliers
+
     def fit(self, X, y=None):
         return self
 
@@ -138,6 +138,7 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
 
         return X
 
+
 def outlierSummary(self, iqrOutliers, ifOutliers, eifOutliers):
     """
     Documentation:
@@ -157,7 +158,7 @@ def outlierSummary(self, iqrOutliers, ifOutliers, eifOutliers):
                 Extended Isolition Forest method.
         Returns:
             outlierSummary : Pandas DataFrame
-                DataFrame summarizing outlier 
+                DataFrame summarizing outlier
     """
     # merge and de-duplicate outlier index values
     outlierIxs = np.unique(np.concatenate([iqrOutliers, ifOutliers, eifOutliers]))
@@ -167,15 +168,15 @@ def outlierSummary(self, iqrOutliers, ifOutliers, eifOutliers):
         columns = ['IQR','IF','EIF'],
         index = outlierIxs
     )
-    
+
     # fill nulls based on index value match
     outlierSummary['IQR'] = outlierSummary['IQR'].loc[iqrOutliers].fillna(value='X')
     outlierSummary['IF'] = outlierSummary['IF'].loc[ifOutliers].fillna(value='X')
     outlierSummary['EIF'] = outlierSummary['EIF'].loc[eifOutliers].fillna(value='X')
-    
+
     # add summary columns and sort
     outlierSummary['Count'] = outlierSummary.count(axis = 1)
-    outlierSummary = outlierSummary.sort_values(['Count'], ascending = False)    
-    
+    outlierSummary = outlierSummary.sort_values(['Count'], ascending = False)
+
     outlierSummary = outlierSummary.fillna('')
     return outlierSummary
