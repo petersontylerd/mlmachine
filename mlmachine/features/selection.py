@@ -65,7 +65,8 @@ def featureSelectorFScoreClass(self, data=None, target=None, rank=True):
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each feature, calculate F-values and p-values in the context of a
+            classification probelm.
         Parameters:
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
@@ -107,7 +108,8 @@ def featureSelectorFScoreReg(self, data=None, target=None, rank=True):
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each feature, calculate F-values and p-values in the context of a
+            regression probelm.
         Parameters:
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
@@ -149,7 +151,7 @@ def featureSelectorVariance(self, data=None, target=None, rank=True):
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each feature, calculate variance.
         Parameters:
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
@@ -161,7 +163,7 @@ def featureSelectorVariance(self, data=None, target=None, rank=True):
                 Conditional controlling whether to overwrite values with rank of values.
         Return:
             featureDf : Pandas DataFrame
-                Pandas DataFrame containing summary of F-values and p-values by feature.
+                Pandas DataFrame containing summary of variances.
     """
     # use data/target provided during instantiation if left unspecified
     if data is None:
@@ -184,12 +186,14 @@ def featureSelectorVariance(self, data=None, target=None, rank=True):
 
     return featureDf
 
-def featureSelectorImportance(self, data=None, target=None, rank=True):
+def featureSelectorImportance(self, estimators, data=None, target=None, rank=True):
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each estimator, for each feature, calculate feature importance.
         Parameters:
+            estimators : list of strings or sklearn API objects.
+                List of estimators to be used.
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
                 the feature dataset provided to Machine during instantiation is used.
@@ -200,7 +204,8 @@ def featureSelectorImportance(self, data=None, target=None, rank=True):
                 Conditional controlling whether to overwrite values with rank of values.
         Return:
             featureDf : Pandas DataFrame
-                Pandas DataFrame containing summary of F-values and p-values by feature.
+                Pandas DataFrame containing summary of feature importance by estimator
+                and by feautre.
     """
     # use data/target provided during instantiation if left unspecified
     if data is None:
@@ -209,7 +214,7 @@ def featureSelectorImportance(self, data=None, target=None, rank=True):
         target = self.target
 
     featureDict = {}
-    for estimator in self.estimators:
+    for estimator in estimators:
         model = self.BasicModelBuilder(estimator=estimator)
         featureDict[
             "FeatureImportance " + estimator.split(".")[1]
@@ -223,12 +228,15 @@ def featureSelectorImportance(self, data=None, target=None, rank=True):
 
     return featureDf
 
-def featureSelectorRFE(self, data=None, target=None, rank=True):
+def featureSelectorRFE(self, estimators, data=None, target=None, rank=True):
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each estimator, recursively remove features one at a time, capturing
+            the step in which each feature is removed.
         Parameters:
+            estimators : list of strings or sklearn API objects.
+                List of estimators to be used.
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
                 the feature dataset provided to Machine during instantiation is used.
@@ -239,7 +247,8 @@ def featureSelectorRFE(self, data=None, target=None, rank=True):
                 Conditional controlling whether to overwrite values with rank of values.
         Return:
             featureDf : Pandas DataFrame
-                Pandas DataFrame containing summary of F-values and p-values by feature.
+                Pandas DataFrame containing summary of recursive feature selection by
+                estimaor.
     """
     # use data/target provided during instantiation if left unspecified
     if data is None:
@@ -248,7 +257,7 @@ def featureSelectorRFE(self, data=None, target=None, rank=True):
         target = self.target
 
     featureDict = {}
-    for estimator in self.estimators:
+    for estimator in estimators:
         model = self.BasicModelBuilder(estimator=estimator)
 
         # recursive feature selection
@@ -262,7 +271,7 @@ def featureSelectorRFE(self, data=None, target=None, rank=True):
 
     # overwrite values with rank where lower ranks convey higher importance
     if rank:
-        featureDf = featureDf.rank(ascending=False, method="max")
+        featureDf = featureDf.rank(ascending=True, method="max")
 
     return featureDf
 
@@ -270,7 +279,8 @@ def featureSelectorCorr(self, data=None, target=None, targetName=None, rank=True
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each feature, calculate absolute correlation coefficient relative to
+            target dataset.
         Parameters:
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
@@ -285,7 +295,7 @@ def featureSelectorCorr(self, data=None, target=None, targetName=None, rank=True
                 Conditional controlling whether to overwrite values with rank of values.
         Return:
             featureDf : Pandas DataFrame
-                Pandas DataFrame containing summary of F-values and p-values by feature.
+                Pandas DataFrame containing absolute correlation coefficients by feature.
     """
     # use data/target/targetName provided during instantiation if left unspecified
     if data is None:
@@ -314,18 +324,60 @@ def featureSelectorCorr(self, data=None, target=None, targetName=None, rank=True
 
     return featureDf
 
-def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None, target=None, nFolds=3):
+def featureSelectorSummary(self, estimators, classification=True):
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each feature, calculate absolute correlation coefficient relative to
+            target dataset.
         Parameters:
-            estimators : list of string
-                desc
+            estimators : list of strings or sklearn API objects.
+                List of estimators to be used.
+            classification : boolean, default = True
+                Conditional controlling whether the function is calculate F-values and
+                p-values in the context of a classifiation task or a regression task.
+        Return:
+            featureDf : Pandas DataFrame
+                Pandas DataFrame containing absolute correlation coefficients by feature.
+    """
+    # run individual top feature processes
+    resultsVariance = self.featureSelectorVariance()
+    resultsImportance = self.featureSelectorImportance(estimators=estimators, rank=True)
+    resultsRFE = self.featureSelectorRFE(estimators=estimators, rank=True)
+    resultsCorr = self.featureSelectorCorr()
+    if classification:
+        resultsFScore = self.featureSelectorFScoreClass()
+    else:
+        resultsFScore = self.featureSelectorFScoreReg()
+
+    # combine results into single summary table
+    results = [resultsFScore, resultsVariance, resultsCorr, resultsRFE, resultsImportance]
+    resultsSummary = pd.concat(results, join="inner", axis=1)
+
+    # add summary stats
+    resultsSummary.insert(loc=0, column="average", value=resultsSummary.mean(axis=1))
+    resultsSummary.insert(loc=1, column="stdev", value=resultsSummary.iloc[:, 1:].std(axis=1))
+    resultsSummary.insert(loc=2, column="low", value=resultsSummary.iloc[:, 2:].min(axis=1))
+    resultsSummary.insert(loc=3, column="high", value=resultsSummary.iloc[:, 3:].max(axis=1))
+
+    resultsSummary = resultsSummary.sort_values("average")
+    return resultsSummary
+
+
+def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None, target=None, nFolds=3, verbose=True):
+    """
+    Documentation:
+        Description:
+            Perform cross-validation for each estimator, for progressively smaller sets of features. The list
+            of features is reduced by one feature on each pass. The feature removed is the least important
+            feature of the remaining set. Calculates both the training and test performance.
+        Parameters:
+            estimators : list of strings or sklearn API objects.
+                List of estimators to be used.
             featureSummary : Pandas DataFrame
-                desc
-            scoring : tuple of string
-                desc
+                Feature importance summary table.
+            scoring : tuple of strings
+                Tuples containing strings for one or more performance metircs.
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
                 the feature dataset provided to Machine during instantiation is used.
@@ -333,10 +385,14 @@ def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None
                 Pandas Series containing dependent target variable. If left as None,
                 the target dataset provided to Machine during instantiation is used.
             nFolds : int, default = 3
-                Number of folds to use in cross validation
+                Number of folds to use in cross validation.
+            verbose : boolean, default = True
+                Conditional controlling whether each estimator name is printed prior to cross-validation.
         Return:
-            featureDf : Pandas DataFrame
-                Pandas DataFrame containing summary of F-values and p-values by feature.
+            cvSummary : dictionary
+                Dictionary containing string/Pandas DataFrame key/value pairs, where the
+                key is an estimator and the value is a Pandas DataFrame summarizing the
+                training and validation performance for each feature set.
     """
     # use data/target provided during instantiation if left unspecified
     if data is None:
@@ -349,6 +405,9 @@ def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None
 
     # perform cross validation for all estimators for each diminishing set of features
     for estimator in estimators:
+
+        if verbose:
+            print(estimator)
 
         # instantiate default model and create empty DataFrame for capturing scores
         model = self.BasicModelBuilder(estimator=estimator)
@@ -377,33 +436,51 @@ def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None
         cvSummary[estimator] = cv
     return cvSummary
 
-def featureSelectorResultsPlot(self, cvSummary):
+def featureSelectorResultsPlot(self, cvSummary, featureSummary, topSets=0, showFeatures=False):
     """
     Documentation:
         Description:
-            For each feature, calculate F-values and p-values.
+            For each estimator, visualize the training and validation performance
+            for each feature set.
         Parameters:
-
+            cvSummary : dictionary
+                Dictionary containing string/Pandas DataFrame key/value pairs, where the
+                key is an estimator and the value is a Pandas DataFrame summarizing the
+                training and validation performance for each feature set.
+            featureSummary : Pandas DataFrame
+                Feature importance summary table.
+            topSets : int, default = 5
+                Number of rows to display of the performance summary table
+            showFeatures : boolean, default = False
+                Conditional controlling whether to print feature set for best validation
+                score.
     """
-    for k in cvSummary.keys():
-        display(cvSummary[k].sort_values(["Validation"], ascending=False)[:4])
-        featRemoved = (
-            cvSummary[k]
-            .sort_values(["Validation"], ascending=False)[:1]
+    for estimator in cvSummary.keys():
+        # capture best iteration's feature drop count and performance score
+        numDropped = (
+            cvSummary[estimator]
+            .sort_values(["Validation score"], ascending=False)[:1]
             .index.values[0]
         )
         score = np.round(
-            cvSummary[k]
-            .sort_values(["Validation"], ascending=False)["Validation"][:1]
+            cvSummary[estimator]
+            .sort_values(["Validation score"], ascending=False)["Validation score"][:1]
             .values[0],
             5,
         )
 
-        #
+        # display performance for the top N feature sets
+        if topSets > 0:
+            display(cvSummary[estimator].sort_values(["Validation score"], ascending=False)[:topSets])
+        if showFeatures:
+            featuresUsed = featureSummary.sort_values("average").index[:-numDropped].values
+            print(featuresUsed)
+
+        # create multi-line plot
         p = PrettierPlot()
         ax = p.makeCanvas(
             title="{}\nBest validation score = {}, Features dropped = {}".format(
-                k, score, featRemoved
+                estimator, score, numDropped
             ),
             xLabel="Features removed",
             yLabel="Accuracy",
@@ -411,10 +488,10 @@ def featureSelectorResultsPlot(self, cvSummary):
         )
 
         p.prettyMultiLine(
-            x=cvSummary[k].index,
-            y=["Training", "Validation"],
-            label=["Training", "Validation"],
-            df=cvSummary[k],
+            x=cvSummary[estimator].index,
+            y=["Training score", "Validation score"],
+            label=["Training score", "Validation score"],
+            df=cvSummary[estimator],
             yUnits="fff",
             markerOn=True,
             ax=ax,
@@ -422,35 +499,40 @@ def featureSelectorResultsPlot(self, cvSummary):
         plt.show()
 
 
-def asdf(self):
-    # run individual top feature processes
-    resultsVariance = self.featureSelectorVariance()
-    resultsImportance = self.featureSelectorImportance()
-    resultsRFE = self.featureSelectorRFE()
+def featuresUsedSummary(self, cvSummary, featureSummary):
+    """
+    Documentation:
+        Description:
+            For each estimator, visualize the training and validation performance
+            for each feature set.
+        Parameters:
+            cvSummary : dictionary
+                Dictionary containing string/Pandas DataFrame key/value pairs, where the
+                key is an estimator and the value is a Pandas DataFrame summarizing the
+                training and validation performance for each feature set.
+            featureSummary : Pandas DataFrame
+                Feature importance summary table.
 
-    if classification:
-        resultsFScore = self.featureSelectorFScoreClass()
-    else:
-        resultsFScore = self.featureSelectorFScoreReg()
+    """
+    # create empty DataFrame with feature names as index
+    df = pd.DataFrame(index=featureSummary.index)
 
-    # merge all
-    featureSummary = resultsVariance
-    featureSummary = featureSummary.join(resultsFScore)
-    featureSummary = featureSummary.join(resultsImportance)
-    featureSummary = featureSummary.join(resultsRFE)
-
-    # add summary stats
-    featureSummary.insert(loc=0, column="average", value=featureSummary.mean(axis=1))
-    featureSummary.insert(loc=1, column="stdev", value=featureSummary.iloc[:, 1:].std(axis=1))
-    featureSummary.insert(loc=2, column="low", value=featureSummary.iloc[:, 2:].min(axis=1))
-    featureSummary.insert(loc=3, column="high", value=featureSummary.iloc[:, 3:].max(axis=1))
-
-    featureSummary = featureSummary.sort_values("average")
-
-    # perform cross validation on all estimaors with decreasing number of feautres
-    if self.nFolds is not None:
-        self.cvSummary = self.featureSelectorCrossVal(
-            estimators=self.estimators,
-            featureSummary=featureSummary,
-            nFolds=nFolds,
+    # iterate through estimators
+    for estimator in cvSummary.keys():
+        # capture best iteration's feature drop count
+        numDropped = (
+            cvSummary[estimator]
+            .sort_values(["Validation score"], ascending=False)[:1]
+            .index.values[0]
         )
+        featuresUsed = featureSummary.sort_values("average").index[:-numDropped].values
+        columnName = estimator.split(".")[1]
+
+        # create column for estimator and populate with marker
+        df[columnName] = np.nan
+        df[columnName].loc[featuresUsed] = "X"
+
+    # add counter and fill NaNs
+    df["count"] = df.count(axis=1)
+    df = df.fillna("")
+    return df

@@ -1,5 +1,6 @@
 import ast
 import csv
+import inspect
 import sys
 import time
 from timeit import default_timer as timer
@@ -238,12 +239,12 @@ class BayesOptimModelBuilder:
             bayesOptimSummary : Pandas DataFrame
                 Pandas DataFrame containing results from Bayesian Optimization process
                 execution.
-            estimator : string
+            estimator : string or sklearn API object
                 Name of estimator to build. Needs the format of [submodule].[estimator].
             modelIter : int
                 Numerical identifier for a specific parameter set used in a training
                 iteration.
-            nJobs : int, default = 2
+            nJobs : int, default = 4
                 Number of works to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
         Returns:
@@ -257,25 +258,28 @@ class BayesOptimModelBuilder:
         self.estimator=estimator
         self.modelIter=modelIter
         self.nJobs=nJobs
-
-
-        params = self.bayesOptimSummary[
+        self.params = self.bayesOptimSummary[
             (self.bayesOptimSummary["estimator"] == self.estimator) & (self.bayesOptimSummary["iteration"] == self.modelIter)
         ]["params"].values[0]
 
         # turn string into dict
-        params = ast.literal_eval(params)
+        self.params = ast.literal_eval(self.params)
 
-        if estimator in ['svm.SVC']:
-            params['probability'] = True
+        # convert estimator argument to sklearn API object if needed
+        if isinstance(self.estimator, str):
+            self.estimator = eval(self.estimator)
 
-        try:
-            params['n_jobs'] = self.nJobs
-            self.model = eval("{0}(**{1})".format(self.estimator, params))
-        except TypeError:
-            del params['n_jobs']
-            self.model = eval("{0}(**{1})".format(self.estimator, params))
+        # capture available model arguments and set probabily and n_jobs where applicable
+        estimatorArgs = inspect.getfullargspec(self.estimator).args
 
+        if "probability" in estimatorArgs:
+            self.params['probability'] = True
+
+        if "n_jobs" in estimatorArgs:
+            self.params['n_jobs'] = self.nJobs
+
+        # instantiate model
+        self.model = self.estimator(**self.params)
 
     def train(self, XTrain, yTrain):
         self.model.fit(XTrain, yTrain)
@@ -301,11 +305,11 @@ class BasicModelBuilder:
         Parameters:
             estimator : sklearn model, as either an uncalled object or a string.
                 Model to instantiate.
-            params : dictionary, default = {}
+            params : dictionary, default = None
                 Dictionary containing 'parameter : value' pairs. If no dictionary is provided,
-                then an empty dictionary is passed by default, which instantiates the model with
+                then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
-            nJobs : int, default = 2
+            nJobs : int, default = 4
                 Number of works to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
         Returns:
@@ -314,27 +318,27 @@ class BasicModelBuilder:
                 and feature_importances methods.
     """
 
-    def __init__(self, estimator, params={}, nJobs=4):
+    def __init__(self, estimator, params=None, nJobs=4):
+
         self.estimator=estimator
-        self.params=params
+        self.params={} if params is None else params
         self.nJobs=nJobs
 
-        if estimator in ['svm.SVC',svm.SVC]:
-            params['probability'] = True
+        # convert estimator argument to sklearn API object if needed
+        if isinstance(self.estimator, str):
+            self.estimator = eval(self.estimator)
 
-        try:
-            params['n_jobs'] = self.nJobs
-            if isinstance(self.estimator, str):
-                self.model = eval("{0}(**{1})".format(self.estimator, params))
-            else:
-                self.model = estimator(**params)
-        except TypeError:
-            del params['n_jobs']
-            if isinstance(self.estimator, str):
-                self.model = eval("{0}(**{1})".format(self.estimator, params))
-            else:
-                self.model = estimator(**params)
+        # capture available model arguments and set probabily and n_jobs where applicable
+        estimatorArgs = inspect.getfullargspec(self.estimator).args
 
+        if "probability" in estimatorArgs:
+            self.params['probability'] = True
+
+        if "n_jobs" in estimatorArgs:
+            self.params['n_jobs'] = self.nJobs
+
+        # instantiate model
+        self.model = self.estimator(**self.params)
 
     def train(self, XTrain, yTrain):
         self.model.fit(XTrain, yTrain)

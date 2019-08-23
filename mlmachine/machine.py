@@ -64,7 +64,9 @@ class Machine:
         featureSelectorResultsPlot,
         featureSelectorRFE,
         featureSelectorVariance,
+        featureSelectorSummary,
         FeatureSync,
+        featuresUsedSummary,
     )
     from .features.transform import (
         CustomBinner,
