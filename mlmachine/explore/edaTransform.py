@@ -14,7 +14,7 @@ def edaTransformInitial(self, data, name):
     Documentation:
         Description:
             Creates a two-panel visualization. The left plot is the current distribution overlayed on a
-            normal distribution. The right plot is a qqplot overlayed across a straight line. 
+            normal distribution. The right plot is a qqplot overlayed across a straight line.
         Parameters:
             data : Pandas Series
                 Target variables data object.
@@ -54,9 +54,9 @@ def edaTransformLog1(self, data, name):
     """
     Documentation:
         Description:
-            Creates a two-panel visualization. The left plot is the log + 1 adjusted distribution overlayed 
-            on a normal distribution. The right plot is a log + 1 adjusted qqplot overlayed across a straight 
-            line. 
+            Creates a two-panel visualization. The left plot is the log + 1 adjusted distribution overlayed
+            on a normal distribution. The right plot is a log + 1 adjusted qqplot overlayed across a straight
+            line.
         Parameters:
             data : Pandas Series
                 Target variables data object.
@@ -96,9 +96,9 @@ def edaTransformBoxCox(self, data, name, lmbda):
     """
     Documentation:
         Description:
-            Creates a two-panel visualization. The left plot is the Box-Cox transformed distribution overlayed 
-            on a normal distribution. The right plot is a Box-Cox transformed qqplot overlayed across a straight 
-            line. 
+            Creates a two-panel visualization. The left plot is the Box-Cox transformed distribution overlayed
+            on a normal distribution. The right plot is a Box-Cox transformed qqplot overlayed across a straight
+            line.
         Parameters:
             data : Pandas Series
                 Target variables data object.

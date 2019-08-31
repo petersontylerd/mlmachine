@@ -33,7 +33,7 @@ def edaCatTargetCatFeat(self, feature, levelCountCap=50):
                 cap then the feature is skipped.
     """
     if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < levelCountCap:
-    
+
         # univariate summary
         uniSummDf = pd.DataFrame(columns=[feature, "Count", "Proportion"])
         uniqueVals, uniqueCounts = np.unique(
@@ -149,7 +149,7 @@ def edaCatTargetCatFeat(self, feature, levelCountCap=50):
             yUnits="f",
             ax=ax,
         )
-        
+
         # bivariate plot
         ax = p.makeCanvas(
             title="Faceted by target\n* {}".format(feature), position=122
@@ -170,7 +170,7 @@ def edaCatTargetNumFeat(self, feature):
     """
     # bivariate roll-up table
     biDf = pd.concat([self.data[feature], self.target], axis=1)
-    
+
     # bivariate summary statistics
     biSummStatsDf = pd.DataFrame(
         columns=[feature, "Count", "Proportion", "Mean", "StdDv"]
@@ -490,7 +490,7 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50):
                 cap then the feature is skipped
     """
     if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < levelCountCap:
-    
+
         ### summary tables
         # univariate summary
         uniSummDf = pd.DataFrame(columns=[feature, "Count", "Proportion"])
@@ -547,7 +547,7 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50):
             ]
             uniqueVals = np.array(sorted(list(uniqueVals), key=int))
             uniqueCounts = np.array([y for x, y in sorted(zip(newIx, uniqueCounts))])
-            
+
             # sort temporary data frame for box plot
             biDf[feature] = biDf[feature].astype(int)
 
@@ -611,7 +611,7 @@ def dfSideBySide(self, dfs, names=[]):
     """
     Documentation:
         Description:
-            Helper function for displaying Pandas DataFrames side by side in a 
+            Helper function for displaying Pandas DataFrames side by side in a
             notebook.
         Parameters:
             dfs : list
@@ -637,4 +637,3 @@ def dfSideBySide(self, dfs, names=[]):
     html_str = f"<table>{html_str}</table>"
     html_str = html_str.replace("table", 'table style="display:inline"')
     display_html(html_str, raw=True)
-

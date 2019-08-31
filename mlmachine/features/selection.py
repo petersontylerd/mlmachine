@@ -60,7 +60,6 @@ class FeatureSync(base.TransformerMixin, base.BaseEstimator):
         return X
 
 
-
 def featureSelectorFScoreClass(self, data=None, target=None, rank=True):
     """
     Documentation:
@@ -103,6 +102,7 @@ def featureSelectorFScoreClass(self, data=None, target=None, rank=True):
         featureDf["p-value"] = featureDf["p-value"].rank(ascending=True, method="max")
 
     return featureDf
+
 
 def featureSelectorFScoreReg(self, data=None, target=None, rank=True):
     """
@@ -147,6 +147,7 @@ def featureSelectorFScoreReg(self, data=None, target=None, rank=True):
 
     return featureDf
 
+
 def featureSelectorVariance(self, data=None, target=None, rank=True):
     """
     Documentation:
@@ -185,6 +186,7 @@ def featureSelectorVariance(self, data=None, target=None, rank=True):
         featureDf['Variance'] = featureDf['Variance'].rank(ascending=False, method="max")
 
     return featureDf
+
 
 def featureSelectorImportance(self, estimators, data=None, target=None, rank=True):
     """
@@ -227,6 +229,7 @@ def featureSelectorImportance(self, estimators, data=None, target=None, rank=Tru
         featureDf = featureDf.rank(ascending=False, method="max")
 
     return featureDf
+
 
 def featureSelectorRFE(self, estimators, data=None, target=None, rank=True):
     """
@@ -274,6 +277,7 @@ def featureSelectorRFE(self, estimators, data=None, target=None, rank=True):
         featureDf = featureDf.rank(ascending=True, method="max")
 
     return featureDf
+
 
 def featureSelectorCorr(self, data=None, target=None, targetName=None, rank=True):
     """
@@ -324,6 +328,7 @@ def featureSelectorCorr(self, data=None, target=None, targetName=None, rank=True
 
     return featureDf
 
+
 def featureSelectorSummary(self, estimators, classification=True):
     """
     Documentation:
@@ -364,7 +369,7 @@ def featureSelectorSummary(self, estimators, classification=True):
     return resultsSummary
 
 
-def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None, target=None, nFolds=3, verbose=True):
+def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None, target=None, nFolds=3, verbose=True):
     """
     Documentation:
         Description:
@@ -376,8 +381,8 @@ def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None
                 List of estimators to be used.
             featureSummary : Pandas DataFrame
                 Feature importance summary table.
-            scoring : tuple of strings
-                Tuples containing strings for one or more performance metircs.
+            mtrics : list of strings
+                List containing strings for one or more performance metrics.
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
                 the feature dataset provided to Machine during instantiation is used.
@@ -411,32 +416,37 @@ def featureSelectorCrossVal(self, estimators, featureSummary, scoring, data=None
 
         # instantiate default model and create empty DataFrame for capturing scores
         model = self.BasicModelBuilder(estimator=estimator)
-        cv = pd.DataFrame(columns=["Training score", "Validation score"])
+        cv = pd.DataFrame(columns=["Training score", "Validation score","scoring"])
+        rowIx = 0
 
-        # iterate through each set of features
-        for i in np.arange(1, featureSummary.shape[0]):
-            top = featureSummary.sort_values("average").index[:-i]
-            scores = model_selection.cross_validate(
-                estimator=model.model,
-                X=data[top],
-                y=target,
-                cv=nFolds,
-                scoring=scoring,
-                return_train_score=True,
-            )
+        # iterate through scoring metrics
+        for metric in metrics:
+            # iterate through each set of features
+            for i in np.arange(1, featureSummary.shape[0]):
+                top = featureSummary.sort_values("average").index[:-i]
+                scores = model_selection.cross_validate(
+                    estimator=model.model,
+                    X=data[top],
+                    y=target,
+                    cv=nFolds,
+                    scoring=metric,
+                    return_train_score=True,
+                )
 
-            # calculate mean scores
-            training = scores["train_score"].mean()
-            validation = scores["test_score"].mean()
+                # calculate mean scores
+                training = scores["train_score"].mean()
+                validation = scores["test_score"].mean()
 
-            # append results
-            cv.loc[i] = [training, validation]
+                # append results
+                cv.loc[rowIx] = [training, validation, metric]
+                rowIx += 1
 
         # capturing results DataFrame associated with estimator
         cvSummary[estimator] = cv
     return cvSummary
 
-def featureSelectorResultsPlot(self, cvSummary, featureSummary, topSets=0, showFeatures=False):
+
+def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=0, showFeatures=False):
     """
     Documentation:
         Description:
@@ -449,6 +459,8 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, topSets=0, showF
                 training and validation performance for each feature set.
             featureSummary : Pandas DataFrame
                 Feature importance summary table.
+            metric : string
+                Metric to visualize.
             topSets : int, default = 5
                 Number of rows to display of the performance summary table
             showFeatures : boolean, default = False
@@ -456,14 +468,19 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, topSets=0, showF
                 score.
     """
     for estimator in cvSummary.keys():
+        cv = cvSummary[estimator][cvSummary[estimator]['scoring'] == metric]
+        cv = cv.reset_index(drop=True)
+
+        display(cv[:5])
+
         # capture best iteration's feature drop count and performance score
         numDropped = (
-            cvSummary[estimator]
+            cv
             .sort_values(["Validation score"], ascending=False)[:1]
             .index.values[0]
         )
         score = np.round(
-            cvSummary[estimator]
+            cv
             .sort_values(["Validation score"], ascending=False)["Validation score"][:1]
             .values[0],
             5,
@@ -471,27 +488,30 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, topSets=0, showF
 
         # display performance for the top N feature sets
         if topSets > 0:
-            display(cvSummary[estimator].sort_values(["Validation score"], ascending=False)[:topSets])
+            display(cv.sort_values(["Validation score"], ascending=False)[:topSets])
         if showFeatures:
-            featuresUsed = featureSummary.sort_values("average").index[:-numDropped].values
+            if numDropped > 0:
+                featuresUsed = featureSummary.sort_values("average").index[:-numDropped].values
+            else:
+                featuresUsed = featureSummary.sort_values("average").index.values
             print(featuresUsed)
 
         # create multi-line plot
         p = PrettierPlot()
         ax = p.makeCanvas(
-            title="{}\nBest validation score = {}, Features dropped = {}".format(
-                estimator, score, numDropped
+            title="{}\nBest validation {} = {}\nFeatures dropped = {}".format(
+                estimator, metric, score, numDropped
             ),
             xLabel="Features removed",
-            yLabel="Accuracy",
-            yShift=0.65,
+            yLabel=metric,
+            yShift=0.57,
         )
 
         p.prettyMultiLine(
-            x=cvSummary[estimator].index,
+            x=cv.index,
             y=["Training score", "Validation score"],
             label=["Training score", "Validation score"],
-            df=cvSummary[estimator],
+            df=cv,
             yUnits="fff",
             markerOn=True,
             ax=ax,
@@ -499,7 +519,7 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, topSets=0, showF
         plt.show()
 
 
-def featuresUsedSummary(self, cvSummary, featureSummary):
+def featuresUsedSummary(self, cvSummary, metric, featureSummary):
     """
     Documentation:
         Description:
@@ -510,6 +530,8 @@ def featuresUsedSummary(self, cvSummary, featureSummary):
                 Dictionary containing string/Pandas DataFrame key/value pairs, where the
                 key is an estimator and the value is a Pandas DataFrame summarizing the
                 training and validation performance for each feature set.
+            metric : string
+                Metric to visualize.
             featureSummary : Pandas DataFrame
                 Feature importance summary table.
 
@@ -519,13 +541,20 @@ def featuresUsedSummary(self, cvSummary, featureSummary):
 
     # iterate through estimators
     for estimator in cvSummary.keys():
+        cv = cvSummary[estimator][cvSummary[estimator]['scoring'] == metric]
+        cv = cv.reset_index(drop=True)
+
         # capture best iteration's feature drop count
         numDropped = (
-            cvSummary[estimator]
+            cv
             .sort_values(["Validation score"], ascending=False)[:1]
             .index.values[0]
         )
-        featuresUsed = featureSummary.sort_values("average").index[:-numDropped].values
+        if numDropped > 0:
+            featuresUsed = featureSummary.sort_values("average").index[:-numDropped].values
+        else:
+            featuresUsed = featureSummary.sort_values("average").index.values
+
         columnName = estimator.split(".")[1]
 
         # create column for estimator and populate with marker

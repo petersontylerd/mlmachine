@@ -29,6 +29,7 @@ def topBayesOptimModels(self, bayesOptimSummary, numModels=1):
         models[estimator] = estDf.values.tolist()
     return models
 
+
 def regressionStats(model, yTrue, yPred, featureCount, fold=0, dataType='training'):
     """
     Documentation:

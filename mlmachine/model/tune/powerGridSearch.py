@@ -33,8 +33,8 @@ class PowerGridSearcher:
         """
         Documentation:
             Definition:
-                Method for performing GridSearchCV on multiple models, each with its own parameter 
-                grid, in a single execution. 
+                Method for performing GridSearchCV on multiple models, each with its own parameter
+                grid, in a single execution.
             Parameters:
                 X : array
                     Input dataset.
@@ -53,7 +53,7 @@ class PowerGridSearcher:
             Returns:
                 gs : GridSearchCV object
                     Full GridSearchCV object.
-        """        
+        """
         for key in self.keys:
             print("Running GridSearchCV for {0}".format(key))
             model = self.models[key]
@@ -73,14 +73,12 @@ class PowerGridSearcher:
         return gs
 
     # RandomizedSearchCV
-    def fitMultiRgsCV(
-        self, X, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True, n_iter=15
-    ):
+    def fitMultiRgsCV(self, X, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True, n_iter=15):
         """
         Documentation:
             Definition:
-                Method for performing RandomizedGridSearchCV on multiple models, each with its own parameter 
-                grid, in a single execution. 
+                Method for performing RandomizedGridSearchCV on multiple models, each with its own parameter
+                grid, in a single execution.
             Parameters:
                 X : array
                     Input dataset.
@@ -121,11 +119,12 @@ class PowerGridSearcher:
             self.grid_searches[key] = rgs
         return rgs
 
+
     def scoreSummary(self, sort_by="mean_score"):
         """
         Documentation:
             Definition:
-                Method for performing RandomizedGridSearchCV on multiple models, each with its own 
+                Method for performing RandomizedGridSearchCV on multiple models, each with its own
                 parameter grid, in a single execution.
             Parameters:
                 sort_by : string (columns of score summary)
@@ -133,7 +132,7 @@ class PowerGridSearcher:
             Returns:
                 df : Pandas DataFrame
                     DataFrame containing results summary of GridsearchCV or RandomizedGridSearchCV.
-        """        
+        """
         def row(key, scores, params):
             d = {
                 "estimator": key,
@@ -170,7 +169,7 @@ def powerGridModelBuilder(self, results, modelIx):
     """
     Documentation:
         Description:
-            Model building utility to be used with powerGridSearch summary results. Returns 
+            Model building utility to be used with powerGridSearch summary results. Returns
             estimator and dictionary of 'parameter : value' pairs to be passed as kwarg
             to model. Used to efficiently reinstantiated specific models.
         Parameters:

@@ -146,4 +146,3 @@ class CustomOrdinalEncoder(base.TransformerMixin, base.BaseEstimator):
         for key, val in self.encodings.items():
             X[key] = X[key].replace(val)
         return X
-

@@ -40,8 +40,8 @@ def oofGenerator(self, model, XTrain, yTrain, XValid, nFolds=10):
                 many sets of out-of-fold predictions.
         Returns:
             oofTrain : array
-                Array containing observation data to be passed to the meta-learner. oofTrain 
-                is updated throughout the cross-validation process with observations that are 
+                Array containing observation data to be passed to the meta-learner. oofTrain
+                is updated throughout the cross-validation process with observations that are
                 identified as test observations in each fold.
             oofValid : array
                 Array containing average of all out-of-fold predictions. To be passed to the
@@ -92,8 +92,8 @@ def modelStacker(self, models, bayesOptimSummary, XTrain, yTrain, XValid, nFolds
             models : dictionary
                 Dictionary of 'X : y' pairs  to be fit.
             bayesOptimSummary : Pandas DataFrame
-                Pandas DataFrame containing results from Bayesian Optimization process 
-                execution. 
+                Pandas DataFrame containing results from Bayesian Optimization process
+                execution.
             XTrain : array
                 Training dataset.
             yTrain : array
@@ -104,7 +104,7 @@ def modelStacker(self, models, bayesOptimSummary, XTrain, yTrain, XValid, nFolds
                 Number of folds for performing cross-validation. Function will generate this
                 many sets of out-of-fold predictions.
             nJobs : int
-                Number of works to use when training the model. This parameter will be 
+                Number of works to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             oofTrain : array
@@ -115,15 +115,15 @@ def modelStacker(self, models, bayesOptimSummary, XTrain, yTrain, XValid, nFolds
                 List containing estimator names.
     """
     columns = []
-    
+
     # iterate through estimators
     for estimator in models.keys():
-    
+
         # iterate through parameter set for estimator
         for modelIter in models[estimator]:
             print(estimator + " " + str(modelIter))
             columns.append(estimator + "_" + str(modelIter))
-            
+
             model = self.BayesOptimModelBuilder(
                 bayesOptimSummary=bayesOptimSummary,
                 estimator=estimator,

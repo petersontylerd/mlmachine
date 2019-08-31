@@ -108,8 +108,9 @@ class Machine:
         oofGenerator,
     )
 
-    def __init__(self, data, removeFeatures=[], overrideCat=None, overrideNum=None,
-                dateFeatures=None, target=None, targetType=None):
+
+    def __init__(self, data, removeFeatures=[], overrideCat=None, overrideNum=None, dateFeatures=None, target=None,
+                    targetType=None):
         """
         Documentation:
             Description:
@@ -164,6 +165,7 @@ class Machine:
         else:
             self.data, self.featureByDtype = self.measLevel()
 
+
     def measLevel(self):
         """
         Documentation:
@@ -214,6 +216,7 @@ class Machine:
         else:
             return self.data, self.featureByDtype
 
+
     def edaData(self, data=None, target=None):
         """
         Documentation:
@@ -241,6 +244,7 @@ class Machine:
 
         df = data.merge(target, left_index=True, right_index=True)
         return df
+
 
 def trainTestCompile(data, targetCol, testSize = 0.2, randomState = 1):
     """
@@ -273,5 +277,3 @@ def trainTestCompile(data, targetCol, testSize = 0.2, randomState = 1):
     dfValid = XValid.merge(yValid, left_index=True, right_index=True)
 
     return dfTrain, dfValid
-
-

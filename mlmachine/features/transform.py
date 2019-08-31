@@ -383,4 +383,3 @@ def featureDropper(self, cols, data, featureByDtype):
             featureByDtype["continuous"].remove(col)
 
     return data, featureByDtype
-

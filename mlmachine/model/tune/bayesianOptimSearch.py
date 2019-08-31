@@ -389,7 +389,6 @@ def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
     # add columns for loss and iter number
     estimatorSummary["iterLoss"] = estimatorDf["meanLoss"]
     estimatorSummary["iteration"] = estimatorDf["iteration"]
-    estimatorSummary["estimator"] = estimator
 
     return estimatorSummary
 
@@ -431,7 +430,7 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
     # create regression plot
     p = PrettierPlot(chartProp=chartProp)
     ax = p.makeCanvas(
-        title="Regression plot\n* {}".format(estimatorSummary['estimator'].iloc[0]),
+        title="Regression plot\n* {}".format(estimator),
         yShift=0.8,
         position=111,
     )
@@ -641,4 +640,3 @@ def samplePlot(self, sampleSpace, nIter, chartProp=15):
             xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
             ax=ax,
         )
-
