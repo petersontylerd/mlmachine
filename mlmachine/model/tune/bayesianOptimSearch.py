@@ -393,7 +393,7 @@ def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
     return estimatorSummary
 
 
-def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers=True, outlierControl=1.5):
+def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers=True, outlierControl=1.5, titleScale=0.7):
     """
     Documentation:
         Definition:
@@ -418,6 +418,9 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
                 Controls enforcement of outlier trimming. Value is multiplied by median, and the resulting
                 product is the cap placed on loss values. Values higher than this cap will be excluded.
                 Lower values of outlierControl apply more extreme filtering of loss values.
+            titleScale : float, default = 0.7
+                Controls the scaling up (higher value) and scaling down (lower value) of the size of
+                the main chart title, the x-axis title and the y-axis title.
     """
     estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary=bayesOptimSummary, estimator=estimator)
     if trimOutliers:
@@ -433,6 +436,7 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
         title="Regression plot\n* {}".format(estimator),
         yShift=0.8,
         position=111,
+        titleScale=titleScale,
     )
     p.prettyRegPlot(x="iteration",
         y="iterLoss",
@@ -443,7 +447,7 @@ def modelLossPlot(self, bayesOptimSummary, estimator, chartProp=15, trimOutliers
     plt.show()
 
 
-def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartProp = 10):
+def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartProp = 17, titleScale=0.7):
     """
     Documentation:
         Definition:
@@ -469,6 +473,9 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
             chartProp : float, default = 10
                 Controls proportions of visualizations. Larger values scale visual up in size, smaller values
                 scale visual down in size.
+            titleScale : float, default = 0.7
+                Controls the scaling up (higher value) and scaling down (lower value) of the size of
+                the main chart title, the x-axis title and the y-axis title.
     """
     estimatorSummary = self.unpackBayesOptimSummary(bayesOptimSummary = bayesOptimSummary, estimator = estimator)
 
@@ -509,6 +516,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
                 title="Theoretical plot\n* {}".format(param),
                 yShift=0.8,
                 position=121,
+                titleScale=titleScale,
             )
             p.prettyBarV(
                 x=uniqueVals,
@@ -526,7 +534,10 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
                 print(uniqueCounts)
 
             ax = p.makeCanvas(
-                title="Actual plot\n* {}".format(param), yShift=0.8, position=122
+                title="Actual plot\n* {}".format(param),
+                yShift=0.8,
+                position=122,
+                titleScale=titleScale,
             )
             p.prettyBarV(
                 x=uniqueVals,
@@ -552,6 +563,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
                 title="Actual vs. theoretical plot\n* {}".format(param),
                 yShift=0.8,
                 position=121,
+                titleScale=titleScale,
             )
             p.prettyKdePlot(
                 theoreticalDist,
@@ -594,7 +606,10 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
 
 
             ax = p.makeCanvas(
-                title="Regression plot\n* {}".format(estimator), yShift=0.8, position=122
+                title="Regression plot\n* {}".format(estimator),
+                yShift=0.8,
+                position=122,
+                titleScale=titleScale,
             )
             p.prettyRegPlot(
                 x="iteration", y=param, data=actualIterDf, yUnits="fff", ax=ax

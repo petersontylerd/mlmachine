@@ -72,15 +72,21 @@ class Machine:
         CustomBinner,
         EqualWidthBinner,
         featureDropper,
+        NumericCoercer,
         PercentileBinner,
         skewSummary,
         SkewTransform,
     )
     from .model.evaluate.summarize import (
+        regressionResults,
+        regressionStats,
         topBayesOptimModels,
     )
     from .model.evaluate.visualize import (
         classificationPanel,
+        regressionPanel,
+    )
+    from .model.explain.visualize import (
         multiShapValueTree,
         multiShapVizTree,
         shapDependenceGrid,

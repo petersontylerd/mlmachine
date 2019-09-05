@@ -383,3 +383,25 @@ def featureDropper(self, cols, data, featureByDtype):
             featureByDtype["continuous"].remove(col)
 
     return data, featureByDtype
+
+class NumericCoercer(base.TransformerMixin, base.BaseEstimator):
+    """
+    Documentation:
+        Description:
+            Transform all columns with non-numeric data types to numeric.
+        Returns:
+            X : array
+                Dataset with encoded versions of input variables.
+    """
+
+    def __init__(self):
+        pass
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        cols = X.select_dtypes(exclude=['number']).columns
+        for col in cols:
+            X[col] = X[col].apply(pd.to_numeric)
+        return X

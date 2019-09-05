@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+import sklearn.metrics as metrics
 
 def topBayesOptimModels(self, bayesOptimSummary, numModels=1):
     """
@@ -30,7 +31,7 @@ def topBayesOptimModels(self, bayesOptimSummary, numModels=1):
     return models
 
 
-def regressionStats(model, yTrue, yPred, featureCount, fold=0, dataType='training'):
+def regressionStats(self, model, yTrue, yPred, featureCount, fold=0, dataType='training'):
     """
     Documentation:
         Description:
@@ -56,7 +57,7 @@ def regressionStats(model, yTrue, yPred, featureCount, fold=0, dataType='trainin
     """
     results = {}
 
-    results['Estimator'] = model.estimator.split(".")[1]
+    results['Estimator'] = model.estimator.__name__
     results['ParameterSet'] = model.modelIter
     results['DataType'] = dataType
     results['Fold'] = fold
@@ -73,7 +74,7 @@ def regressionStats(model, yTrue, yPred, featureCount, fold=0, dataType='trainin
                                     / (len(yTrue) - featureCount - 1)
     return results
 
-def regressionResults(model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3, randomState=1, resultsSummary=None):
+def regressionResults(self, model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3, randomState=1, resultsSummary=None):
     """
     Documentation:
         Description:
@@ -108,7 +109,7 @@ def regressionResults(model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3,
 
     ## training dataset
     yPred = model.predict(XTrain.values)
-    results = regressionStats(model=model,
+    results = self.regressionStats(model=model,
                               yTrue=yTrain.values,
                               yPred=yPred,
                               featureCount=XTrain.shape[1]
@@ -122,11 +123,11 @@ def regressionResults(model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3,
     # if validation data is provided...
     if XValid is not None:
         yPred = model.predict(XValid.values)
-        results = regressionStats(model=model,
-                                  yTrue=yValid.values,
-                                  yPred=yPred,
-                                  featureCount=XTrain.shape[1],
-                                  dataType='validation'
+        results = self.regressionStats(model=model,
+                                    yTrue=yValid.values,
+                                    yPred=yPred,
+                                    featureCount=XTrain.shape[1],
+                                    dataType='validation'
                             )
         resultsSummary = resultsSummary.append(results, ignore_index=True)
     else:
@@ -146,11 +147,11 @@ def regressionResults(model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3,
 
             yPred = model.fit(XTrainCV.values, yTrainCV.values).predict(XValidCV.values)
             results = self.regressionStats(model=model,
-                                      yTrue=yValidCV,
-                                      yPred=yPred,
-                                      featureCount=XValidCV.shape[1],
-                                      dataType='validation',
-                                      fold=i+1
+                                        yTrue=yValidCV,
+                                        yPred=yPred,
+                                        featureCount=XValidCV.shape[1],
+                                        dataType='validation',
+                                        fold=i+1
                                 )
             resultsSummary = resultsSummary.append(results, ignore_index=True)
     return resultsSummary

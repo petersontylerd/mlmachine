@@ -27,6 +27,7 @@ def setup_package():
             "mlmachine.features",
             "mlmachine.model",
             "mlmachine.model.evaluate",
+            "mlmachine.model.explain",
             "mlmachine.model.tune",
         ],
         maintainer=MAINTAINER,

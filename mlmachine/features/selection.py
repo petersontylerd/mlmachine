@@ -219,7 +219,7 @@ def featureSelectorImportance(self, estimators, data=None, target=None, rank=Tru
     for estimator in estimators:
         model = self.BasicModelBuilder(estimator=estimator)
         featureDict[
-            "FeatureImportance " + estimator.split(".")[1]
+            "FeatureImportance " + model.estimator.__name__
         ] = model.feature_importances(data, target)
 
     featureDf = pd.DataFrame(featureDict, index=data.columns)
@@ -268,7 +268,7 @@ def featureSelectorRFE(self, estimators, data=None, target=None, rank=True):
             estimator=model.model, n_features_to_select=1, step=1, verbose=0
         )
         rfe.fit(data, target)
-        featureDict["RFE " + estimator.split(".")[1]] = rfe.ranking_
+        featureDict["RFE " + model.estimator.__name__] = rfe.ranking_
 
     featureDf = pd.DataFrame(featureDict, index=data.columns)
 
@@ -369,7 +369,7 @@ def featureSelectorSummary(self, estimators, classification=True):
     return resultsSummary
 
 
-def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None, target=None, nFolds=3, verbose=True):
+def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None, target=None, nFolds=3, step=1, verbose=True):
     """
     Documentation:
         Description:
@@ -391,6 +391,8 @@ def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None
                 the target dataset provided to Machine during instantiation is used.
             nFolds : int, default = 3
                 Number of folds to use in cross validation.
+            step : int, default = 1
+                Number of features to remove per iteration.
             verbose : boolean, default = True
                 Conditional controlling whether each estimator name is printed prior to cross-validation.
         Return:
@@ -422,8 +424,11 @@ def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None
         # iterate through scoring metrics
         for metric in metrics:
             # iterate through each set of features
-            for i in np.arange(1, featureSummary.shape[0]):
-                top = featureSummary.sort_values("average").index[:-i]
+            for i in np.arange(0, featureSummary.shape[0], step):
+                if i ==0:
+                    top = featureSummary.sort_values("average").index
+                else:
+                    top = featureSummary.sort_values("average").index[:-i]
                 scores = model_selection.cross_validate(
                     estimator=model.model,
                     X=data[top],
@@ -446,7 +451,8 @@ def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None
     return cvSummary
 
 
-def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=0, showFeatures=False):
+def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=0, showFeatures=False, markerOn=True,
+                                titleScale=0.7):
     """
     Documentation:
         Description:
@@ -466,12 +472,24 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=
             showFeatures : boolean, default = False
                 Conditional controlling whether to print feature set for best validation
                 score.
+            markerOn : boolean, default = True
+                Conditional controlling whether to display marker for each individual score.
+            titleScale : float, default = 1.0
+                Controls the scaling up (higher value) and scaling down (lower value) of the size of
+                the main chart title, the x-axis title and the y-axis title.
     """
     for estimator in cvSummary.keys():
         cv = cvSummary[estimator][cvSummary[estimator]['scoring'] == metric]
-        cv = cv.reset_index(drop=True)
 
-        display(cv[:5])
+        totalFeatures = featureSummary.shape[0]
+        iters = cv.shape[0]
+        step = np.ceil(totalFeatures / iters)
+
+        cv.set_index(keys=np.arange(0, cv.shape[0] * step, step, dtype=int), inplace=True)
+        # cv = cv.reset_index(drop=True)
+
+        display(cv)
+        # display(cv[:5])
 
         # capture best iteration's feature drop count and performance score
         numDropped = (
@@ -504,7 +522,8 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=
             ),
             xLabel="Features removed",
             yLabel=metric,
-            yShift=0.57,
+            yShift=0.4 if len(metric) > 18 else 0.57,
+            titleScale=titleScale
         )
 
         p.prettyMultiLine(
@@ -513,7 +532,8 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=
             label=["Training score", "Validation score"],
             df=cv,
             yUnits="fff",
-            markerOn=True,
+            markerOn=markerOn,
+            bbox=(1.3, 0.9),
             ax=ax,
         )
         plt.show()
@@ -555,11 +575,9 @@ def featuresUsedSummary(self, cvSummary, metric, featureSummary):
         else:
             featuresUsed = featureSummary.sort_values("average").index.values
 
-        columnName = estimator.split(".")[1]
-
         # create column for estimator and populate with marker
-        df[columnName] = np.nan
-        df[columnName].loc[featuresUsed] = "X"
+        df[estimator] = np.nan
+        df[estimator].loc[featuresUsed] = "X"
 
     # add counter and fill NaNs
     df["count"] = df.count(axis=1)
