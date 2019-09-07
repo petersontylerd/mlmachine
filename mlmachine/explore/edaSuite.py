@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tkr
+import matplotlib.cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 from statsmodels.stats.weightstats import ztest
@@ -19,7 +20,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def edaCatTargetCatFeat(self, feature, levelCountCap=50):
+def edaCatTargetCatFeat(self, feature, levelCountCap=50, colorMap="viridis"):
     """
     Documentation:
         Description:
@@ -31,6 +32,8 @@ def edaCatTargetCatFeat(self, feature, levelCountCap=50):
             levelCountCap : int, default = 50
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap then the feature is skipped.
+            colorMap : string specifying built-in matplotlib colormap, default = "viridis"
+                Colormap from which to draw plot colors.
     """
     if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < levelCountCap:
 
@@ -145,7 +148,7 @@ def edaCatTargetCatFeat(self, feature, levelCountCap=50):
             x=list(map(str, uniqueVals.tolist())),
             counts=uniqueCounts,
             labelRotate=rotation,
-            color=style.styleHexMid[2],
+            color=style.styleGrey,
             yUnits="f",
             ax=ax,
         )
@@ -154,11 +157,11 @@ def edaCatTargetCatFeat(self, feature, levelCountCap=50):
         ax = p.makeCanvas(
             title="Faceted by target\n* {}".format(feature), position=122
         )
-        p.prettyFacetCat(df=biSummDf, feature=feature, labelRotate=rotation, ax=ax)
+        p.prettyFacetCat(df=biSummDf, feature=feature, labelRotate=rotation, colorMap=colorMap, ax=ax)
         plt.show()
 
 
-def edaCatTargetNumFeat(self, feature):
+def edaCatTargetNumFeat(self, feature, colorMap="viridis"):
     """
     Documentation:
         Description:
@@ -167,6 +170,8 @@ def edaCatTargetNumFeat(self, feature):
         Parameters
             feature : string
                 Feature to visualize.
+            colorMap : string specifying built-in matplotlib colormap, default = "viridis"
+                Colormap from which to draw plot colors.
     """
     # bivariate roll-up table
     biDf = pd.concat([self.data[feature], self.target], axis=1)
@@ -255,7 +260,7 @@ def edaCatTargetNumFeat(self, feature):
     )
     p.prettyDistPlot(
         biDf[(biDf[feature].notnull())][feature].values,
-        color=style.styleHexMid[2],
+        color=style.styleGrey,
         yUnits="f",
         ax=ax,
     )
@@ -269,6 +274,9 @@ def edaCatTargetNumFeat(self, feature):
         title="KDE - Faceted by target\n* {}".format(feature), position=153
     )
 
+    # generate color list
+    colorList = style.colorGen(name=colorMap, num=len(np.unique(self.target)))
+
     for ix, labl in enumerate(
         np.unique(biDf[(biDf[feature].notnull())][self.target.name].values)
     ):
@@ -276,7 +284,7 @@ def edaCatTargetNumFeat(self, feature):
             biDf[(biDf[feature].notnull()) & (biDf[self.target.name] == labl)][
                 feature
             ].values,
-            color=style.styleHexMid[ix],
+            color=colorList[ix],
             yUnits="ffff",
             ax=ax,
         )
@@ -285,6 +293,10 @@ def edaCatTargetNumFeat(self, feature):
     ax = p.makeCanvas(
         title="Hist - Faceted by target\n* {}".format(feature), position=154
     )
+
+    # generate color list
+    colorList = style.colorGen(name=colorMap, num=len(np.unique(self.target)))
+
     for ix, labl in enumerate(
         np.unique(biDf[(biDf[feature].notnull())][self.target.name].values)
     ):
@@ -292,7 +304,7 @@ def edaCatTargetNumFeat(self, feature):
             biDf[(biDf[feature].notnull()) & (biDf[self.target.name] == labl)][
                 feature
             ].values,
-            color=style.styleHexMid[ix],
+            color=colorList[ix],
             label=labl,
             alpha=0.4,
         )
@@ -305,7 +317,7 @@ def edaCatTargetNumFeat(self, feature):
     plt.show()
 
 
-def edaNumTargetNumFeat(self, feature):
+def edaNumTargetNumFeat(self, feature, colorMap="viridis"):
     """
     Documentation:
         Description:
@@ -314,6 +326,8 @@ def edaNumTargetNumFeat(self, feature):
         Parameters
             feature : string
                 Feature to visualize.
+            colorMap : string specifying built-in matplotlib colormap, default = "viridis"
+                Colormap from which to draw plot colors.
     """
     ### Summary tables
     # Define bivariate dataframe
@@ -380,7 +394,7 @@ def edaNumTargetNumFeat(self, feature):
             x=list(map(str, uniqueVals.tolist())),
             counts=uniqueCounts,
             labelRotate=rotation,
-            color=style.styleHexMid[2],
+            color=style.styleGrey,
             yUnits="f",
             ax=ax,
         )
@@ -410,10 +424,11 @@ def edaNumTargetNumFeat(self, feature):
             x=feature,
             y=self.target.name,
             data=biDf[biDf[feature].notnull()],
-            color=style.genCmap(
-                len(uniqueVals),
-                [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]],
-            ),
+            color=matplotlib.cm.get_cmap(name=colorMap),
+            # color=style.genCmap(
+            #     len(uniqueVals),
+            #     [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]],
+            # ),
             labelRotate=rotation,
             ax=ax,
         )
@@ -448,7 +463,7 @@ def edaNumTargetNumFeat(self, feature):
         )
         p.prettyDistPlot(
             biDf[(biDf[feature].notnull())][feature].values,
-            color=style.styleHexMid[2],
+            color=style.styleGrey,
             yUnits="ffff",
             fit=stats.norm,
             xRotate=45,
@@ -476,7 +491,7 @@ def edaNumTargetNumFeat(self, feature):
     plt.show()
 
 
-def edaNumTargetCatFeat(self, feature, levelCountCap=50):
+def edaNumTargetCatFeat(self, feature, levelCountCap=50, colorMap="viridis"):
     """
     Documentation:
         Description:
@@ -487,7 +502,9 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50):
                 Feature to visualize.
             levelCountCap : int, default = 50
                 Maximum number of unique levels in feature. If the number of levels exceeds the
-                cap then the feature is skipped
+                cap then the feature is skipped.
+            colorMap : string specifying built-in matplotlib colormap, default = "viridis"
+                Colormap from which to draw plot colors.
     """
     if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < levelCountCap:
 
@@ -567,7 +584,7 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50):
             x=list(map(str, uniqueVals.tolist())),
             counts=uniqueCounts,
             labelRotate=rotation,
-            color=style.styleHexMid[2],
+            color=style.styleGrey,
             yUnits="f",
             ax=ax,
         )
@@ -587,10 +604,11 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50):
             x=feature,
             y=self.target.name,
             data=biDf[biDf[feature].notnull()].sort_values([feature]),
-            color=style.genCmap(
-                len(uniqueVals),
-                [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]],
-            ),
+            color=matplotlib.cm.get_cmap(name=colorMap),
+            # color=style.genCmap(
+            #     len(uniqueVals),
+            #     [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]],
+            # ),
             labelRotate=rotation,
             ax=ax,
         )
@@ -615,7 +633,7 @@ def dfSideBySide(self, dfs, names=[]):
             notebook.
         Parameters:
             dfs : list
-                List of dfs to be displayed
+                List of dfs to be displayed.
             names : list, default = []
                 List of names to be displayed above dataframes.
     """
