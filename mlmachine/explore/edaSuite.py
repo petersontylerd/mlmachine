@@ -464,7 +464,7 @@ def edaNumTargetNumFeat(self, feature, colorMap="viridis"):
         p.prettyDistPlot(
             biDf[(biDf[feature].notnull())][feature].values,
             color=style.styleGrey,
-            yUnits="ffff",
+            yUnits="fffff",
             fit=stats.norm,
             xRotate=45,
             ax=ax,
@@ -573,12 +573,12 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50, colorMap="viridis"):
         avgLenUniqueVal = sum(map(len, str(uniqueVals))) / len(uniqueVals)
         if lenUniqueVal <= 4 and avgLenUniqueVal <= 12:
             rotation = 0
-        elif lenUniqueVal >= 5 and lenUniqueVal <= 8 and avgLenUniqueVal <= 10:
+        elif lenUniqueVal >= 5 and lenUniqueVal <= 8 and avgLenUniqueVal <= 7.:
             rotation = 0
         elif lenUniqueVal >= 9 and lenUniqueVal <= 14 and avgLenUniqueVal <= 6:
             rotation = 0
         else:
-            rotation = 90
+            rotation = 30
 
         p.prettyBarV(
             x=list(map(str, uniqueVals.tolist())),
@@ -605,10 +605,6 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50, colorMap="viridis"):
             y=self.target.name,
             data=biDf[biDf[feature].notnull()].sort_values([feature]),
             color=matplotlib.cm.get_cmap(name=colorMap),
-            # color=style.genCmap(
-            #     len(uniqueVals),
-            #     [style.styleHexMid[0], style.styleHexMid[1], style.styleHexMid[2]],
-            # ),
             labelRotate=rotation,
             ax=ax,
         )

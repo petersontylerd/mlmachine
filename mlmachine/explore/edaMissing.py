@@ -7,7 +7,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def edaMissingSummary(self, data=None):
+def edaMissingSummary(self, data=None, color=style.styleGrey):
     """
     Documentation:
         Description:
@@ -16,6 +16,8 @@ def edaMissingSummary(self, data=None):
             data : Pandas DataFrame, default = None
                 Pandas DataFrame containing independent variables. If left as None,
                 the feature dataset provided to Machine during instantiation is used.
+            color : string, color code, default = style.styleGrey
+                Bar color.
     """
     # use data/target provided during instantiation if left unspecified
     if data is None:
@@ -41,7 +43,7 @@ def edaMissingSummary(self, data=None):
             x=percentMissing.index,
             counts=percentMissing["Percent missing"],
             labelRotate=90,
-            color=style.styleHexMid[2],
+            color=color,
             yUnits="p",
             ax=ax,
         )

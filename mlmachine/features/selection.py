@@ -369,7 +369,8 @@ def featureSelectorSummary(self, estimators, classification=True):
     return resultsSummary
 
 
-def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None, target=None, nFolds=3, step=1, verbose=True):
+def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None, target=None, nFolds=3, step=1, 
+                            nJobs=4, verbose=True):
     """
     Documentation:
         Description:
@@ -393,6 +394,9 @@ def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None
                 Number of folds to use in cross validation.
             step : int, default = 1
                 Number of features to remove per iteration.
+            nJobs : int, default = 4
+                Number of works to use when training the model. This parameter will be
+                ignored if the model does not have this parameter.
             verbose : boolean, default = True
                 Conditional controlling whether each estimator name is printed prior to cross-validation.
         Return:
@@ -417,7 +421,7 @@ def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None
             print(estimator)
 
         # instantiate default model and create empty DataFrame for capturing scores
-        model = self.BasicModelBuilder(estimator=estimator)
+        model = self.BasicModelBuilder(estimator=estimator, nJobs=nJobs)
         cv = pd.DataFrame(columns=["Training score", "Validation score","scoring"])
         rowIx = 0
 
@@ -451,7 +455,7 @@ def featureSelectorCrossVal(self, estimators, featureSummary, metrics, data=None
     return cvSummary
 
 
-def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=0, showFeatures=False, markerOn=True,
+def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=0, showFeatures=False, showScores=False, markerOn=True,
                                 titleScale=0.7):
     """
     Documentation:
@@ -472,6 +476,8 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=
             showFeatures : boolean, default = False
                 Conditional controlling whether to print feature set for best validation
                 score.
+            showScores : boolean, default = False
+                Conditional controlling whether to display training and validation scores.
             markerOn : boolean, default = True
                 Conditional controlling whether to display marker for each individual score.
             titleScale : float, default = 1.0
@@ -486,10 +492,9 @@ def featureSelectorResultsPlot(self, cvSummary, featureSummary, metric, topSets=
         step = np.ceil(totalFeatures / iters)
 
         cv.set_index(keys=np.arange(0, cv.shape[0] * step, step, dtype=int), inplace=True)
-        # cv = cv.reset_index(drop=True)
 
-        display(cv)
-        # display(cv[:5])
+        if showScores:
+            display(cv[:5])
 
         # capture best iteration's feature drop count and performance score
         numDropped = (

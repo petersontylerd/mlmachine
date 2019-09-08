@@ -13,7 +13,7 @@ import shap
 
 
 def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, cmLabels = None, nFolds=3,
-                        titleScale=0.7, randomState=1):
+                        titleScale=0.7, colorMap="viridis", randomState=1):
     """
     Documentation:
         Description:
@@ -36,11 +36,13 @@ def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, c
             nFolds : int, default = 3
                 Number of cross-validation folds to use when generating
                 CV ROC graph.
-            randomState : int, default = 1
-                Random number seed.
+            colorMap : string specifying built-in matplotlib colormap, default = "viridis"
+                Colormap from which to draw plot colors.
             titleScale : float, default = 1.0
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x-axis title and the y-axis title.
+            randomState : int, default = 1
+                Random number seed.
     """
 
     print('*' * 55)
@@ -49,7 +51,7 @@ def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, c
     print('*' * 55)
 
     # visualize results with confusion matrix
-    p = PrettierPlot()
+    p = PrettierPlot(chartProp=18)
     ax = p.makeCanvas(
         title="Model: {}\nParameter set: {}".format(
             model.estimator.__name__, model.modelIter
@@ -94,7 +96,7 @@ def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, c
         ),
         xLabel="false positive rate",
         yLabel="true positive rate",
-        yShift=0.43,
+        yShift=0.5,
         position=111 if XValid is not None else 121,
         titleScale=titleScale
     )
@@ -104,7 +106,7 @@ def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, c
         yTrain=yTrain,
         XValid=XValid,
         yValid=yValid,
-        linecolor=style.styleHexMid[0],
+        linecolor=style.styleGrey,
         ax=ax,
     )
 
@@ -118,6 +120,9 @@ def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, c
             ).split(XTrain, yTrain)
         )
 
+        # generate colors
+        colorList = style.colorGen(colorMap, num = len(cv))
+
         # plot ROC curves
         ax = p.makeCanvas(
             title="ROC curve - validation data, {}-fold CV\nModel: {}\nParameter set: {}".format(
@@ -125,7 +130,8 @@ def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, c
             ),
             xLabel="false positive rate",
             yLabel="true positive rate",
-            yShift=0.43,
+            yShift=0.5,
+            titleScale=titleScale,
             position=122,
         )
         for i, (trainIx, validIx) in enumerate(cv):
@@ -140,13 +146,15 @@ def classificationPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, c
                 yTrain=yTrainCV,
                 XValid=XValidCV,
                 yValid=yValidCV,
-                linecolor=style.styleHexMid[i],
+                linecolor=colorList[i],
                 ax=ax,
             )
+    plt.subplots_adjust(wspace=0.3)
     plt.show()
 
 
-def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3, titleScale=0.7, randomState=1):
+def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3, titleScale=0.7,
+                    colorMap="viridis", randomState=1):
     """
     Documentation:
         Description:
@@ -173,6 +181,8 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
             titleScale : float, default = 1.0
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x-axis title and the y-axis title.
+            colorMap : string specifying built-in matplotlib colormap, default = "viridis"
+                Colormap from which to draw plot colors.
     """
 
     print("*" * 55)
@@ -204,7 +214,7 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
         x=yPred,
         y=yPred - yTrain.values,
         size=7,
-        color=style.styleHexMid[0],
+        color=style.styleGrey,
         ax=ax,
     )
     plt.hlines(y=0, xmin=np.min(yPred), xmax=np.max(yPred), color=style.styleGrey, lw=2)
@@ -244,7 +254,7 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
             x=yPred,
             y=yPred - yValid.values,
             size=7,
-            color=style.styleHexMid[0],
+            color=style.styleGrey,
             ax=ax,
         )
         plt.hlines(y=0, xmin=np.min(yPred), xmax=np.max(yPred), color=style.styleGrey, lw=2)
@@ -269,6 +279,9 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
                 n_splits=nFolds, shuffle = True, random_state=randomState
             ).split(XTrain, yTrain)
         )
+
+        # generate colors
+        colorList = style.colorGen(colorMap, num = len(cv))
 
         print('*' * 27)
         print("Cross-validation performance\n")
@@ -316,7 +329,7 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
                 x=yPred,
                 y=yPred - yValidCV.values,
                 size=7,
-                color=[style.styleHexMid + style.styleHexMid][0][i],
+                color=colorList[i],
                 ax=ax,
             )
             plt.hlines(y=0, xmin=np.min(yPred), xmax=np.max(yPred), color=style.styleGrey, lw=2)

@@ -32,7 +32,7 @@ def edaTransformInitial(self, data, name):
         position=221,
     )
     p.prettyDistPlot(
-        data, color=style.styleHexMid[0], fit=stats.norm, xRotate=True, ax=ax
+        data, color=style.styleGrey, fit=stats.norm, xRotate=True, ax=ax
     )
     plt.xticks([])
     plt.yticks([])
@@ -74,7 +74,7 @@ def edaTransformLog1(self, data, name):
         position=223,
     )
     p.prettyDistPlot(
-        np.log1p(data), color=style.styleHexMid[0], fit=stats.norm, xRotate=True, ax=ax
+        np.log1p(data), color=style.styleGrey, fit=stats.norm, xRotate=True, ax=ax
     )
     plt.xticks([])
     plt.yticks([])
@@ -119,7 +119,7 @@ def edaTransformBoxCox(self, data, name, lmbda):
     )
     p.prettyDistPlot(
         special.boxcox1p(data, lmbda),
-        color=style.styleHexMid[0],
+        color=style.styleGrey,
         fit=stats.norm,
         xRotate=True,
         ax=ax,

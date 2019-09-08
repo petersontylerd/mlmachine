@@ -522,7 +522,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
                 x=uniqueVals,
                 counts=uniqueCounts,
                 labelRotate=90 if len(uniqueVals) >= 4 else 0,
-                color=style.styleHexMid[2],
+                color=style.styleGrey,
                 yUnits="f",
                 ax=ax,
             )
@@ -543,7 +543,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
                 x=uniqueVals,
                 counts=uniqueCounts,
                 labelRotate=90 if len(uniqueVals) >= 4 else 0,
-                color=style.styleHexMid[2],
+                color=style.styleBlue,
                 yUnits="f",
                 ax=ax,
             )
@@ -567,14 +567,14 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
             )
             p.prettyKdePlot(
                 theoreticalDist,
-                color=style.styleHexMid[0],
+                color=style.styleGrey,
                 yUnits="ppp",
                 xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
                 ax=ax,
             )
             p.prettyKdePlot(
                 actualDist,
-                color=style.styleHexMid[1],
+                color=style.styleBlue,
                 yUnits="ppp",
                 xUnits="fff" if np.max(actualDist) <= 5.0 else "ff",
                 ax=ax,
@@ -584,8 +584,9 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
             # create labels
             labelColor = {}
             legendLabels = ['Theoretical','Actual']
+            colorList = [style.styleGrey, style.styleBlue]
             for ix, i in enumerate(legendLabels):
-                labelColor[i] = style.styleHexMid[ix]
+                labelColor[i] = colorList[ix]
 
             # create patches
             patches = [Patch(color=v, label=k) for k, v in labelColor.items()]
@@ -650,7 +651,7 @@ def samplePlot(self, sampleSpace, nIter, chartProp=15):
         )
         p.prettyKdePlot(
             theoreticalDist,
-            color=style.styleHexMid[0],
+            color=style.styleGrey,
             yUnits="p",
             xUnits="fff" if np.max(theoreticalDist) <= 5.0 else "ff",
             ax=ax,
