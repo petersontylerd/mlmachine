@@ -60,7 +60,7 @@ def singleShapValueTree(self, obsIx, model, data):
     return obsData, baseValue, obsShapValues
 
 
-def singleShapVizTree(self, obsIx, model, data, target=None, classification=True):
+def singleShapVizTree(self, obsIx, model, data, target=None, classification=True, cmap="viridis"):
     """
     Documentation:
         Description:
@@ -84,6 +84,8 @@ def singleShapVizTree(self, obsIx, model, data, target=None, classification=True
             classification : boolean, default = True
                 Boolean argument indicating whether the supervised learning
                 task is classification or regression.
+            cmap : string, colormap, default = viridis
+                Colormap to use on force plot.
     """
     # create SHAP value objects
     obsData, baseValue, obsShapValues = self.singleShapValueTree(obsIx=obsIx, model=model, data=data)
@@ -110,7 +112,8 @@ def singleShapVizTree(self, obsIx, model, data, target=None, classification=True
         features=np.around(obsData.astype(np.double),3),
         feature_names=data.columns.tolist(),
         matplotlib=True,
-        show=False
+        show=False,
+        cmap=cmap
     )
     plt.rcParams['axes.facecolor']='white'
     plt.rcParams['figure.facecolor'] = 'white'

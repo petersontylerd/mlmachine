@@ -5,7 +5,7 @@ from scipy import stats
 from scipy import special
 
 import sklearn.base as base
-
+import sklearn.preprocessing as preprocessing
 
 def skewSummary(self, data=None, columns=None):
     """
@@ -48,7 +48,94 @@ def skewSummary(self, data=None, columns=None):
     display(skewness)
 
 
-class SkewTransform(base.TransformerMixin, base.BaseEstimator):
+class DualTransformer(base.TransformerMixin, base.BaseEstimator):
+    """
+    Documentation:
+        Description:
+            Performs Yeo-Johnson transformation on all specified feature. Also performs Box-Cox transformation. If
+            the minimum value in a feature is 0, Box-Cox + 1 transformation is performed. If minimum value is greater
+            than 0, standard Box-Cox transformation is performed. Each transformation process automatically determines
+            the optimal lambda value. These values are stored for transformation of validation data.
+
+            Note - this method adds additional columns rather than updating existing columns inplace.
+        Parameters:
+            cols : list, default = None
+                List of columns to be evaluated for transformation.
+            train : boolean, default = True
+                Controls whether to fit_transform training data or transform validation data using lambdas determined
+                from training data.
+            yjLambdasDict : dict, default = None
+                Dictionary containing 'feature : lambda' pairs to be used to transform validation data using Yeo-Johnson
+                transformation. Only used when train = False. Variable to be retrieved from train pipeline from traing
+                pipeline is called yjLambdasDict_.
+            bcLambdasDict : dict, default = None
+                Dictionary containing 'feature : lambda' pairs to be used to transform validation data using Box-Cox
+                transformation. Only used when train = False. Variable to be retrieved from train pipeline from traing
+                pipeline is called bcLambdasDict_.
+            bcP1LambdasDict : dict, default = None
+                Dictionary containing 'feature : lambda' pairs to be used to transform validation data using Box-Cox + 1
+                transformation. Only used when train = False. Variable to be retrieved from train pipeline from traing
+                pipeline is called bcP1LambdasDict_.
+        Returns:
+            X : array
+                Yeo-Johnson, and potentially Box-Cox (or Box-Cox + 1) transformed input data.
+    """
+    def __init__(self, cols=None, train=True, yjLambdasDict=None, bcP1LambdasDict=None, bcLambdasDict=None):
+        self.cols = cols
+        self.train = train
+        self.yjLambdasDict_ = yjLambdasDict
+        self.bcP1LambdasDict_ = bcP1LambdasDict
+        self.bcLambdasDict_ = bcLambdasDict
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        # transform training data
+        if self.train:
+            self.yjLambdasDict_ = {}
+            self.bcP1LambdasDict_ = {}
+            self.bcLambdasDict_ = {}
+
+            ## Yeo-Johnson transformation
+            # collect lambas using sklearn implementation
+            yj = preprocessing.PowerTransformer(method="yeo-johnson")
+            yjLambdas = yj.fit(X[self.cols]).lambdas_
+
+            # cycle through columns, add transformed columns, store lambdas
+            for ix, col in enumerate(self.cols):
+                self.yjLambdasDict_[col] = yjLambdas[ix]
+                X[col + "_yj"] = stats.yeojohnson(X[col].values, lmbda = self.yjLambdasDict_[col])
+
+            ## Box-Cox
+            for col in self.cols:
+                # if minimum feature value is 0, do Box-Cox + 1
+                if np.min(X[col]) == 0:
+                    X[col + "_bc"], lmbda = stats.boxcox(X[col].values + 1, lmbda = None)
+                    self.bcP1LambdasDict_[col] = lmbda
+                # otherwise do standard Box-Cox
+                elif np.min(X[col]) > 0:
+                    X[col + "_bc"], lmbda = stats.boxcox(X[col].values, lmbda = None)
+                    self.bcLambdasDict_[col] = lmbda
+        # transform data with lambda learned on training data
+        else:
+            cols = [*self.yjLambdasDict_.keys()]
+            cols.extend([*self.bcLambdasDict_.keys()])
+            cols.extend([*self.bcP1LambdasDict_.keys()])
+            cols = list(set(cols))
+
+            for col in cols:
+                # Yeo-Johnson
+                X[col + "_yj"] = stats.yeojohnson(X[col].values, lmbda = self.yjLambdasDict_[col])
+
+                # Box-Cox
+                if col in self.bcP1LambdasDict_.keys():
+                    X[col + "_bc"] = stats.boxcox(X[col].values + 1, lmbda = self.bcP1LambdasDict_[col])
+                elif col in self.bcLambdasDict_.keys():
+                    X[col + "_bc"] = stats.boxcox(X[col].values, lmbda = self.bcLambdasDict_[col])
+        return X
+
+class SkewTransformer(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
@@ -77,9 +164,7 @@ class SkewTransform(base.TransformerMixin, base.BaseEstimator):
                 Box-Cox (or Box-Cox + 1) transformed input data.
     """
 
-    def __init__(
-        self, cols=None, skewMin=None, pctZeroMax=None, train=True, trainValue=None, verbose = False
-    ):
+    def __init__(self, cols=None, skewMin=None, pctZeroMax=None, train=True, trainValue=None, verbose = False):
         self.cols = cols
         self.skewMin = skewMin
         self.pctZeroMax = pctZeroMax

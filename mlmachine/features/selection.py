@@ -581,8 +581,8 @@ def featuresUsedSummary(self, cvSummary, metric, featureSummary):
             featuresUsed = featureSummary.sort_values("average").index.values
 
         # create column for estimator and populate with marker
-        df[estimator] = np.nan
-        df[estimator].loc[featuresUsed] = "X"
+        df[estimator.split(".")[1]] = np.nan
+        df[estimator.split(".")[1]].loc[featuresUsed] = "X"
 
     # add counter and fill NaNs
     df["count"] = df.count(axis=1)

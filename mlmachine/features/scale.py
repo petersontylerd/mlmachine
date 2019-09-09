@@ -128,7 +128,7 @@ class Robust(base.TransformerMixin, base.BaseEstimator):
 
         # apply transformation to columns
         else:
-            for col in self.cols:
+            for col in self.trainValue.keys():
                 sc = self.trainValue[col]
                 X[col] = sc.transform(X[col].values.reshape(-1, 1))
         return X

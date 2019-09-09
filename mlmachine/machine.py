@@ -70,12 +70,13 @@ class Machine:
     )
     from .features.transform import (
         CustomBinner,
+        DualTransformer,
         EqualWidthBinner,
         featureDropper,
         NumericCoercer,
         PercentileBinner,
         skewSummary,
-        SkewTransform,
+        SkewTransformer,
     )
     from .model.evaluate.summarize import (
         regressionResults,
