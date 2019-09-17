@@ -30,17 +30,17 @@ class Machine:
         edaTransformInitial,
         edaTransformLog1,
     )
-    from .features.encode import (
+    from .features.preprocessing import (
         cleanLabel,
-        CustomOrdinalEncoder,
-        Dummies,
-        OrdinalEncoder,
-    )
-    from .features.impute import (
-        ConstantImputer,
         ContextImputer,
-        ModeImputer,
-        NumericalImputer,
+        ConvertToCategory,
+        DataFrameSelector,
+        dataRefresh,
+        DualTransformer,
+        PandasFeatureUnion,
+        PlayWithPandas,
+        skewSummary,
+        UnprocessedColumnAdder,
     )
     from .features.missing import (
         missingColCompare,
@@ -50,10 +50,6 @@ class Machine:
         ExtendedIsoForest,
         OutlierIQR,
         outlierSummary,
-    )
-    from .features.scale import (
-        Robust,
-        Standard,
     )
     from .features.selection import (
         featureSelectorCorr,
@@ -70,13 +66,10 @@ class Machine:
     )
     from .features.transform import (
         CustomBinner,
-        DualTransformer,
         EqualWidthBinner,
         featureDropper,
         NumericCoercer,
         PercentileBinner,
-        skewSummary,
-        SkewTransformer,
     )
     from .model.evaluate.summarize import (
         regressionResults,
@@ -251,6 +244,64 @@ class Machine:
 
         df = data.merge(target, left_index=True, right_index=True)
         return df
+
+    def featureByDtypeUpdate(self, data=None, featureByDtype=None, override=None):
+        """
+        Documentation:
+            Description:
+                Update featureByDtype dictionary with columns added during preprocessing. If necessary,
+                change data type for object columns to numeric.
+            Parameters:
+                data : Pandas DataFrame, default = None
+                    Pandas DataFrame containing independent variables. If left as None,
+                    the feature dataset provided to Machine during instantiation is used.
+                featureByDtype : dictionary, default = None
+                    Dictionary containing string/list key/value pairs, where the key is a string that is either
+                    "continuous" or "categorical", and the value is a list of string corresponding to columns.
+                    If left as None, the featureByDtype dictionary created during instantiation is used.
+            Return:
+                data : Pandas DataFrame
+                    Pandas DataFrame containing combined independent and dependent variables.
+                featureByDtype : dictioanry
+                    Pandas DataFrame containing combined independent and dependent variables.
+        """
+        # use data/featureByDtype["continuous"] columns provided during instantiation if left unspecified
+        if data is None:
+            data = self.data
+        if featureByDtype is None:
+            featureByDtype = self.featureByDtype
+
+        # if an override dictionary is provided, utilize it first
+        if override is not None:
+            for columnType in override.keys():
+                for column in override[columnType]:
+                    featureByDtype[columnType].append(column)
+
+        ## numeric column updates
+        # capture numeric columns not currently in featureByDtype
+        untrackedNumCols = list(set(data.select_dtypes(include=['number']).columns) - set(sum(featureByDtype.values(), [])))
+
+        # append to featureByDtype list
+        for numCol in untrackedNumCols:
+            featureByDtype["continuous"].append(numCol)
+
+        ## categorical column updates
+        # capture object columns not currently in featureByDtype
+        untrackedObjCols = list(set(data.select_dtypes(exclude=['number']).columns) - set(sum(featureByDtype.values(), [])))
+
+        for objCol in untrackedObjCols:
+            # test if the object column can be successfully converted to numeric
+            # and if it is, then add it to the continuous key in featureByDtype
+            try:
+                data[objCol] = data[objCol].apply(pd.to_numeric)
+
+                # append to featureByDtype list
+                featureByDtype["continuous"].append(objCol)
+
+            except ValueError:
+                # append to featureByDtype list
+                featureByDtype["categorical"].append(objCol)
+        return data, featureByDtype
 
 
 def trainTestCompile(data, targetCol, testSize = 0.2, randomState = 1):
