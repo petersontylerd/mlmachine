@@ -220,7 +220,7 @@ def featureSelectorImportance(self, estimators, data=None, target=None, rank=Tru
         model = self.BasicModelBuilder(estimator=estimator)
         featureDict[
             "FeatureImportance " + model.estimator.__name__
-        ] = model.feature_importances(data, target)
+        ] = model.feature_importances(data.values, target)
 
     featureDf = pd.DataFrame(featureDict, index=data.columns)
 

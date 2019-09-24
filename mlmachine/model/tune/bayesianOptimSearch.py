@@ -318,11 +318,12 @@ class BasicModelBuilder:
                 and feature_importances methods.
     """
 
-    def __init__(self, estimator, params=None, nJobs=4):
+    def __init__(self, estimator, params=None, nJobs=4, randomState=0):
 
         self.estimator=estimator
         self.params={} if params is None else params
         self.nJobs=nJobs
+        self.randomState=randomState
 
         # convert estimator argument to sklearn API object if needed
         if isinstance(self.estimator, str):
@@ -336,6 +337,9 @@ class BasicModelBuilder:
 
         if "n_jobs" in estimatorArgs:
             self.params['n_jobs'] = self.nJobs
+
+        if "random_state" in estimatorArgs:
+            self.params['random_state'] = self.randomState
 
         # instantiate model
         self.model = self.estimator(**self.params)
