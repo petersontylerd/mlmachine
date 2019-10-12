@@ -39,6 +39,7 @@ def cleanLabel(self, reverse=False):
     if reverse:
         self.target = self.le_.inverse_transform(self.target)
 
+
 class ConvertToCategory(base.BaseEstimator, base.TransformerMixin):
     """
     Documentation:
@@ -106,13 +107,14 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
 
     def transform(self, X):
         # impute missing values based on trainValue
-        X[self.nullCol] = np.where(
-            X[self.nullCol].isnull(),
-            X[self.contextCol].map(
-                self.trainValue.set_index(self.contextCol)[self.nullCol]
-            ),
-            X[self.nullCol],
-        )
+        if isinstance(self.contextCol, str):
+            X[self.nullCol] = np.where(
+                X[self.nullCol].isnull(),
+                X[self.contextCol].map(
+                    self.trainValue.set_index(self.contextCol)[self.nullCol]
+                ),
+                X[self.nullCol],
+            )
         return X[self.nullCol]
 
 
@@ -255,7 +257,7 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
         return Xs
 
 
-class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
+class UnprocessedColumnAdder_old(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
