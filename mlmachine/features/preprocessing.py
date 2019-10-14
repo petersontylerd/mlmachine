@@ -12,51 +12,6 @@ from sklearn.externals.joblib import Parallel, delayed
 import itertools
 import copy
 
-def cleanLabel(self, reverse=False):
-    """
-    Documentation:
-        Description:
-            Encode label into numerical form.
-        Parameters:
-            reverse : boolean, default = False
-                Reverses encoding of target variables back to original variables.
-    """
-    if self.targetType == "categorical":
-        self.le_ = preprocessing.LabelEncoder()
-
-        self.target = pd.Series(
-            self.le_.fit_transform(self.target.values.reshape(-1)),
-            name=self.target.name,
-            index=self.target.index
-        )
-
-        print("******************\nCategorical label encoding\n")
-        for origLbl, encLbl in zip(
-            np.sort(self.le_.classes_), np.sort(np.unique(self.target))
-        ):
-            print("{} --> {}".format(origLbl, encLbl))
-
-    if reverse:
-        self.target = self.le_.inverse_transform(self.target)
-
-
-class ConvertToCategory(base.BaseEstimator, base.TransformerMixin):
-    """
-    Documentation:
-        Description:
-            Convert all specified columns in a Pandas DataFrame to the data
-            type 'category'.
-    """
-    def __init__(self):
-        pass
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X, y=None):
-        X[X.columns] = X[X.columns].astype("category")
-        return X
-
 
 class ContextImputer(base.TransformerMixin, base.BaseEstimator):
     """
@@ -154,8 +109,9 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
         self.transformer = transformer
 
     def fit(self, X, y=None):
-        # capture original column names and row index
+        # capture original column names and dtypes
         self.originalColumns = X.columns
+        self.dtypes = X[self.originalColumns].dtypes
 
         # create object containing fitted class
         self.est = self.transformer.fit(X)
@@ -173,24 +129,37 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
             for a,b in zip(self.originalColumns, prefixes):
                 names = list(map(lambda x: str.replace(x, b, a + "_"), names))
             self.originalColumns = names
+        # if the class is a PolynomialFeatures instance
         elif isinstance(self.est, preprocessing.data.PolynomialFeatures):
+
+            ### replace feature code names with actual feature names
+            # capture object's feature code names
             names = self.est.get_feature_names()
 
-            prefixes = list(map(lambda x:str.replace(x, "x", ""), names))
-            prefixes = sorted(list(set([x.replace("^2","").split(" ")[0] for x in prefixes])), key=int)
-            prefixes = ["x" + x +"_" for x in prefixes]
+            # remove "x" prefix from features code names
+            featureCodeNames = list(map(lambda x:str.replace(x, "x", ""), names))
 
-            names = [x.replace(" ","_ ") + "_" for x in names]
-            names = [x.replace("^2_","_^2") for x in names]
+            # reduce featureCodeNames down to [0,1,2,3...] by ignoring "^2" and sort as integers
+            featureCodeNames = sorted(list(set([x.replace("^2","").split(" ")[0] for x in featureCodeNames])), key=int)
 
-            # repalce "x0_, x1_..." prefix with original column anme
-            # prefixes = sorted(list(set([x[:2] for x in names])))
+            # add "x" as a prefix and an "_" as a suffix to the
+            featureCodeNames = ["x" + x +"_" for x in featureCodeNames]
 
-            for a,b in zip(self.originalColumns, prefixes):
-                names = list(map(lambda x: str.replace(x, b, a), names))
+            ### build actual feature names
+            # replace " " with "_ " and add an additional "_" to the full string yield names such as "x0_ x1_"
+            featureActualNames = [x.replace(" ","_ ") + "_" for x in names]
 
-            # names = list(map(lambda x:str.replace(x, " ", "*"), names))
-            self.originalColumns = names
+            # change strings such as "x02_" to yield names such as "x0_2"
+            featureActualNames = [x.replace("^2_","_^2") for x in featureActualNames]
+
+            # change strings such as "x0_ x1_" to yield names such as "x0_*x1_"
+            featureActualNames = [x.replace(" ","*") for x in featureActualNames]
+
+            # replace code names with actual column names
+            for a,b in zip(self.originalColumns, featureCodeNames):
+                featureActualNames = list(map(lambda x: str.replace(x, b, a), featureActualNames))
+
+            self.originalColumns = featureActualNames
         return self
 
     def transform(self, X, y=None, copy=None):
@@ -200,7 +169,10 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
         if sparse.issparse(X):
             X = X.todense()
 
-        return pd.DataFrame(X, columns=self.originalColumns, index=self.index)
+        # create new Pandas DataFrame
+        X = pd.DataFrame(X, columns=self.originalColumns, index=self.index)
+
+        return X
 
 
 class PandasFeatureUnion(pipeline.FeatureUnion):
@@ -257,31 +229,50 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
         return Xs
 
 
-class UnprocessedColumnAdder_old(base.TransformerMixin, base.BaseEstimator):
+class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Identifies which columns were processed and which columns were not processed, and combines
-            the updated processed columns with the unprocessed columns as they appear in the originalData
-            parameter.
+            Add the columns not processed by other transformers in pipeline to the final
+            output dataset.
         Parameters:
-            originalData : Pandas DataFrame
-                Current state of dataset.
-        Returns:
-            X : Pandas DataFrame
-                Pandas DataFrame containing merged processed columns and unprocessed columns.
+            pipes : sklearn FeatureUnion pipeline object
+                FeatureUnion pipeline object with all column-specific transformations.
     """
-    def __init__(self, originalData):
-        self.originalData = originalData
+    def __init__(self, pipes):
+        self.pipes = pipes
+        self.processedColumns = []
 
     def fit(self, X, y=None):
-        self.processedColumns = X.columns
-        self.unprocessedColumns = list(set(self.originalData.columns) - set(self.processedColumns))
+
+        # for each transformer in the input pipe
+        for pipeTrans in self.pipes.transformer_list:
+            pipeCols = []
+
+            # for each step in each transformer
+            for step in pipeTrans[1].steps:
+                # add all columns specified in DataFrameSelector objects
+                if isinstance(step[1], DataFrameSelector):
+                    pipeCols.append(step[1].attributeNames)
+                    pipeCols = list(set(itertools.chain(*pipeCols)))
+                # remove all columns specified in ContextImputer objects
+                elif isinstance(step[1], ContextImputer):
+                    removeCols = step[1].contextCol
+                    if isinstance(removeCols, str):
+                        pipeCols = [i for i in pipeCols if i not in [removeCols]]
+
+            # collect columns in processedColumns attribute
+            self.processedColumns.append(pipeCols)
+
+        # flatten processedColumns
+        self.processedColumns = list(set(itertools.chain(*self.processedColumns)))
+
+        # compare columns of input dataset with processedColumns to identify unprocessed columns
+        self.unprocessedColumns = list(set(X.columns) - set(self.processedColumns))
         return self
 
     def transform(self, X):
-        X = X.merge(self.originalData[self.unprocessedColumns], left_index=True, right_index=True)
-        return X
+        return X[self.unprocessedColumns]
 
 
 class DualTransformer(base.TransformerMixin, base.BaseEstimator):
@@ -353,14 +344,15 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
 
             for col in self.bcLambdasDict_.keys():
                 X[col + "_bc"] = stats.boxcox(X[col].values, lmbda = self.bcLambdasDict_[col])
-        return X.drop(self.originalColumns, axis=1)
+        return X
+        # return X.drop(self.originalColumns, axis=1)
 
 
 def skewSummary(self, data=None, columns=None):
     """
     Documentation:
         Description:
-            Displays Pandas DataFrame summarizing the skew of each continuous variable. Also summarizes
+            Displays Pandas DataFrame summarizing the skew of each numeric variable. Also summarizes
             the percent of a column that has a value of zero.
         Parameters:
             data : Pandas DataFrame, default = None
@@ -368,13 +360,13 @@ def skewSummary(self, data=None, columns=None):
                 the feature dataset provided to Machine during instantiation is used.
             columns : list of strings, default = None
                 List containing string names of columns. If left as None, the value associated
-                with sel.featureByDtype["continuous"] will be used as the column list.
+                with sel.featureType["numeric"] will be used as the column list.
     """
-    # use data/featureByDtype["continuous"] columns provided during instantiation if left unspecified
+    # use data/featureType["numeric"] columns provided during instantiation if left unspecified
     if data is None:
         data = self.data
     if columns is None:
-        columns = self.featureByDtype["continuous"]
+        columns = self.featureType["numeric"]
 
     skewness = (
         data[columns]
@@ -395,102 +387,3 @@ def skewSummary(self, data=None, columns=None):
             skewness.loc[col]["PctZero"] = 0.0
     skewness = skewness.sort_values(["Skew"])
     return skewness
-
-
-def dataRefresh(transformeredTrainData, trainData, trainFeatureByDtype, transformeredValidationData=None, validationData=None, validFeatureByDtype=None, columnsToDrop=None):
-    """
-    Documentation:
-        Description:
-            Combine transformed data with the other unprocessed columns in the original dataset,
-            while optionally removing columns that are no longer needed.
-        Parameters:
-            transformeredTrainData : Pandas DataFrame
-                Output from data transformation pipeline representing the training data.
-            trainData : Pandas DataFrame
-                The training dataset as it currently exists.
-            trainFeatureByDtype : dictionary
-                Dictionary containing information on each feature's type (categorical, continuous, date).
-            transformeredValidData : Pandas DataFrame, default = None
-                Output from data transformation pipeline representing the training data.
-            validData : Pandas DataFrame, default = None
-                The validation dataset as it currently exists.
-            validFeatureByDtype : dictionary, default - None
-                Dictionary containing information on each feature's type (categorical, continuous, date).
-            columnsToDrop : list, default = None
-                Columns to drop from output dataset(s)/
-        Returns:
-            trainData : Pandas DataFrame
-                The updated training dataset, which will include the processed columns and the unprocessed
-                columns.
-            trainFeatureByDtype : dictionary
-                Dictionary containing information on each feature's type (categorical, continuous, date).
-            validData : Pandas DataFrame
-                The updated validation dataset, which will include the processed columns and the unprocessed
-                columns. Optional, only gets returned when validation datset is provided.
-            validFeatureByDtype : dictionary
-                Dictionary containing information on each feature's type (categorical, continuous, date).
-                Optional, only gets returned when validation datset is provided.
-
-    """
-    ###
-    ## update tracked columns
-    # gather all currently tracked columns
-    allColumns = []
-    for k in trainFeatureByDtype.keys():
-        allColumns.append(trainFeatureByDtype[k])
-    allColumns = list(set(itertools.chain(*allColumns)))
-
-    # remove any columns listed in columnsToDrop
-    if columnsToDrop is not None:
-        # remove from allColumns
-        allColumns = [x for x in allColumns if x not in columnsToDrop]
-
-        # remove from featureByDtype
-        for k in trainFeatureByDtype.keys():
-            trainFeatureByDtype[k] = [x for x in trainFeatureByDtype[k] if x not in columnsToDrop]
-
-    ###
-    ## Training data
-    # add unprocessed columns back to train.data
-    trainDataUpdate = UnprocessedColumnAdder(originalData=trainData)
-    trainData = trainDataUpdate.fit_transform(transformeredTrainData)
-
-    # add new category columns to featureByDtype
-    for col in trainData.select_dtypes(include="category").columns:
-        try:
-            if col not in allColumns and col not in columnsToDrop:
-                trainFeatureByDtype["categorical"].append(col)
-        # except if columnsToDrop is None
-        except TypeError:
-            if col not in allColumns:
-                trainFeatureByDtype["categorical"].append(col)
-
-    # add new numeric columns to featureByDtype
-    for col in trainData.select_dtypes(exclude="category").columns:
-        try:
-            if col not in allColumns and col not in columnsToDrop:
-                trainFeatureByDtype["continuous"].append(col)
-        # except if columnsToDrop is None
-        except TypeError:
-            if col not in allColumns:
-                trainFeatureByDtype["continuous"].append(col)
-    # Drop
-    if columnsToDrop is not None:
-        trainData = trainData.drop(columnsToDrop, axis=1)
-
-    ###
-    ## Validation data
-    if transformeredValidationData is not None:
-        # add unprocessed column back to valid.data
-        validDataUpdate = UnprocessedColumnAdder(originalData=validationData)
-        validData = validDataUpdate.fit_transform(transformeredValidationData)
-
-        if columnsToDrop is not None:
-            validData = validData.drop(columnsToDrop, axis=1)
-
-        # deep copy of train.featureByDtype
-        validFeatureByDtype = copy.deepcopy(trainFeatureByDtype)
-
-        return trainData, trainFeatureByDtype, validData, validFeatureByDtype
-    else:
-        return trainData, trainFeatureByDtype

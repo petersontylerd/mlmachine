@@ -1,20 +1,23 @@
 import os
 import sys
 import importlib
+import itertools
+import numpy as np
 import pandas as pd
 
 import sklearn.model_selection as model_selection
+import sklearn.preprocessing as preprocessing
 
 class Machine:
     """
-    Info:
+    Documentation:
         Description:
-            Machine facilitates machine learning tasks spanning a typicaly end-to-end
-            machine learning pipeline, including data cleaning, feature encoding, exploratory
-            data analysis, data prepation, model building, model tuning and model evaluation.
+            Machine facilitates rapid machine learning experimentation tasks, including data
+            cleaning, feature encoding, exploratory data analysis, data prepation, model building,
+            model tuning and model evaluation.
     """
 
-    # Import mlmachine submodules
+    # import mlmachine submodules
     from .explore.edaMissing import (
         edaMissingSummary,
     )
@@ -31,11 +34,8 @@ class Machine:
         edaTransformLog1,
     )
     from .features.preprocessing import (
-        cleanLabel,
         ContextImputer,
-        ConvertToCategory,
         DataFrameSelector,
-        dataRefresh,
         DualTransformer,
         PandasFeatureUnion,
         PlayWithPandas,
@@ -52,23 +52,12 @@ class Machine:
         outlierSummary,
     )
     from .features.selection import (
-        featureSelectorCorr,
-        featureSelectorCrossVal,
-        featureSelectorFScoreClass,
-        featureSelectorFScoreReg,
-        featureSelectorImportance,
-        featureSelectorResultsPlot,
-        featureSelectorRFE,
-        featureSelectorVariance,
-        featureSelectorSummary,
+        FeatureSelector,
         FeatureSync,
-        featuresUsedSummary,
     )
     from .features.transform import (
         CustomBinner,
         EqualWidthBinner,
-        featureDropper,
-        NumericCoercer,
         PercentileBinner,
     )
     from .model.evaluate.summarize import (
@@ -129,22 +118,22 @@ class Machine:
                 removeFeatures : list, default = []
                     Features to be completely removed from dataset.
                 overrideCat : list, default = None
-                    Preidentified categorical features that would otherwise be labeled as continuous.
+                    Preidentified categorical features that would otherwise be labeled as numeric.
                 overrideNum : list, default = None
-                    Preidentified continuous features that would otherwise be labeled as categorical.
+                    Preidentified numeric features that would otherwise be labeled as categorical.
                 dateFeatures : list, default = None
                     Features comprised of calendar date values.
                 target : list, default = None
                     Name of column containing dependent variable.
                 targetType : list, default = None
-                    Target variable type, either 'categorical' or 'continuous'
+                    Target variable type, either 'categorical' or 'numeric'
             Attributes:
                 data : Pandas DataFrame
                     Independent variables returned as a Pandas DataFrame
                 target : Pandas Series
                     Dependent variable returned as a Pandas Series
                 featuresByDtype_ : dict
-                    Dictionary contains keys 'continuous', 'categorical' and/or 'date'. The corresponding values
+                    Dictionary contains keys 'numeric', 'categorical' and/or 'date'. The corresponding values
                     are lists of column names that are of that feature type.
         """
         self.removeFeatures = removeFeatures
@@ -159,72 +148,137 @@ class Machine:
         self.dateFeatures = dateFeatures
         self.targetType = targetType
 
-        # execute method measLevel
-        if self.target is not None:
-            self.data, self.target, self.featureByDtype = self.measLevel()
-        else:
-            self.data, self.featureByDtype = self.measLevel()
+        # execute method featureTypeCapture
+        self.featureTypeCapture()
 
+        # encode the target column if there is one
+        if self.target is not None and self.targetType == "categorical":
+            self.encodeTarget()
 
-    def measLevel(self):
+    def featureTypeCapture(self):
         """
         Documentation:
             Description:
-                Determine level of measurement for each feature as categorical, continuous or date.
-                Isolate dependent variable 'target', if provided, and drop from 'data' object.
+                Determine feature type for each feature as being categorical or numeric.
         """
-        ### identify target from features
-        if self.target is not None:
-            self.cleanLabel()
+        ### populate featureType dictionary with feature type label for each each
+        self.featureType = {}
 
-        ### add categorical and continuous keys, and any associated overrides
-        self.featureByDtype = {}
-
-        # categorical
+        # categorical features
         if self.overrideCat is None:
-            self.featureByDtype["categorical"] = []
+            self.featureType["categorical"] = []
         else:
-            self.featureByDtype["categorical"] = self.overrideCat
+            self.featureType["categorical"] = self.overrideCat
 
-        # continuous
+            # convert column dtype to "category"
+            self.data[self.overrideCat] = self.data[self.overrideCat].astype("category")
+
+        # numeric features
         if self.overrideNum is None:
-            self.featureByDtype["continuous"] = []
+            self.featureType["numeric"] = []
         else:
-            self.featureByDtype["continuous"] = self.overrideNum
+            self.featureType["numeric"] = self.overrideNum
 
-        # date
-        if self.dateFeatures is None:
-            self.featureByDtype["date"] = []
-        else:
-            self.featureByDtype["date"] = self.dateFeatures
+        # compile single list of features that have already been categorized
+        handled = [i for i in sum(self.featureType.values(), [])]
 
-        # combined dictionary values for later filtering
-        handled = [i for i in sum(self.featureByDtype.values(), [])]
+        ### determine feature type for remaining columns
+        for column in [i for i in self.data.columns if i not in handled]:
+            # object columns set as categorical features
+            if pd.api.types.is_object_dtype(self.data[column]):
+                self.featureType["categorical"].append(column)
 
-        ### categorize remaining columns
-        for c in [i for i in self.data.columns if i not in handled]:
+                # set column in dataset as categorical data type
+                self.data[column] = self.data[column].astype("category")
 
-            # identify feature type based on column data type
-            if str(self.data[c].dtype).startswith(("int", "float")):
-                self.featureByDtype["continuous"].append(c)
-            elif str(self.data[c].dtype).startswith(("object")):
-                self.featureByDtype["categorical"].append(c)
-
-        ### return objects
-        if self.target is not None:
-            return self.data, self.target, self.featureByDtype
-        else:
-            return self.data, self.featureByDtype
+            # numeric features
+            elif pd.api.types.is_numeric_dtype(self.data[column]):
+                self.featureType["numeric"].append(column)
 
 
-    def edaData(self, data=None, target=None):
+    def featureTypeUpdate(self, columnsToDrop=None):
         """
         Documentation:
             Description:
-                Simple helper function for mergeing together the 'data' variable and
-                'target' variable. Intended to be used primarily when when it makes
-                sense to pass the full combined dataset into a data visualization
-                function.
+                Update featureType dictionary to include new columns. Ensures new categorical columns
+                in dataset have the dtype "category". Optionally drops specific columns from the dataset
+                and featureType.
+            Parameters:
+                columnsToDrop : list, default = None
+                    Columns to drop from output dataset(s)/
+        """
+        # set column data type as "category" where approrpirate
+        for column in self.data.columns:
+            if pd.api.types.is_object_dtype(self.data[column]):
+                self.data[column] = self.data[column].astype("category")
+
+        # determine columns already being tracked
+        trackedColumns = []
+        for k in self.featureType.keys():
+            trackedColumns.append(self.featureType[k])
+        trackedColumns = list(set(itertools.chain(*trackedColumns)))
+
+        # remove any columns listed in columnsToDrop
+        if columnsToDrop is not None:
+            # remove from trackedColumns
+            trackedColumns = [x for x in trackedColumns if x not in columnsToDrop]
+
+            # remove from featureType
+            for k in self.featureType.keys():
+                self.featureType[k] = [x for x in self.featureType[k] if x not in columnsToDrop]
+
+            # drop columns from main dataset
+            self.data = self.data.drop(columnsToDrop, axis=1)
+
+        # update featureType
+        for column in [i for i in self.data.columns if i not in trackedColumns]:
+            # categorical features
+            if pd.api.types.is_categorical(self.data[column]):
+                self.featureType["categorical"].append(column)
+            # numeric features
+            elif pd.api.types.is_numeric_dtype(self.data[column]):
+                self.featureType["numeric"].append(column)
+
+        # sort columns alphabeticalls by name
+        self.data = self.data.sort_index(axis=1)
+
+
+    def encodeTarget(self, reverse=False):
+        """
+        Documentation:
+            Description:
+                Encode categorical target column and store as a Pandas Series, where
+                the name is the name of the feature in the original dataset.
+            Parameters:
+                reverse : boolean, default = False
+                    Reverses encoding of target variables back to original variables.
+        """
+        # encode label
+        self.le_ = preprocessing.LabelEncoder()
+
+        # store as a named Pandas Series
+        self.target = pd.Series(
+            self.le_.fit_transform(self.target.values.reshape(-1)),
+            name=self.target.name,
+            index=self.target.index
+        )
+
+        print("******************\nCategorical label encoding\n")
+        for origLbl, encLbl in zip(
+            np.sort(self.le_.classes_), np.sort(np.unique(self.target))
+        ):
+            print("{} --> {}".format(origLbl, encLbl))
+
+        # reverse the label encoding and overwrite target variable with the original data
+        if reverse:
+            self.target = self.le_.inverse_transform(self.target)
+
+    def recombineData(self, data=None, target=None):
+        """
+        Documentation:
+            Description:
+                Helper function for recombining the features in the 'data' variable
+                and the 'target' variable into one Pandas DataFrame.
             Parameters:
                 data : Pandas DataFrame, default = None
                     Pandas DataFrame containing independent variables. If left as None,
@@ -245,75 +299,18 @@ class Machine:
         df = data.merge(target, left_index=True, right_index=True)
         return df
 
-    def featureByDtypeUpdate(self, data=None, featureByDtype=None, override=None):
-        """
-        Documentation:
-            Description:
-                Update featureByDtype dictionary with columns added during preprocessing. If necessary,
-                change data type for object columns to numeric.
-            Parameters:
-                data : Pandas DataFrame, default = None
-                    Pandas DataFrame containing independent variables. If left as None,
-                    the feature dataset provided to Machine during instantiation is used.
-                featureByDtype : dictionary, default = None
-                    Dictionary containing string/list key/value pairs, where the key is a string that is either
-                    "continuous" or "categorical", and the value is a list of string corresponding to columns.
-                    If left as None, the featureByDtype dictionary created during instantiation is used.
-            Return:
-                data : Pandas DataFrame
-                    Pandas DataFrame containing combined independent and dependent variables.
-                featureByDtype : dictioanry
-                    Pandas DataFrame containing combined independent and dependent variables.
-        """
-        # use data/featureByDtype["continuous"] columns provided during instantiation if left unspecified
-        if data is None:
-            data = self.data
-        if featureByDtype is None:
-            featureByDtype = self.featureByDtype
 
-        # if an override dictionary is provided, utilize it first
-        if override is not None:
-            for columnType in override.keys():
-                for column in override[columnType]:
-                    featureByDtype[columnType].append(column)
-
-        ## numeric column updates
-        # capture numeric columns not currently in featureByDtype
-        untrackedNumCols = list(set(data.select_dtypes(include=['number']).columns) - set(sum(featureByDtype.values(), [])))
-
-        # append to featureByDtype list
-        for numCol in untrackedNumCols:
-            featureByDtype["continuous"].append(numCol)
-
-        ## categorical column updates
-        # capture object columns not currently in featureByDtype
-        untrackedObjCols = list(set(data.select_dtypes(exclude=['number']).columns) - set(sum(featureByDtype.values(), [])))
-
-        for objCol in untrackedObjCols:
-            # test if the object column can be successfully converted to numeric
-            # and if it is, then add it to the continuous key in featureByDtype
-            try:
-                data[objCol] = data[objCol].apply(pd.to_numeric)
-
-                # append to featureByDtype list
-                featureByDtype["continuous"].append(objCol)
-
-            except ValueError:
-                # append to featureByDtype list
-                featureByDtype["categorical"].append(objCol)
-        return data, featureByDtype
-
-
-def trainTestCompile(data, targetCol, testSize = 0.2, randomState = 1):
+def trainTestCompile(data, targetCol, validSize = 0.2, randomState = 1):
     """
     Description:
-        Intakes a dataset and returns
+        Intakes a single dataset and returns a training dataset and a validation dataset
+        stored in Pandas DataFrames.
     Parameters:
         data: Pandas DataFrame or array
             Dataset to be deconstructed into train and test sets.
         targetCol : string
             Name of target column in data parameter
-        testSize : float, default = 0.2
+        validSize : float, default = 0.2
             Proportion of dataset to be set aside as "unseen" test data.
         randomState : int
             random number seed
@@ -328,7 +325,7 @@ def trainTestCompile(data, targetCol, testSize = 0.2, randomState = 1):
         X = data.drop([targetCol], axis=1)
 
     XTrain, XValid, yTrain, yValid = model_selection.train_test_split(
-            X, y, test_size=0.2, random_state=1, stratify=y
+            X, y, test_size=validSize, random_state=1, stratify=y
         )
 
     dfTrain = XTrain.merge(yTrain, left_index=True, right_index=True)

@@ -12,7 +12,7 @@ class EqualWidthBinner(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Bin continuous columns into specified segments. Bins training data
+            Bin numeric columns into specified segments. Bins training data
             features, and stores the cut points to be used on validation and
             unseen data.
         Parameters:
@@ -81,7 +81,7 @@ class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Bin continuous columns into segments based on percentile cut-offs.
+            Bin numeric columns into segments based on percentile cut-offs.
         Parameters:
             cols : list
                 List of colummns to be binned. The percentiles are derived from
@@ -183,7 +183,7 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
-            Bin continuous columns into custom segments.
+            Bin numeric columns into custom segments.
         Parameters:
             customBinDict : dictionary
                 Dictionary containing 'column : bin' specifcation pairs. Bin specifications
@@ -207,7 +207,7 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
             X[binCol] = np.nan
 
             # append featureDtype dict
-            # self.featureByDtype['categorical'].append(binCol)
+            # self.featureType['categorical'].append(binCol)
 
             # iterate through custom binning
             for ix, ceil in enumerate(self.customBinDict[col]):
@@ -227,58 +227,4 @@ class CustomBinner(base.TransformerMixin, base.BaseEstimator):
 
             # set data type
             X[binCol] = X[binCol].astype("int64")
-        return X
-
-
-def featureDropper(self, cols, data, featureByDtype):
-    """
-    Documentation:
-        Description:
-            Removes feature from dataset and from self.featureByDtype.
-        Parameters:
-            cols : list
-                List of features to be dropped.
-            data : Pandas DataFrame, default = None
-                Pandas DataFrame containing independent variables.
-            featureByDtype : dictionary, default = None
-                Dictionary containing string/list key/value pairs, where the key is the feature
-                type and the value is a list of features of that type.
-        Returns:
-            data : Pandas DataFrame
-                Modified input with all specified columns data removed.
-            featureByDtype : dictionary
-                Modified input with all specified column names data removed.
-    """
-    for col in cols:
-        # delete colummn from data from
-        data = data.drop([col], axis=1)
-
-        # delete column name from featureByDtype dict
-        if col in featureByDtype["categorical"]:
-            featureByDtype["categorical"].remove(col)
-        elif col in featureByDtype["continuous"]:
-            featureByDtype["continuous"].remove(col)
-
-    return data, featureByDtype
-
-class NumericCoercer(base.TransformerMixin, base.BaseEstimator):
-    """
-    Documentation:
-        Description:
-            Transform all columns with non-numeric data types to numeric.
-        Returns:
-            X : array
-                Dataset with encoded versions of input variables.
-    """
-
-    def __init__(self):
-        pass
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        cols = X.select_dtypes(exclude=['number']).columns
-        for col in cols:
-            X[col] = X[col].apply(pd.to_numeric)
         return X

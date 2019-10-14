@@ -457,7 +457,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
         Definition:
             Visualize hyper-parameter optimization over the iterations. Compares theoretical
             distribution to the distribution of values that were actually chosen. For parameters
-            with a continuous range of values, this function also visualizes how the parameter
+            with a numeric range of values, this function also visualizes how the parameter
             value changes over time.
         Parameters
             bayesOptimSummary : Pandas DataFrame
@@ -554,7 +554,7 @@ def modelParamPlot(self, bayesOptimSummary, estimator, allSpace, nIter, chartPro
 
             plt.show()
 
-        # plot distributions for continuous params
+        # plot distributions for numeric params
         else:
             # using dictionary to convert specific columns
             convertDict = {"iteration": int, param: float}

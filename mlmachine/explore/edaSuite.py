@@ -165,7 +165,7 @@ def edaCatTargetNumFeat(self, feature, colorMap="viridis"):
     """
     Documentation:
         Description:
-            Produces exploratory data visualizations and statistical summaries for a continuous
+            Produces exploratory data visualizations and statistical summaries for a numeric
             feature in the context of a categorical target.
         Parameters
             feature : string
@@ -321,8 +321,8 @@ def edaNumTargetNumFeat(self, feature, colorMap="viridis"):
     """
     Documentation:
         Description:
-            Produces exploratory data visualizations and statistical summaries for a continuous
-            feature in the context of a continuous target.
+            Produces exploratory data visualizations and statistical summaries for a numeric
+            feature in the context of a numeric target.
         Parameters
             feature : string
                 Feature to visualize.
@@ -341,8 +341,8 @@ def edaNumTargetNumFeat(self, feature, colorMap="viridis"):
     # instantiate charting object
     p = PrettierPlot(chartProp=15, plotOrientation="wide")
 
-    # if continuous variable has fewer than a set number of unique variables, represent variable
-    # as a categorical variable vs. a continuous target variable
+    # if numeric variable has fewer than a set number of unique variables, represent variable
+    # as a categorical variable vs. a numeric target variable
     if len(np.unique(biDf[feature].values)) <= 20:
 
         describeDf = describeDf.rename(columns={"index": ""})
@@ -433,8 +433,8 @@ def edaNumTargetNumFeat(self, feature, colorMap="viridis"):
             ax=ax,
         )
 
-    # if continuous variable has greater than a set number of unique variables, represent variable
-    # as a continuous variable vs. a continuous target variable
+    # if numeric variable has greater than a set number of unique variables, represent variable
+    # as a numeric variable vs. a numeric target variable
     else:
 
         # add skew and curtosis to describeDf
@@ -495,7 +495,7 @@ def edaNumTargetCatFeat(self, feature, levelCountCap=50, colorMap="viridis"):
     """
     Documentation:
         Description:
-            Produces exploratory data visualizations and statistical summaries for a continuous
+            Produces exploratory data visualizations and statistical summaries for a numeric
             feature in the context of a categorical target.
         Parameters
             feature : string
