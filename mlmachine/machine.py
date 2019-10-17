@@ -159,7 +159,8 @@ class Machine:
         """
         Documentation:
             Description:
-                Determine feature type for each feature as being categorical or numeric.
+                Determine feature type for each feature as being categorical, numeric
+                or boolean.
         """
         ### populate featureType dictionary with feature type label for each each
         self.featureType = {}
@@ -179,13 +180,24 @@ class Machine:
         else:
             self.featureType["numeric"] = self.overrideNum
 
+        # boolean featuers
+        self.featureType["boolean"] = []
+
         # compile single list of features that have already been categorized
         handled = [i for i in sum(self.featureType.values(), [])]
 
         ### determine feature type for remaining columns
         for column in [i for i in self.data.columns if i not in handled]:
+
+            # if column is numeric and contains only two unique values, set as boolean
+            if pd.api.types.is_numeric_dtype(self.data[column]) and len(self.data[column].unique()) == 2 and np.min(self.data[column].unique()) == 0  and np.max(self.data[column].unique()) == 1:
+                self.featureType["boolean"].append(column)
+
+                # set column in dataset as categorical data type
+                self.data[column] = self.data[column].astype("bool")
+
             # object columns set as categorical features
-            if pd.api.types.is_object_dtype(self.data[column]):
+            elif pd.api.types.is_object_dtype(self.data[column]):
                 self.featureType["categorical"].append(column)
 
                 # set column in dataset as categorical data type
@@ -194,6 +206,10 @@ class Machine:
             # numeric features
             elif pd.api.types.is_numeric_dtype(self.data[column]):
                 self.featureType["numeric"].append(column)
+
+        # original column definitions
+        self.numericFeatures = self.featureType["numeric"]
+        self.categoricalFeatures = self.featureType["categorical"]
 
 
     def featureTypeUpdate(self, columnsToDrop=None):
@@ -209,7 +225,11 @@ class Machine:
         """
         # set column data type as "category" where approrpirate
         for column in self.data.columns:
-            if pd.api.types.is_object_dtype(self.data[column]):
+            # if column is numeric and contains only two unique values, set as boolean
+            if pd.api.types.is_numeric_dtype(self.data[column]) and not pd.api.types.is_bool_dtype(self.data[column]) and len(self.data[column].unique()) == 2 and not "*" in column and column not in self.categoricalFeatures:
+                self.data[column] = self.data[column].astype("bool")
+            # if column dtype is object, set as category
+            elif pd.api.types.is_object_dtype(self.data[column]):
                 self.data[column] = self.data[column].astype("category")
 
         # determine columns already being tracked
@@ -233,11 +253,20 @@ class Machine:
         # update featureType
         for column in [i for i in self.data.columns if i not in trackedColumns]:
             # categorical features
-            if pd.api.types.is_categorical(self.data[column]):
+            if pd.api.types.is_bool_dtype(self.data[column]):
+                self.featureType["boolean"].append(column)
+            # categorical features
+            elif pd.api.types.is_categorical(self.data[column]):
                 self.featureType["categorical"].append(column)
             # numeric features
             elif pd.api.types.is_numeric_dtype(self.data[column]):
                 self.featureType["numeric"].append(column)
+
+        # remove columns no longer in dataset from featureType object
+        for featureTypeKey in self.featureType.keys():
+            for column in self.featureType[featureTypeKey]:
+                if column not in self.data.columns:
+                    self.featureType[featureTypeKey] = [x for x in self.featureType[featureTypeKey] if x not in [column]]
 
         # sort columns alphabeticalls by name
         self.data = self.data.sort_index(axis=1)
