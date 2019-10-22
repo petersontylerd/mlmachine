@@ -5,13 +5,15 @@ DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def attrition():
-	dataset = joblib.load(os.path.join(DIR, 'datasets/attrition.pkl'))
-	return dataset
+	data = joblib.load(os.path.join(DIR, 'datasets/attrition/data.pkl'))
+	return data
 
 def housing():
-	dataset = joblib.load(os.path.join(DIR, 'datasets/housing.pkl'))
-	return dataset
+	train = joblib.load(os.path.join(DIR, 'datasets/housing/train.pkl'))
+	test = joblib.load(os.path.join(DIR, 'datasets/housing/test.pkl'))
+	return train, test
 
 def titanic():
-	dataset = joblib.load(os.path.join(DIR, 'datasets/titanic.pkl'))
-	return dataset
+	train = joblib.load(os.path.join(DIR, 'datasets/titanic/train.pkl'))
+	test = joblib.load(os.path.join(DIR, 'datasets/titanic/test.pkl'))
+	return train, test

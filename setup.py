@@ -23,6 +23,7 @@ def setup_package():
         name=DISTNAME,
         packages=[
             "mlmachine",
+            "mlmachine.datasets",
             "mlmachine.explore",
             "mlmachine.features",
             "mlmachine.model",
