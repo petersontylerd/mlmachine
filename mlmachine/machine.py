@@ -53,7 +53,6 @@ class Machine:
     )
     from .features.selection import (
         FeatureSelector,
-        FeatureSync,
     )
     from .features.transform import (
         CustomBinner,

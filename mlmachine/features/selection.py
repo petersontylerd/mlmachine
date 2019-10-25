@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 
+from time import gmtime, strftime
+
 import numpy as np
 import pandas as pd
 
@@ -27,42 +29,6 @@ from ..model.tune.bayesianOptimSearch import (
         BasicModelBuilder
     )
 
-
-class FeatureSync(base.TransformerMixin, base.BaseEstimator):
-    """
-    Documentation:
-        Description:
-            Intended to be used on test/validation datasets to ensure that the features in the
-            training set are also in the test/validation data sets, and also ensures the features
-            are in the same order in all datasets. The issue is handled in two ways. First, ordinal
-            feature levels that are in the training data but not in the test/validation datasets
-            are added in as all-zero features. Second, there may be features in the test/validation
-            datasets but not the training data. This occurs if features were dropped in the training
-            data but not yet dropped in the test/validation datasets.
-        Parameters:
-            trainCols : list
-                List containing the columns of the training dataset that have already been
-                transformed using pd.get_dummies().
-        Returns:
-            X : array
-                Dataset with dummy column representation of input variables.
-    """
-
-    def __init__(self, trainCols):
-        self.trainCols = trainCols
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        # add in missing levels
-        missingLevels = set(self.trainCols) - set(X.columns)
-        for c in missingLevels:
-            X[c] = 0
-
-        # arrange features in same order, and drop any features not present in training data
-        X = X[self.trainCols]
-        return X
 
 class FeatureSelector():
     """
@@ -95,12 +61,16 @@ class FeatureSelector():
         self.classification = classification
 
 
-    def featureSelectorSummary(self):
+    def featureSelectorSummary(self, save_to_csv=True):
         """
         Documentation:
             Description:
                 Run all feature selections processes and aggregate results. Calculate summary
                 statistics on results.
+            Parameters:
+                save_to_csv : boolean, default = True
+                    Conditional controlling whethor or not the feature selection summary results
+                    are saved to a csv file.
         """
         # run individual top feature processes
         self.resultsVariance = self.featureSelectorVariance()
@@ -123,6 +93,13 @@ class FeatureSelector():
         self.resultsSummary.insert(loc=3, column="high", value=self.resultsSummary.iloc[:, 3:].max(axis=1))
 
         self.resultsSummary = self.resultsSummary.sort_values("average")
+
+        if save_to_csv:
+            self.resultsSummary.to_csv(
+                "featureSelectionSummary_{}.csv".format(strftime("%Y%m%d_%H%M%S", gmtime())),
+                columns=self.resultsSummary.columns,
+                # index_label="index"
+            )
         return self.resultsSummary
 
 
@@ -280,7 +257,7 @@ class FeatureSelector():
         return featureDf
 
 
-    def featureSelectorCrossVal(self, metrics, nFolds=3, step=1, nJobs=4, verbose=True):
+    def featureSelectorCrossVal(self, metrics, resultsSummary=None, estimators=None, nFolds=3, step=1, nJobs=4, verbose=True, save_to_csv=True):
         """
         Documentation:
             Description:
@@ -290,6 +267,11 @@ class FeatureSelector():
             Parameters:
                 metrics : list of strings
                     List containing strings for one or more performance metrics.
+                resultsSummary : Pandas DataFrame, default = None
+                    Pandas DataFrame containing summary of featureSelectorSummary results. If none, use object's internal
+                    attribute specified during instantiation.
+                estimators : list of strings or sklearn API objects, default = None
+                    List of estimators to be used. If none, use object's internal attribute specified during instantiation.
                 nFolds : int, default = 3
                     Number of folds to use in cross validation.
                 step : int, default = 1
@@ -299,29 +281,40 @@ class FeatureSelector():
                     ignored if the model does not have this parameter.
                 verbose : boolean, default = True
                     Conditional controlling whether each estimator name is printed prior to cross-validation.
+                save_to_csv : boolean, default = True
+                    Conditional controlling whethor or not the feature selection summary results
+                    are saved to a csv file.
         """
+        if resultsSummary is None:
+            resultsSummary=self.resultsSummary
+        if estimators is None:
+            estimators=self.estimators
+
         # create empty dictionary for capturing one DataFrame for each estimator
-        self.cvSummary = {}
+        self.cvSummary = pd.DataFrame(columns=["Estimator","Training score","Validation score","Scoring"])
 
         # perform cross validation for all estimators for each diminishing set of features
-        for estimator in self.estimators:
+        for estimator in estimators:
 
             if verbose:
                 print(estimator)
 
             # instantiate default model and create empty DataFrame for capturing scores
             model = BasicModelBuilder(estimator=estimator, nJobs=nJobs)
-            cv = pd.DataFrame(columns=["Training score", "Validation score","scoring"])
+            cv = pd.DataFrame(columns=["Estimator","Training score","Validation score","Scoring"])
             rowIx = 0
 
             # iterate through scoring metrics
             for metric in metrics:
                 # iterate through each set of features
-                for i in np.arange(0, self.resultsSummary.shape[0], step):
+                for i in np.arange(0, resultsSummary.shape[0], step):
+                # for i in np.arange(0, self.resultsSummary.shape[0], step):
                     if i ==0:
-                        top = self.resultsSummary.sort_values("average").index
+                        top = resultsSummary.sort_values("average").index
+                        # top = self.resultsSummary.sort_values("average").index
                     else:
-                        top = self.resultsSummary.sort_values("average").index[:-i]
+                        top = resultsSummary.sort_values("average").index[:-i]
+                        # top = self.resultsSummary.sort_values("average").index[:-i]
                     scores = model_selection.cross_validate(
                         estimator=model.model,
                         X=self.data[top],
@@ -336,14 +329,20 @@ class FeatureSelector():
                     validation = scores["test_score"].mean()
 
                     # append results
-                    cv.loc[rowIx] = [training, validation, metric]
+                    cv.loc[rowIx] = [model.estimator.__name__, training, validation, metric]
                     rowIx += 1
 
             # capturing results DataFrame associated with estimator
-            self.cvSummary[estimator] = cv
+            self.cvSummary = self.cvSummary.append(cv)
+            # self.cvSummary[estimator] = cv
+
+        if save_to_csv:
+            self.cvSummary.to_csv("cvSelectionSummary_{}.csv".format(strftime("%Y%m%d_%H%M%S", gmtime())), columns=self.cvSummary.columns, index_label="index")
+
+        return self.cvSummary
 
 
-    def featureSelectorResultsPlot(self, metric, topSets=0, showFeatures=False, showScores=False, markerOn=True, titleScale=0.7):
+    def featureSelectorResultsPlot(self, metric, topSets=0, showFeatures=False, showScores=None, markerOn=True, titleScale=0.7):
         """
         Documentation:
             Description:
@@ -357,16 +356,17 @@ class FeatureSelector():
                 showFeatures : boolean, default = False
                     Conditional controlling whether to print feature set for best validation
                     score.
-                showScores : boolean, default = False
-                    Conditional controlling whether to display training and validation scores.
+                showScores : int or None, default = None
+                    Display certain number of top features. If None, display nothing. If int, display
+                    the specified number of features as a Pandas DataFrame.
                 markerOn : boolean, default = True
                     Conditional controlling whether to display marker for each individual score.
                 titleScale : float, default = 1.0
                     Controls the scaling up (higher value) and scaling down (lower value) of the size of
                     the main chart title, the x-axis title and the y-axis title.
         """
-        for estimator in self.cvSummary.keys():
-            cv = self.cvSummary[estimator][self.cvSummary[estimator]['scoring'] == metric]
+        for estimator in self.cvSummary["Estimator"].unique():
+            cv = self.cvSummary[(self.cvSummary['Scoring'] == metric) & (self.cvSummary['Estimator'] == estimator)]
 
             totalFeatures = self.resultsSummary.shape[0]
             iters = cv.shape[0]
@@ -374,8 +374,8 @@ class FeatureSelector():
 
             cv.set_index(keys=np.arange(0, cv.shape[0] * step, step, dtype=int), inplace=True)
 
-            if showScores:
-                display(cv[:5])
+            if showScores is not None:
+                display(cv[:showScores])
 
             # capture best iteration's feature drop count and performance score
             numDropped = (
@@ -439,8 +439,8 @@ class FeatureSelector():
         df = pd.DataFrame(index=self.resultsSummary.index)
 
         # iterate through estimators
-        for estimator in self.cvSummary.keys():
-            cv = self.cvSummary[estimator][self.cvSummary[estimator]['scoring'] == metric]
+        for estimator in self.cvSummary["Estimator"].unique():
+            cv = self.cvSummary[(self.cvSummary['Scoring'] == metric) & (self.cvSummary['Estimator'] == estimator)]
             cv = cv.reset_index(drop=True)
 
             # capture best iteration's feature drop count
@@ -455,8 +455,10 @@ class FeatureSelector():
                 featuresUsed = self.resultsSummary.sort_values("average").index.values
 
             # create column for estimator and populate with marker
-            df[estimator.split(".")[1]] = np.nan
-            df[estimator.split(".")[1]].loc[featuresUsed] = "X"
+            df[estimator] = np.nan
+            df[estimator].loc[featuresUsed] = "X"
+            # df[estimator.split(".")[1]] = np.nan
+            # df[estimator.split(".")[1]].loc[featuresUsed] = "X"
 
         # add counter and fill NaNs
         df["count"] = df.count(axis=1)
