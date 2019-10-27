@@ -74,7 +74,7 @@ def regressionStats(self, model, yTrue, yPred, featureCount, fold=0, dataType='t
                                     / (len(yTrue) - featureCount - 1)
     return results
 
-def regressionResults(self, model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3, randomState=1, resultsSummary=None):
+def regressionResults(self, model, XTrain, yTrain, XValid=None, yValid=None, nFolds=3, randomState=1, featureSelectorSummary=None):
     """
     Documentation:
         Description:
@@ -97,12 +97,12 @@ def regressionResults(self, model, XTrain, yTrain, XValid=None, yValid=None, nFo
                 CV ROC graph.
             randomState : int, default = 1
                 Random number seed.
-            resultsSummary : Pndas DataFrame, default = None
+            featureSelectorSummary : Pndas DataFrame, default = None
                 Pandas DataFrame containing various summary statistics pertaining to model performance. If None, returns summary
-                Pandas DataFrame for the input model. If resultsSummary DataFrame is provided from a previous run, the new
+                Pandas DataFrame for the input model. If featureSelectorSummary DataFrame is provided from a previous run, the new
                 performance results are appended to the provivded summary.
         Returns:
-            resultsSummary : Pndas DataFrame
+            featureSelectorSummary : Pndas DataFrame
                 Dataframe containing various summary statistics pertaining to model performance.
     """
     model.fit(XTrain.values, yTrain.values)
@@ -115,9 +115,9 @@ def regressionResults(self, model, XTrain, yTrain, XValid=None, yValid=None, nFo
                               featureCount=XTrain.shape[1]
                         )
     # create shell results DataFrame and append
-    if resultsSummary is None:
-        resultsSummary = pd.DataFrame(columns = list(results.keys()))
-    resultsSummary = resultsSummary.append(results, ignore_index=True)
+    if featureSelectorSummary is None:
+        featureSelectorSummary = pd.DataFrame(columns = list(results.keys()))
+    featureSelectorSummary = featureSelectorSummary.append(results, ignore_index=True)
 
     ## Validation dataset
     # if validation data is provided...
@@ -129,7 +129,7 @@ def regressionResults(self, model, XTrain, yTrain, XValid=None, yValid=None, nFo
                                     featureCount=XTrain.shape[1],
                                     dataType='validation'
                             )
-        resultsSummary = resultsSummary.append(results, ignore_index=True)
+        featureSelectorSummary = featureSelectorSummary.append(results, ignore_index=True)
     else:
        # if validation data is not provided, then perform K-fold cross validation on
         # training data
@@ -153,5 +153,5 @@ def regressionResults(self, model, XTrain, yTrain, XValid=None, yValid=None, nFo
                                         dataType='validation',
                                         fold=i+1
                                 )
-            resultsSummary = resultsSummary.append(results, ignore_index=True)
-    return resultsSummary
+            featureSelectorSummary = featureSelectorSummary.append(results, ignore_index=True)
+    return featureSelectorSummary

@@ -3,9 +3,8 @@ import csv
 import inspect
 import sys
 import time
+from time import gmtime, strftime
 from timeit import default_timer as timer
-
-import time
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -38,7 +37,7 @@ from prettierplot import style
 
 
 # set optimization parameters
-def objective(space, resultsDir, model, X, y, scoring, nFolds, nJobs, verbose):
+def objective(space, resultsFile, model, data, target, scoring, nFolds, nJobs, verbose):
     """
     Documentation:
         Description:
@@ -48,27 +47,29 @@ def objective(space, resultsDir, model, X, y, scoring, nFolds, nJobs, verbose):
             space : dictionary
                 Dictionary containg 'parameter : value distribution' key/value pairs. The key specifies the
                 parameter of the model and optimization process draws trial values from the distribution.
-            resultsDir : string
+            resultsFile : string
                 File destination for results summary CSV.
             model : string
                 The model to be fit.
-            X : array
+            data : array
                 Input dataset.
-            y : array
+            target : array
                 Input dataset labels.
             scoring : string (sklearn evaluation method)
                 Evaluation method for scoring model performance. The following metrics are supported:
-                    - "neg_mean_squared_error"
+                    - "accuracy"
                     - "f1_macro"
                     - "f1_micro"
-                    - "accuracy"
-                    - "rmsle"
-                Please note that "rmsle" is not implemented in sklearn. If "rmsle" is specified, model
+                    - "neg_mean_squared_error"
+                    - "roc_auc"
+                    - "root_mean_squared_error"
+                    - "root_mean_squared_log_error"
+                Please note that "root_mean_squared_log_error" is not implemented in sklearn. If "root_mean_squared_log_error" is specified, model
                 is optimized using "neg_mean_squared_error" and then the square root is taken of the
-                absolute value of the results, effectively creating the "rmsle" score to be minimized.
-            n_folds : int
+                absolute value of the results, effectively creating the "root_mean_squared_log_error" score to be minimized.
+            nFolds : int
                 Number of folds for cross-validation.
-            n_jobs : int
+            nJobs : int
                 Number of works to deploy upon execution, if applicable.
             verbose : int
                 Controls amount of information printed to console during fit.
@@ -86,67 +87,99 @@ def objective(space, resultsDir, model, X, y, scoring, nFolds, nJobs, verbose):
         if param in space.keys():
             space[param] = int(space[param])
 
+    # custom metric handling
+    if scoring == "root_mean_squared_error":
+        scoring = "neg_mean_squared_error"
+        scoreTransform = "rmse"
+    elif scoring == "root_mean_squared_log_error":
+        scoring = "neg_mean_squared_log_error"
+        scoreTransform = "rmsle"
+    else:
+        scoreTransform = scoring
+
+
     cv = model_selection.cross_val_score(
         estimator=eval("{0}(**{1})".format(model, space)),
-        X=X,
-        y=y,
+        X=data,
+        y=target,
         verbose=verbose,
         n_jobs=nJobs,
         cv=nFolds,
-        scoring="neg_mean_squared_error" if scoring == "rmsle" else scoring,
+        scoring=scoring,
     )
     runTime = timer() - start
 
     # calculate loss based on scoring method
-    if scoring in ["accuracy","f1_micro","f1_macro"]:
+    if scoreTransform in ["accuracy","f1_micro","f1_macro","roc_auc"]:
         loss = 1 - cv.mean()
-        bestLoss = 1 - cv.max()
-        worstLoss = 1 - cv.min()
-        stdLoss = cv.std()
-    elif scoring == "neg_mean_squared_error":
-        loss = abs(cv.mean())
-        bestLoss = abs(cv.min())
-        worstLoss = abs(cv.max())
-        stdLoss = abs(cv.std())
-    elif scoring == "rmsle":
-        cv = np.sqrt(abs(cv))
+
+        meanScore = cv.mean()
+        stdScore = cv.std()
+        minScore = cv.min()
+        maxScore = cv.max()
+    # negative mean squared error
+    elif scoreTransform in ["neg_mean_squared_error"]:
+        loss = np.abs(cv.mean())
+
+        meanScore = cv.mean()
+        stdScore = cv.std()
+        minScore = cv.min()
+        maxScore = cv.max()
+    # root mean squared error
+    elif scoreTransform in ["rmse"]:
+        cv = np.sqrt(np.abs(cv))
         loss = np.mean(cv)
-        bestLoss = np.min(cv)
-        worstLoss = np.max(cv)
-        stdLoss = np.std(cv)
+
+        meanScore = cv.mean()
+        stdScore = cv.std()
+        minScore = cv.min()
+        maxScore = cv.max()
+    # root mean squared log error
+    elif scoring in ["rmsle"]:
+        cv = np.sqrt(np.abs(cv))
+        loss = np.mean(cv)
+
+        meanScore = cv.mean()
+        stdScore = cv.std()
+        minScore = cv.min()
+        maxScore = cv.max()
 
     # export results to CSV
-    outFile = resultsDir
+    outFile = resultsFile
     with open(outFile, "a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(
             [
                 ITERATION,
                 model,
-                space,
-                worstLoss,
+                scoring,
                 loss,
-                bestLoss,
-                stdLoss,
+                meanScore,
+                stdScore,
+                minScore,
+                maxScore,
                 runTime,
                 STATUS_OK,
+                space,
             ]
         )
 
     return {
         "iteration": ITERATION,
         "estimator": model,
-        "params": space,
-        "worstLoss": worstLoss,
+        "scoring": scoring,
         "loss": loss,
-        "bestLoss": bestLoss,
-        "stdLoss": stdLoss,
+        "meanScore": meanScore,
+        "stdScore": stdScore,
+        "minScore": minScore,
+        "maxScore": maxScore,
         "trainTime": runTime,
         "status": STATUS_OK,
+        "params": space,
     }
 
 
-def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, nFolds, nJobs, iters, verbose):
+def execBayesOptimSearch(self, allSpace, data, target, scoring, nFolds=3, nJobs=4, iters=50, verbose=0, resultsFile=None):
     """
     Documentation:
         Definition:
@@ -158,41 +191,53 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, nFolds, nJob
                 a dictionary. Each nested dictionary contains 'parameter : value distribution' key/value
                 pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
-            resultsDir : string
-                File destination for results summary CSV.
             model : string
                 The model to be fit.
-            X : array
+            data : array
                 Input dataset.
-            y : array
+            target : array
                 Input dataset labels.
             scoring : string (sklearn evaluation method)
                 Evaluation method for scoring model performance. Takes values "neg_mean_squared_error",
-                 "accuracy", and "rmsle". Please note that "rmsle" is not an actual sklearn evaluation
-                 method. If "rmsle" is specified, model is optimized using "neg_mean_squared_error" and
+                 "accuracy", and "root_mean_squared_log_error". Please note that "root_mean_squared_log_error" is not an actual sklearn evaluation
+                 method. If "root_mean_squared_log_error" is specified, model is optimized using "neg_mean_squared_error" and
                  then the square root is taken of the absolute value of the results, effectively creating
-                 the "rmsle" score to be minimized.
-            n_folds : int
+                 the "root_mean_squared_log_error" score to be minimized.
+            nFolds : int, default = 3
                 Number of folds for cross-validation.
-            n_jobs : int
+            nJobs : int, default - 4
                 Number of works to deploy upon execution, if applicable.
-            verbose : int
+            verbose : int, default=0
                 Controls amount of information printed to console during fit.
+            resultsFile : string, default = None
+                File destination for results summary CSV. If None, defaults to
+                ./bayesOptimizationSummary_{data}_{time}.csv.
     """
+    if resultsFile is None:
+        resultsFile = "bayesOptimizationSummary_{}_{}.csv".format(scoring, strftime("%Y%m%d_%H%M%S", gmtime()))
+
+    # convert to numpy if necessary
+    if isinstance(data, pd.core.frame.DataFrame):
+        data = data.values
+    if isinstance(target, pd.core.series.Series):
+        target = target.values
+
     # add file header
-    with open(resultsDir, "w", newline="") as outfile:
+    with open(resultsFile, "w", newline="") as outfile:
         writer = csv.writer(outfile)
         writer.writerow(
             [
                 "iteration",
                 "estimator",
-                "params",
-                "worstLoss",
-                "meanLoss",
-                "bestLoss",
-                "stdLoss",
+                "scoring",
+                "loss",
+                "meanScore",
+                "stdScore",
+                "minScore",
+                "maxScore",
                 "trainTime",
                 "status",
+                "params",
             ]
         )
 
@@ -206,10 +251,10 @@ def execBayesOptimSearch(self, allSpace, resultsDir, X, y, scoring, nFolds, nJob
 
         # override default arguments with next estimator and the CV parameters
         objective.__defaults__ = (
-            resultsDir,
+            resultsFile,
             estimator,
-            X,
-            y,
+            data,
+            target,
             scoring,
             nFolds,
             nJobs,

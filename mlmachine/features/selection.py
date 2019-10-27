@@ -61,7 +61,7 @@ class FeatureSelector():
         self.classification = classification
 
 
-    def featureSelectorSummary(self, save_to_csv=True):
+    def featureSelectorSuite(self, save_to_csv=True):
         """
         Documentation:
             Description:
@@ -84,23 +84,23 @@ class FeatureSelector():
 
         # combine results into single summary table
         results = [self.resultsFScore, self.resultsVariance, self.resultsCorr, self.resultsRFE, self.resultsImportance]
-        self.resultsSummary = pd.concat(results, join="inner", axis=1)
+        self.featureSelectorSummary = pd.concat(results, join="inner", axis=1)
 
         # add summary stats
-        self.resultsSummary.insert(loc=0, column="average", value=self.resultsSummary.mean(axis=1))
-        self.resultsSummary.insert(loc=1, column="stdev", value=self.resultsSummary.iloc[:, 1:].std(axis=1))
-        self.resultsSummary.insert(loc=2, column="low", value=self.resultsSummary.iloc[:, 2:].min(axis=1))
-        self.resultsSummary.insert(loc=3, column="high", value=self.resultsSummary.iloc[:, 3:].max(axis=1))
+        self.featureSelectorSummary.insert(loc=0, column="average", value=self.featureSelectorSummary.mean(axis=1))
+        self.featureSelectorSummary.insert(loc=1, column="stdev", value=self.featureSelectorSummary.iloc[:, 1:].std(axis=1))
+        self.featureSelectorSummary.insert(loc=2, column="low", value=self.featureSelectorSummary.iloc[:, 2:].min(axis=1))
+        self.featureSelectorSummary.insert(loc=3, column="high", value=self.featureSelectorSummary.iloc[:, 3:].max(axis=1))
 
-        self.resultsSummary = self.resultsSummary.sort_values("average")
+        self.featureSelectorSummary = self.featureSelectorSummary.sort_values("average")
 
         if save_to_csv:
-            self.resultsSummary.to_csv(
+            self.featureSelectorSummary.to_csv(
                 "featureSelectionSummary_{}.csv".format(strftime("%Y%m%d_%H%M%S", gmtime())),
-                columns=self.resultsSummary.columns,
+                columns=self.featureSelectorSummary.columns,
                 # index_label="index"
             )
-        return self.resultsSummary
+        return self.featureSelectorSummary
 
 
     def featureSelectorFScoreClass(self):
@@ -257,7 +257,7 @@ class FeatureSelector():
         return featureDf
 
 
-    def featureSelectorCrossVal(self, metrics, resultsSummary=None, estimators=None, nFolds=3, step=1, nJobs=4, verbose=True, save_to_csv=True):
+    def featureSelectorCrossVal(self, scoring, featureSelectorSummary=None, estimators=None, nFolds=3, step=1, nJobs=4, verbose=True, save_to_csv=True):
         """
         Documentation:
             Description:
@@ -265,11 +265,11 @@ class FeatureSelector():
                 of features is reduced by one feature on each pass. The feature removed is the least important
                 feature of the remaining set. Calculates both the training and test performance.
             Parameters:
-                metrics : list of strings
-                    List containing strings for one or more performance metrics.
-                resultsSummary : Pandas DataFrame, default = None
-                    Pandas DataFrame containing summary of featureSelectorSummary results. If none, use object's internal
-                    attribute specified during instantiation.
+                scoring : list of strings
+                    List containing strings for one or more performance scoring metrics.
+                featureSelectorSummary : Pandas DataFrame or str, default = None
+                    Pandas DataFrame, or str of csv file location, containing summary of featureSelectorSuite results.
+                    If none, use object's internal attribute specified during instantiation.
                 estimators : list of strings or sklearn API objects, default = None
                     List of estimators to be used. If none, use object's internal attribute specified during instantiation.
                 nFolds : int, default = 3
@@ -285,8 +285,15 @@ class FeatureSelector():
                     Conditional controlling whethor or not the feature selection summary results
                     are saved to a csv file.
         """
-        if resultsSummary is None:
-            resultsSummary=self.resultsSummary
+        # load results summary if needed
+        if featureSelectorSummary is None:
+            featureSelectorSummary=self.featureSelectorSummary
+        elif isinstance(featureSelectorSummary, str):
+            featureSelectorSummary=pd.read_csv(featureSelectorSummary, index_col=0)
+        elif isinstance(featureSelectorSummary, pd.core.frame.DataFrame):
+            featureSelectorSummary=featureSelectorSummary
+
+        # load estimators if needed
         if estimators is None:
             estimators=self.estimators
 
@@ -305,16 +312,26 @@ class FeatureSelector():
             rowIx = 0
 
             # iterate through scoring metrics
-            for metric in metrics:
+            for metric in scoring:
                 # iterate through each set of features
-                for i in np.arange(0, resultsSummary.shape[0], step):
-                # for i in np.arange(0, self.resultsSummary.shape[0], step):
+                for i in np.arange(0, featureSelectorSummary.shape[0], step):
+                    # collect names of top columns
                     if i ==0:
-                        top = resultsSummary.sort_values("average").index
-                        # top = self.resultsSummary.sort_values("average").index
+                        top = featureSelectorSummary.sort_values("average").index
                     else:
-                        top = resultsSummary.sort_values("average").index[:-i]
-                        # top = self.resultsSummary.sort_values("average").index[:-i]
+                        top = featureSelectorSummary.sort_values("average").index[:-i]
+
+                    # custom metric handling
+                    if metric == "root_mean_squared_error":
+                        metric = "neg_mean_squared_error"
+                        scoreTransform = "rmse"
+                    elif metric == "root_mean_squared_log_error":
+                        metric = "neg_mean_squared_log_error"
+                        scoreTransform = "rmsle"
+                    else:
+                        scoreTransform = metric
+
+
                     scores = model_selection.cross_validate(
                         estimator=model.model,
                         X=self.data[top],
@@ -324,9 +341,18 @@ class FeatureSelector():
                         return_train_score=True,
                     )
 
-                    # calculate mean scores
-                    training = scores["train_score"].mean()
-                    validation = scores["test_score"].mean()
+                    # custom metric handling
+                    if scoreTransform == "rmse":
+                        training = np.mean(np.sqrt(np.abs(scores["train_score"])))
+                        validation = np.mean(np.sqrt(np.abs(scores["test_score"])))
+                        metric = "root_mean_squared_error"
+                    elif scoreTransform == "rmsle":
+                        training = np.mean(np.sqrt(np.abs(scores["train_score"])))
+                        validation = np.mean(np.sqrt(np.abs(scores["test_score"])))
+                        metric = "root_mean_squared_log_error"
+                    else:
+                        training = np.mean(scores["train_score"])
+                        validation = np.mean(scores["test_score"])
 
                     # append results
                     cv.loc[rowIx] = [model.estimator.__name__, training, validation, metric]
@@ -337,12 +363,12 @@ class FeatureSelector():
             # self.cvSummary[estimator] = cv
 
         if save_to_csv:
-            self.cvSummary.to_csv("cvSelectionSummary_{}.csv".format(strftime("%Y%m%d_%H%M%S", gmtime())), columns=self.cvSummary.columns, index_label="index")
+            self.cvSummary.to_csv("cvSummary_{}.csv".format(strftime("%Y%m%d_%H%M%S", gmtime())), columns=self.cvSummary.columns, index_label="index")
 
         return self.cvSummary
 
 
-    def featureSelectorResultsPlot(self, metric, topSets=0, showFeatures=False, showScores=None, markerOn=True, titleScale=0.7):
+    def featureSelectorResultsPlot(self, metric, cvSummary=None, featureSelectorSummary=None, topSets=0, showFeatures=False, showScores=None, markerOn=True, titleScale=0.7):
         """
         Documentation:
             Description:
@@ -351,6 +377,12 @@ class FeatureSelector():
             Parameters:
                 metric : string
                     Metric to visualize.
+                cvSummary : Pandas DataFrame or str, default = None
+                    Pandas DataFrame, or str of csv file location, containing cross-validation results.
+                    If none, use object's internal attribute specified during instantiation.
+                featureSelectorSummary : Pandas DataFrame or str, default = None
+                    Pandas DataFrame, or str of csv file location, containing summary of featureSelectorSuite results.
+                    If none, use object's internal attribute specified during instantiation.
                 topSets : int, default = 5
                     Number of rows to display of the performance summary table
                 showFeatures : boolean, default = False
@@ -365,10 +397,26 @@ class FeatureSelector():
                     Controls the scaling up (higher value) and scaling down (lower value) of the size of
                     the main chart title, the x-axis title and the y-axis title.
         """
-        for estimator in self.cvSummary["Estimator"].unique():
-            cv = self.cvSummary[(self.cvSummary['Scoring'] == metric) & (self.cvSummary['Estimator'] == estimator)]
+        # load results summary if needed
+        if featureSelectorSummary is None:
+            featureSelectorSummary=self.featureSelectorSummary
+        elif isinstance(featureSelectorSummary, str):
+            featureSelectorSummary=pd.read_csv(featureSelectorSummary, index_col=0)
+        elif isinstance(featureSelectorSummary, pd.core.frame.DataFrame):
+            featureSelectorSummary=featureSelectorSummary
 
-            totalFeatures = self.resultsSummary.shape[0]
+        # load CV summary if needed
+        if cvSummary is None:
+            cvSummary=self.cvSummary
+        elif isinstance(cvSummary, str):
+            cvSummary=pd.read_csv(cvSummary, index_col=0)
+        elif isinstance(cvSummary, pd.core.frame.DataFrame):
+            cvSummary=cvSummary
+
+        for estimator in cvSummary["Estimator"].unique():
+            cv = cvSummary[(cvSummary['Scoring'] == metric) & (cvSummary['Estimator'] == estimator)]
+
+            totalFeatures = featureSelectorSummary.shape[0]
             iters = cv.shape[0]
             step = np.ceil(totalFeatures / iters)
 
@@ -378,26 +426,31 @@ class FeatureSelector():
                 display(cv[:showScores])
 
             # capture best iteration's feature drop count and performance score
+            if metric in ["root_mean_squared_error","root_mean_squared_log_error"]:
+                sortOrder = True
+            else:
+                sortOrder = False
+
             numDropped = (
                 cv
-                .sort_values(["Validation score"], ascending=False)[:1]
+                .sort_values(["Validation score"], ascending=sortOrder)[:1]
                 .index.values[0]
             )
             score = np.round(
                 cv
-                .sort_values(["Validation score"], ascending=False)["Validation score"][:1]
+                .sort_values(["Validation score"], ascending=sortOrder)["Validation score"][:1]
                 .values[0],
                 5,
             )
 
             # display performance for the top N feature sets
             if topSets > 0:
-                display(cv.sort_values(["Validation score"], ascending=False)[:topSets])
+                display(cv.sort_values(["Validation score"], ascending=sortOrder)[:topSets])
             if showFeatures:
                 if numDropped > 0:
-                    featuresUsed = self.resultsSummary.sort_values("average").index[:-numDropped].values
+                    featuresUsed = featureSelectorSummary.sort_values("average").index[:-numDropped].values
                 else:
-                    featuresUsed = self.resultsSummary.sort_values("average").index.values
+                    featuresUsed = featureSelectorSummary.sort_values("average").index.values
                 print(featuresUsed)
 
             # create multi-line plot
@@ -425,7 +478,7 @@ class FeatureSelector():
             plt.show()
 
 
-    def featuresUsedSummary(self, metric):
+    def featuresUsedSummary(self, metric, cvSummary=None, featureSelectorSummary=None):
         """
         Documentation:
             Description:
@@ -434,31 +487,56 @@ class FeatureSelector():
             Parameters:
                 metric : string
                     Metric to visualize.
+                cvSummary : Pandas DataFrame or str, default = None
+                    Pandas DataFrame, or str of csv file location, containing cross-validation results.
+                    If none, use object's internal attribute specified during instantiation.
+                featureSelectorSummary : Pandas DataFrame or str, default = None
+                    Pandas DataFrame, or str of csv file location, containing summary of featureSelectorSuite results.
+                    If none, use object's internal attribute specified during instantiation.
         """
+        # load results summary if needed
+        if featureSelectorSummary is None:
+            featureSelectorSummary=self.featureSelectorSummary
+        elif isinstance(featureSelectorSummary, str):
+            featureSelectorSummary=pd.read_csv(featureSelectorSummary, index_col=0)
+        elif isinstance(featureSelectorSummary, pd.core.frame.DataFrame):
+            featureSelectorSummary=featureSelectorSummary
+
+        # load CV summary if needed
+        if cvSummary is None:
+            cvSummary=self.cvSummary
+        elif isinstance(cvSummary, str):
+            cvSummary=pd.read_csv(cvSummary, index_col=0)
+        elif isinstance(cvSummary, pd.core.frame.DataFrame):
+            cvSummary=cvSummary
+
         # create empty DataFrame with feature names as index
-        df = pd.DataFrame(index=self.resultsSummary.index)
+        df = pd.DataFrame(index=featureSelectorSummary.index)
 
         # iterate through estimators
-        for estimator in self.cvSummary["Estimator"].unique():
-            cv = self.cvSummary[(self.cvSummary['Scoring'] == metric) & (self.cvSummary['Estimator'] == estimator)]
+        for estimator in cvSummary["Estimator"].unique():
+            cv = cvSummary[(cvSummary['Scoring'] == metric) & (cvSummary['Estimator'] == estimator)]
             cv = cv.reset_index(drop=True)
 
             # capture best iteration's feature drop count
+            if metric in ["root_mean_squared_error","root_mean_squared_log_error"]:
+                sortOrder = True
+            else:
+                sortOrder = False
+
             numDropped = (
                 cv
-                .sort_values(["Validation score"], ascending=False)[:1]
+                .sort_values(["Validation score"], ascending=sortOrder)[:1]
                 .index.values[0]
             )
             if numDropped > 0:
-                featuresUsed = self.resultsSummary.sort_values("average").index[:-numDropped].values
+                featuresUsed = featureSelectorSummary.sort_values("average").index[:-numDropped].values
             else:
-                featuresUsed = self.resultsSummary.sort_values("average").index.values
+                featuresUsed = featureSelectorSummary.sort_values("average").index.values
 
             # create column for estimator and populate with marker
             df[estimator] = np.nan
             df[estimator].loc[featuresUsed] = "X"
-            # df[estimator.split(".")[1]] = np.nan
-            # df[estimator.split(".")[1]].loc[featuresUsed] = "X"
 
         # add counter and fill NaNs
         df["count"] = df.count(axis=1)

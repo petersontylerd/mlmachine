@@ -227,8 +227,8 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
                               featureCount=XTrain.shape[1]
                         )
     # create shell results DataFrame and append
-    resultsSummary = pd.DataFrame(columns = list(results.keys()))
-    resultsSummary = resultsSummary.append(results, ignore_index=True)
+    featureSelectorSummary = pd.DataFrame(columns = list(results.keys()))
+    featureSelectorSummary = featureSelectorSummary.append(results, ignore_index=True)
 
     ## Validation dataset
     # if validation data is provided...
@@ -268,8 +268,8 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
                                   featureCount=XTrain.shape[1],
                                   dataType='validation'
                             )
-        resultsSummary = resultsSummary.append(results, ignore_index=True)
-        display(resultsSummary)
+        featureSelectorSummary = featureSelectorSummary.append(results, ignore_index=True)
+        display(featureSelectorSummary)
 
     else:
         # if validation data is not provided, then perform K-fold cross validation on
@@ -342,6 +342,6 @@ def regressionPanel(self, model, XTrain, yTrain, XValid=None, yValid=None, nFold
                                       dataType='validation',
                                       fold=i+1
                                 )
-            resultsSummary = resultsSummary.append(results, ignore_index=True)
+            featureSelectorSummary = featureSelectorSummary.append(results, ignore_index=True)
         plt.show()
-        display(resultsSummary)
+        display(featureSelectorSummary)
