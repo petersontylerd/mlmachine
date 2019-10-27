@@ -436,7 +436,7 @@ def unpackBayesOptimSummary(self, bayesOptimSummary, estimator):
         estimatorSummary.loc[i, :] = list(ast.literal_eval(params).values())
 
     # add columns for loss and iter number
-    estimatorSummary["iterLoss"] = estimatorDf["meanLoss"]
+    estimatorSummary["iterLoss"] = estimatorDf["loss"]
     estimatorSummary["iteration"] = estimatorDf["iteration"]
 
     return estimatorSummary

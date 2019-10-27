@@ -286,21 +286,26 @@ class FeatureSelector():
                     are saved to a csv file.
         """
         # load results summary if needed
-        if featureSelectorSummary is None:
-            featureSelectorSummary=self.featureSelectorSummary
-        elif isinstance(featureSelectorSummary, str):
+        if isinstance(featureSelectorSummary, str):
             featureSelectorSummary=pd.read_csv(featureSelectorSummary, index_col=0)
         elif isinstance(featureSelectorSummary, pd.core.frame.DataFrame):
             featureSelectorSummary=featureSelectorSummary
+        elif featureSelectorSummary is None:
+            try:
+                featureSelectorSummary=self.featureSelectorSummary
+            except AttributeError:
+                raise AttributeError("No featureSelectorSummary detected. Either execute method featureSelectorSuite or load from CSV")
 
         # load estimators if needed
         if estimators is None:
             estimators=self.estimators
 
         # create empty dictionary for capturing one DataFrame for each estimator
-        self.cvSummary = pd.DataFrame(columns=["Estimator","Training score","Validation score","Scoring"])
+        self.cvSummary = pd.DataFrame(columns=["Estimator","Training score","Validation score","Scoring","Features dropped"])
 
         # perform cross validation for all estimators for each diminishing set of features
+        rowIx = 0
+
         for estimator in estimators:
 
             if verbose:
@@ -308,11 +313,12 @@ class FeatureSelector():
 
             # instantiate default model and create empty DataFrame for capturing scores
             model = BasicModelBuilder(estimator=estimator, nJobs=nJobs)
-            cv = pd.DataFrame(columns=["Estimator","Training score","Validation score","Scoring"])
-            rowIx = 0
+            cv = pd.DataFrame(columns=["Estimator","Training score","Validation score","Scoring","Features dropped"])
 
             # iterate through scoring metrics
             for metric in scoring:
+
+                stepIncrement = 0
                 # iterate through each set of features
                 for i in np.arange(0, featureSelectorSummary.shape[0], step):
                     # collect names of top columns
@@ -355,7 +361,8 @@ class FeatureSelector():
                         validation = np.mean(scores["test_score"])
 
                     # append results
-                    cv.loc[rowIx] = [model.estimator.__name__, training, validation, metric]
+                    cv.loc[rowIx] = [model.estimator.__name__, training, validation, metric, stepIncrement]
+                    stepIncrement += step
                     rowIx += 1
 
             # capturing results DataFrame associated with estimator
@@ -398,20 +405,26 @@ class FeatureSelector():
                     the main chart title, the x-axis title and the y-axis title.
         """
         # load results summary if needed
-        if featureSelectorSummary is None:
-            featureSelectorSummary=self.featureSelectorSummary
-        elif isinstance(featureSelectorSummary, str):
+        if isinstance(featureSelectorSummary, str):
             featureSelectorSummary=pd.read_csv(featureSelectorSummary, index_col=0)
         elif isinstance(featureSelectorSummary, pd.core.frame.DataFrame):
             featureSelectorSummary=featureSelectorSummary
+        elif featureSelectorSummary is None:
+            try:
+                featureSelectorSummary=self.featureSelectorSummary
+            except AttributeError:
+                raise AttributeError("No featureSelectorSummary detected. Either execute method featureSelectorSuite or load from CSV")
 
         # load CV summary if needed
-        if cvSummary is None:
-            cvSummary=self.cvSummary
-        elif isinstance(cvSummary, str):
+        if isinstance(cvSummary, str):
             cvSummary=pd.read_csv(cvSummary, index_col=0)
         elif isinstance(cvSummary, pd.core.frame.DataFrame):
             cvSummary=cvSummary
+        elif cvSummary is None:
+            try:
+                cvSummary=self.cvSummary
+            except AttributeError:
+                raise AttributeError("no cvSummary detected. Either execute method featureSelectorCrossVal or load from CSV")
 
         for estimator in cvSummary["Estimator"].unique():
             cv = cvSummary[(cvSummary['Scoring'] == metric) & (cvSummary['Estimator'] == estimator)]
@@ -433,8 +446,8 @@ class FeatureSelector():
 
             numDropped = (
                 cv
-                .sort_values(["Validation score"], ascending=sortOrder)[:1]
-                .index.values[0]
+                .sort_values(["Validation score"], ascending=sortOrder)[:1]["Features dropped"]
+                .values[0]
             )
             score = np.round(
                 cv
@@ -448,7 +461,8 @@ class FeatureSelector():
                 display(cv.sort_values(["Validation score"], ascending=sortOrder)[:topSets])
             if showFeatures:
                 if numDropped > 0:
-                    featuresUsed = featureSelectorSummary.sort_values("average").index[:-numDropped].values
+                    features = featureSelectorSummary.shape[0] - numDropped
+                    featuresUsed = featureSelectorSummary.sort_values("average").index[:features].values
                 else:
                     featuresUsed = featureSelectorSummary.sort_values("average").index.values
                 print(featuresUsed)
@@ -495,20 +509,26 @@ class FeatureSelector():
                     If none, use object's internal attribute specified during instantiation.
         """
         # load results summary if needed
-        if featureSelectorSummary is None:
-            featureSelectorSummary=self.featureSelectorSummary
-        elif isinstance(featureSelectorSummary, str):
+        if isinstance(featureSelectorSummary, str):
             featureSelectorSummary=pd.read_csv(featureSelectorSummary, index_col=0)
         elif isinstance(featureSelectorSummary, pd.core.frame.DataFrame):
             featureSelectorSummary=featureSelectorSummary
+        elif featureSelectorSummary is None:
+            try:
+                featureSelectorSummary=self.featureSelectorSummary
+            except AttributeError:
+                raise AttributeError("No featureSelectorSummary detected. Either execute method featureSelectorSuite or load from CSV")
 
         # load CV summary if needed
-        if cvSummary is None:
-            cvSummary=self.cvSummary
-        elif isinstance(cvSummary, str):
+        if isinstance(cvSummary, str):
             cvSummary=pd.read_csv(cvSummary, index_col=0)
         elif isinstance(cvSummary, pd.core.frame.DataFrame):
             cvSummary=cvSummary
+        elif cvSummary is None:
+            try:
+                cvSummary=self.cvSummary
+            except AttributeError:
+                raise AttributeError("No cvSummary detected. Either execute method featureSelectorSuite or load from CSV")
 
         # create empty DataFrame with feature names as index
         df = pd.DataFrame(index=featureSelectorSummary.index)
@@ -526,11 +546,12 @@ class FeatureSelector():
 
             numDropped = (
                 cv
-                .sort_values(["Validation score"], ascending=sortOrder)[:1]
-                .index.values[0]
+                .sort_values(["Validation score"], ascending=sortOrder)[:1]["Features dropped"]
+                .values[0]
             )
             if numDropped > 0:
-                featuresUsed = featureSelectorSummary.sort_values("average").index[:-numDropped].values
+                features = featureSelectorSummary.shape[0] - numDropped
+                featuresUsed = featureSelectorSummary.sort_values("average").index[:features].values
             else:
                 featuresUsed = featureSelectorSummary.sort_values("average").index.values
 
@@ -541,4 +562,9 @@ class FeatureSelector():
         # add counter and fill NaNs
         df["count"] = df.count(axis=1)
         df = df.fillna("")
+
+        # add numerical index starting at 1
+        df = df.reset_index()
+        df.index = np.arange(1, len(df) + 1)
+        df = df.rename(columns={'index': 'Feature'})
         return df
