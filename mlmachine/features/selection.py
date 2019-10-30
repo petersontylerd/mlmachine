@@ -187,8 +187,20 @@ class FeatureSelector():
         featureDict = {}
         for estimator in self.estimators:
             model = BasicModelBuilder(estimator=estimator)
+
+            # estimator name
+            if model.estimator.__module__.split(".")[1] =="sklearn":
+                estimatorModule = model.estimator.__module__.split(".")[0]
+            else:
+                estimatorModule = model.estimator.__module__.split(".")[1]
+
+            estimatorClass =  model.estimator.__name__
+            estimatorName = estimatorModule + "." + estimatorClass
+
+            # build dict
             featureDict[
-                "FeatureImportance " + model.estimator.__name__
+                "FeatureImportance " + estimatorName
+                # "FeatureImportance " + model.estimator.__name__
             ] = model.feature_importances(self.data.values, self.target)
 
         featureDf = pd.DataFrame(featureDict, index=self.data.columns)
@@ -212,12 +224,22 @@ class FeatureSelector():
         for estimator in self.estimators:
             model = BasicModelBuilder(estimator=estimator)
 
+            # estimator name
+            if model.estimator.__module__.split(".")[1] =="sklearn":
+                estimatorModule = model.estimator.__module__.split(".")[0]
+            else:
+                estimatorModule = model.estimator.__module__.split(".")[1]
+
+            estimatorClass =  model.estimator.__name__
+            estimatorName = estimatorModule + "." + estimatorClass
+
             # recursive feature selection
             rfe = feature_selection.RFE(
                 estimator=model.model, n_features_to_select=1, step=1, verbose=0
             )
             rfe.fit(self.data, self.target)
-            featureDict["RFE " + model.estimator.__name__] = rfe.ranking_
+            featureDict["RFE " + estimatorName] = rfe.ranking_
+            # featureDict["RFE " + model.estimator.__name__] = rfe.ranking_
 
         featureDf = pd.DataFrame(featureDict, index=self.data.columns)
 
@@ -315,6 +337,15 @@ class FeatureSelector():
             model = BasicModelBuilder(estimator=estimator, nJobs=nJobs)
             cv = pd.DataFrame(columns=["Estimator","Training score","Validation score","Scoring","Features dropped"])
 
+            # estimator name
+            if model.estimator.__module__.split(".")[1] =="sklearn":
+                estimatorModule = model.estimator.__module__.split(".")[0]
+            else:
+                estimatorModule = model.estimator.__module__.split(".")[1]
+
+            estimatorClass =  model.estimator.__name__
+            estimatorName = estimatorModule + "." + estimatorClass
+
             # iterate through scoring metrics
             for metric in scoring:
 
@@ -361,13 +392,13 @@ class FeatureSelector():
                         validation = np.mean(scores["test_score"])
 
                     # append results
-                    cv.loc[rowIx] = [model.estimator.__name__, training, validation, metric, stepIncrement]
+                    cv.loc[rowIx] = [estimatorName, training, validation, metric, stepIncrement]
+                    # cv.loc[rowIx] = [model.estimator.__name__, training, validation, metric, stepIncrement]
                     stepIncrement += step
                     rowIx += 1
 
             # capturing results DataFrame associated with estimator
             self.cvSummary = self.cvSummary.append(cv)
-            # self.cvSummary[estimator] = cv
 
         if save_to_csv:
             self.cvSummary.to_csv("cvSummary_{}.csv".format(strftime("%Y%m%d_%H%M%S", gmtime())), columns=self.cvSummary.columns, index_label="index")
@@ -492,7 +523,7 @@ class FeatureSelector():
             plt.show()
 
 
-    def featuresUsedSummary(self, metric, cvSummary=None, featureSelectorSummary=None):
+    def createCrossValFeaturesDf(self, metric, cvSummary=None, featureSelectorSummary=None):
         """
         Documentation:
             Description:
@@ -531,7 +562,7 @@ class FeatureSelector():
                 raise AttributeError("No cvSummary detected. Either execute method featureSelectorSuite or load from CSV")
 
         # create empty DataFrame with feature names as index
-        df = pd.DataFrame(index=featureSelectorSummary.index)
+        self.crossValFeaturesDf = pd.DataFrame(index=featureSelectorSummary.index)
 
         # iterate through estimators
         for estimator in cvSummary["Estimator"].unique():
@@ -556,15 +587,50 @@ class FeatureSelector():
                 featuresUsed = featureSelectorSummary.sort_values("average").index.values
 
             # create column for estimator and populate with marker
-            df[estimator] = np.nan
-            df[estimator].loc[featuresUsed] = "X"
+            self.crossValFeaturesDf[estimator] = np.nan
+            self.crossValFeaturesDf[estimator].loc[featuresUsed] = "X"
 
         # add counter and fill NaNs
-        df["count"] = df.count(axis=1)
-        df = df.fillna("")
+        self.crossValFeaturesDf["count"] = self.crossValFeaturesDf.count(axis=1)
+        self.crossValFeaturesDf = self.crossValFeaturesDf.fillna("")
 
         # add numerical index starting at 1
-        df = df.reset_index()
-        df.index = np.arange(1, len(df) + 1)
-        df = df.rename(columns={'index': 'Feature'})
-        return df
+        self.crossValFeaturesDf = self.crossValFeaturesDf.reset_index()
+        self.crossValFeaturesDf.index = np.arange(1, len(self.crossValFeaturesDf) + 1)
+        self.crossValFeaturesDf = self.crossValFeaturesDf.rename(columns={'index': 'Feature'})
+        return self.crossValFeaturesDf
+
+    def createCrossValFeaturesDict(self, crossValFeaturesDf=None):
+        """
+        Documentation:
+            Description:
+                For each estimator, visualize the training and validation performance
+                for each feature set.
+            Parameters:
+                crossValFeaturesDf : Pandas DataFrame, default = None
+                    Pandas DataFrame, or str of csv file location, containing summary of features used
+                    in each estimator to achieve best validation score. If none, use object's internal
+                    attribute specified during instantiation.
+        """
+        # load results summary if needed
+        if isinstance(crossValFeaturesDf, str):
+            crossValFeaturesDf=pd.read_csv(crossValFeaturesDf, index_col=0)
+        elif isinstance(crossValFeaturesDf, pd.core.frame.DataFrame):
+            crossValFeaturesDf=crossValFeaturesDf
+        elif crossValFeaturesDf is None:
+            try:
+                crossValFeaturesDf=self.crossValFeaturesDf
+            except AttributeError:
+                raise AttributeError("No crossValFeaturesDf detected. Either execute method createCrossValFeaturesDf or load from CSV")
+
+        # create empty dict with feature names as index
+        self.crossValFeaturesDict = {}
+
+        crossValFeaturesDf = crossValFeaturesDf.set_index("Feature")
+        crossValFeaturesDf = crossValFeaturesDf.drop("count", axis=1)
+
+        # iterate through estimators
+        for estimator in crossValFeaturesDf.columns:
+            self.crossValFeaturesDict[estimator] = crossValFeaturesDf[crossValFeaturesDf[estimator] == "X"][estimator].index
+
+        return self.crossValFeaturesDict

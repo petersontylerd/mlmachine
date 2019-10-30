@@ -113,7 +113,7 @@ def singleShapVizTree(self, obsIx, model, data, target=None, classification=True
         feature_names=data.columns.tolist(),
         matplotlib=True,
         show=False,
-        cmap=cmap
+        plot_cmap=cmap
     )
     plt.rcParams['axes.facecolor']='white'
     plt.rcParams['figure.facecolor'] = 'white'

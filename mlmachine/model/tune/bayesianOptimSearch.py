@@ -179,7 +179,7 @@ def objective(space, resultsFile, model, data, target, scoring, nFolds, nJobs, v
     }
 
 
-def execBayesOptimSearch(self, allSpace, data, target, scoring, nFolds=3, nJobs=4, iters=50, verbose=0, resultsFile=None):
+def execBayesOptimSearch(self, allSpace, data, target, scoring, columns=None, nFolds=3, nJobs=4, iters=50, verbose=0, resultsFile=None):
     """
     Documentation:
         Definition:
@@ -199,10 +199,14 @@ def execBayesOptimSearch(self, allSpace, data, target, scoring, nFolds=3, nJobs=
                 Input dataset labels.
             scoring : string (sklearn evaluation method)
                 Evaluation method for scoring model performance. Takes values "neg_mean_squared_error",
-                 "accuracy", and "root_mean_squared_log_error". Please note that "root_mean_squared_log_error" is not an actual sklearn evaluation
-                 method. If "root_mean_squared_log_error" is specified, model is optimized using "neg_mean_squared_error" and
-                 then the square root is taken of the absolute value of the results, effectively creating
-                 the "root_mean_squared_log_error" score to be minimized.
+                 "accuracy", and "root_mean_squared_log_error". Please note that "root_mean_squared_log_error"
+                 is not an actual sklearn evaluation method. If "root_mean_squared_log_error" is specified, model
+                 is optimized using "neg_mean_squared_error" and then the square root is taken of the absolute value
+                 of the results, effectively creating the "root_mean_squared_log_error" score to be minimized.
+            columns : dict, default = None
+                Dictionary containing str/list key/value pairs, where the str is the name of the estimator
+                and the list contains string of column names. Enables utilization of different features sets for
+                each estimator.
             nFolds : int, default = 3
                 Number of folds for cross-validation.
             nJobs : int, default - 4
@@ -215,12 +219,6 @@ def execBayesOptimSearch(self, allSpace, data, target, scoring, nFolds=3, nJobs=
     """
     if resultsFile is None:
         resultsFile = "bayesOptimizationSummary_{}_{}.csv".format(scoring, strftime("%Y%m%d_%H%M%S", gmtime()))
-
-    # convert to numpy if necessary
-    if isinstance(data, pd.core.frame.DataFrame):
-        data = data.values
-    if isinstance(target, pd.core.series.Series):
-        target = target.values
 
     # add file header
     with open(resultsFile, "w", newline="") as outfile:
@@ -249,12 +247,44 @@ def execBayesOptimSearch(self, allSpace, data, target, scoring, nFolds=3, nJobs=
         # establish feature space for hyper-parameter search
         space = allSpace[estimator]
 
+        # conditionally handle input data
+        if isinstance(data, pd.core.frame.DataFrame):
+
+            # filter input data based on estimator / column-subset pairs
+            if columns is not None:
+                try:
+                    inputData = data[columns[estimator]]
+                except KeyError:
+                    inputData = data.copy()
+
+                # use underlying numpy ndarray
+                inputData = inputData.values
+
+            elif columns is None:
+                # use underlying numpy ndarray
+                inputData = data.values
+        elif isinstance(data, np.ndarray):
+            # create a copy of the underlying data array
+            inputData = data.copy()
+        else:
+            raise AttributeError("Input data set must be either a Pandas DataFrame or a numpy ndarray")
+
+        # conditionally handle input target
+        if isinstance(target, pd.core.series.Series):
+            # use underlying numpy ndarray
+            inputTarget = target.values
+        elif isinstance(target, np.ndarray):
+            # create a copy of the underlying data array
+            inputTarget = target.copy()
+        else:
+            raise AttributeError("Input target must be either a Pandas Series or a numpy ndarray")
+
         # override default arguments with next estimator and the CV parameters
         objective.__defaults__ = (
             resultsFile,
             estimator,
-            data,
-            target,
+            inputData,
+            inputTarget,
             scoring,
             nFolds,
             nJobs,
