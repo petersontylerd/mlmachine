@@ -9,6 +9,8 @@ import sklearn.pipeline as pipeline
 import sklearn.preprocessing as preprocessing
 from sklearn.externals.joblib import Parallel, delayed
 
+import category_encoders as ce
+
 import itertools
 import copy
 
@@ -129,6 +131,7 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
             for a,b in zip(self.originalColumns, prefixes):
                 names = list(map(lambda x: str.replace(x, b, a + "_"), names))
             self.originalColumns = names
+
         # if the class is a PolynomialFeatures instance
         elif isinstance(self.est, preprocessing.data.PolynomialFeatures):
 
@@ -160,6 +163,34 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
                 featureActualNames = list(map(lambda x: str.replace(x, b, a), featureActualNames))
 
             self.originalColumns = featureActualNames
+
+        # if the class is a KBinsDiscretizer instance
+        elif isinstance(self.est, preprocessing._discretization.KBinsDiscretizer):
+            names = []
+            bins = self.est.n_bins
+            for col in self.originalColumns:
+                names.append(col + "_" + str(bins) + "_Bins")
+
+            self.originalColumns = names
+
+        # if the class is a category_encoders CountEncoder instance
+        elif isinstance(self.est, ce.count.CountEncoder):
+            names = []
+
+            for col in self.originalColumns:
+                names.append(col + "_Count")
+
+            self.originalColumns = names
+
+        # if the class is a category_encoders BinaryEncoder instance
+        elif isinstance(self.est, ce.binary.BinaryEncoder):
+            names = []
+            self.originalColumns = self.est.get_feature_names()
+
+            for col in self.originalColumns:
+                names.append(col + "_Binarized")
+
+            self.originalColumns = names
         return self
 
     def transform(self, X, y=None, copy=None):
