@@ -37,6 +37,7 @@ class Machine:
         ContextImputer,
         DataFrameSelector,
         DualTransformer,
+        KFoldTargetEncoderTrain,
         PandasFeatureUnion,
         PlayWithPandas,
         skewSummary,

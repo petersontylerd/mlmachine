@@ -191,6 +191,15 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
                 names.append(col + "_Binarized")
 
             self.originalColumns = names
+
+        # if the class is a category_encoders BinaryEncoder instance
+        elif isinstance(self.est, preprocessing.data.QuantileTransformer):
+            names = []
+
+            for col in self.originalColumns:
+                names.append(col + "_Quantile_" + self.est.output_distribution)
+
+            self.originalColumns = names
         return self
 
     def transform(self, X, y=None, copy=None):
@@ -205,6 +214,123 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
 
         return X
 
+class KFoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
+
+    def __init__(self, target, cv, nBins=5, dropBinCols=True, dropOriginalCols=False):
+        self.target = target
+        self.cv = cv
+        self.transformTrain = False
+        self.nBins=nBins
+        self.dropBinCols=dropBinCols
+        self.dropOriginalCols=dropOriginalCols
+
+    def fit(self, X, y=None):
+        self.cols = X.columns
+        self.stats = {}
+        self.binners = {}
+
+        # indentify any numeric columns in input dataset
+        self.numericCols = X.select_dtypes(include=np.number).columns.tolist()
+        return self
+
+    def transform(self,X, y=None):
+        if not self.transformTrain:
+            # combine input columns and target
+            X = X.merge(self.target, left_index=True, right_index=True)
+
+            # add empty columns to input dataset and set as numeric
+            for col in self.cols:
+                X[col + '_' + 'TargetEncoded'] = np.nan
+                X[col + '_' + 'TargetEncoded'] = pd.to_numeric(X[col + '_' + 'TargetEncoded'])
+
+            # if column is numeric, then bin column prior to target encoding
+            for col in self.numericCols:
+                if isinstance(self.nBins, dict):
+                        binner = preprocessing.KBinsDiscretizer(n_bins=self.nBins[col], encode="ordinal")
+                        #X[col] = binner.fit_transform(X[[col]])
+                        X["{}_{}_Bins".format(col, self.nBins[col])] = binner.fit_transform(X[[col]])
+
+                        # store binner transformer for each column
+                        self.binners[col] = binner
+
+                else:
+                    binner = preprocessing.KBinsDiscretizer(n_bins=self.nBins, encode="ordinal")
+                    #X[col] = binner.fit_transform(X[[col]])
+                    X["{}_{}_Bins".format(col, self.nBins[col])] = binner.fit_transform(X[[col]])
+
+
+                    # store binner transformer for each column
+                    self.binners[col] = binner
+
+            # iterate through CV indices
+            for trainIx, validIx in self.cv.split(X):
+                X_train, X_valid = X.iloc[trainIx], X.iloc[validIx]
+
+                # update rows with out of fold averages
+                for col in self.cols:
+                    if col in self.numericCols:
+                        X.loc[X.index[validIx], col + '_' + 'TargetEncoded'] = X_valid["{}_{}_Bins".format(col, self.nBins[col])].map(X_train.groupby("{}_{}_Bins".format(col, self.nBins[col]))[self.target.name].mean())
+                    else:
+                        X.loc[X.index[validIx], col + '_' + 'TargetEncoded'] = X_valid[col].map(X_train.groupby(col)[self.target.name].mean())
+
+            # ensure numeric data type
+            for col in self.cols:
+                X[col + '_' + 'TargetEncoded'] = pd.to_numeric(X[col + '_' + 'TargetEncoded'])
+
+            # collect average values for transformation of unseen data
+            for col in self.cols:
+                if col in self.numericCols:
+                    self.stats[col] = X.groupby("{}_{}_Bins".format(col, self.nBins[col]))["{}_TargetEncoded".format(col)].mean()
+                else:
+                    self.stats[col] = X.groupby(col)["{}_TargetEncoded".format(col)].mean()
+
+
+            # flip transformTrain switch to indicate that fitting has occurred
+            # ensure future transform calls will go to the else branch of the conditional
+            self.transformTrain = True
+
+            # drop target column
+            X = X.drop(self.target.name, axis=1)
+
+            # conditionally drop original and/or binned columns
+            if self.dropOriginalCols:
+                X = X.drop(self.cols, axis=1)
+            if self.dropBinCols:
+                X = X.drop(X.columns[X.columns.str.contains("_Bins")], axis=1)
+        else:
+            # ieterate through all columns in the summary stats dict
+            for col in self.stats.keys():
+
+                # add shell column and update by mapping encodings to categorical values or bins
+                X["{}_TargetEncoded".format(col)] = np.nan
+
+                # perform binning on numeric columns
+                if col in self.numericCols:
+                    binner = self.binners[col]
+                    X[col + "_" + str(self.nBins[col]) + "_Bins"] = binner.transform(X[[col]])
+
+                    X["{}_TargetEncoded".format(col)] = np.where(
+                        X["{}_TargetEncoded".format(col)].isnull(),
+                        X["{}_{}_Bins".format(col, self.nBins[col])].map(
+                            self.stats[col]
+                        ),
+                        X["{}_TargetEncoded".format(col)],
+                    )
+                else:
+                    X["{}_TargetEncoded".format(col)] = np.where(
+                        X["{}_TargetEncoded".format(col)].isnull(),
+                        X[col].map(
+                            self.stats[col]
+                        ),
+                        X["{}_TargetEncoded".format(col)],
+                    )
+
+            # conditionally drop original and/or binned columns
+            if self.dropOriginalCols:
+                X = X.drop(self.cols, axis=1)
+            if self.dropBinCols:
+                X = X.drop(X.columns[X.columns.str.contains("_Bins")], axis=1)
+        return X
 
 class PandasFeatureUnion(pipeline.FeatureUnion):
     """
@@ -259,7 +385,6 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
             Xs = self.merge_dataframes_by_column(Xs)
         return Xs
 
-
 class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
@@ -304,7 +429,6 @@ class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
 
     def transform(self, X):
         return X[self.unprocessedColumns]
-
 
 class DualTransformer(base.TransformerMixin, base.BaseEstimator):
     """
@@ -377,7 +501,6 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
                 X[col + "_bc"] = stats.boxcox(X[col].values, lmbda = self.bcLambdasDict_[col])
         return X
         # return X.drop(self.originalColumns, axis=1)
-
 
 def skewSummary(self, data=None, columns=None):
     """
