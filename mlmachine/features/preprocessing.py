@@ -246,17 +246,17 @@ class KFoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
             # if column is numeric, then bin column prior to target encoding
             for col in self.numericCols:
                 if isinstance(self.nBins, dict):
-                        binner = preprocessing.KBinsDiscretizer(n_bins=self.nBins[col], encode="ordinal")
-                        #X[col] = binner.fit_transform(X[[col]])
-                        X["{}_{}_Bins".format(col, self.nBins[col])] = binner.fit_transform(X[[col]])
+                    binner = preprocessing.KBinsDiscretizer(n_bins=self.nBins[col], encode="ordinal")
+                    #X[col] = binner.fit_transform(X[[col]])
+                    X["{}_{}_Bins".format(col, self.nBins[col])] = binner.fit_transform(X[[col]])
 
-                        # store binner transformer for each column
-                        self.binners[col] = binner
+                    # store binner transformer for each column
+                    self.binners[col] = binner
 
                 else:
                     binner = preprocessing.KBinsDiscretizer(n_bins=self.nBins, encode="ordinal")
                     #X[col] = binner.fit_transform(X[[col]])
-                    X["{}_{}_Bins".format(col, self.nBins[col])] = binner.fit_transform(X[[col]])
+                    X["{}_{}_Bins".format(col, self.nBins)] = binner.fit_transform(X[[col]])
 
 
                     # store binner transformer for each column
@@ -269,7 +269,10 @@ class KFoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
                 # update rows with out of fold averages
                 for col in self.cols:
                     if col in self.numericCols:
-                        X.loc[X.index[validIx], col + '_' + 'TargetEncoded'] = X_valid["{}_{}_Bins".format(col, self.nBins[col])].map(X_train.groupby("{}_{}_Bins".format(col, self.nBins[col]))[self.target.name].mean())
+                        if isinstance(self.nBins, dict):
+                            X.loc[X.index[validIx], col + '_' + 'TargetEncoded'] = X_valid["{}_{}_Bins".format(col, self.nBins[col])].map(X_train.groupby("{}_{}_Bins".format(col, self.nBins[col]))[self.target.name].mean())
+                        else:
+                            X.loc[X.index[validIx], col + '_' + 'TargetEncoded'] = X_valid["{}_{}_Bins".format(col, self.nBins)].map(X_train.groupby("{}_{}_Bins".format(col, self.nBins))[self.target.name].mean())
                     else:
                         X.loc[X.index[validIx], col + '_' + 'TargetEncoded'] = X_valid[col].map(X_train.groupby(col)[self.target.name].mean())
 
@@ -280,7 +283,10 @@ class KFoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
             # collect average values for transformation of unseen data
             for col in self.cols:
                 if col in self.numericCols:
-                    self.stats[col] = X.groupby("{}_{}_Bins".format(col, self.nBins[col]))["{}_TargetEncoded".format(col)].mean()
+                    if isinstance(self.nBins, dict):
+                        self.stats[col] = X.groupby("{}_{}_Bins".format(col, self.nBins[col]))["{}_TargetEncoded".format(col)].mean()
+                    else:
+                        self.stats[col] = X.groupby("{}_{}_Bins".format(col, self.nBins))["{}_TargetEncoded".format(col)].mean()
                 else:
                     self.stats[col] = X.groupby(col)["{}_TargetEncoded".format(col)].mean()
 
@@ -307,15 +313,28 @@ class KFoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
                 # perform binning on numeric columns
                 if col in self.numericCols:
                     binner = self.binners[col]
-                    X[col + "_" + str(self.nBins[col]) + "_Bins"] = binner.transform(X[[col]])
 
-                    X["{}_TargetEncoded".format(col)] = np.where(
-                        X["{}_TargetEncoded".format(col)].isnull(),
-                        X["{}_{}_Bins".format(col, self.nBins[col])].map(
-                            self.stats[col]
-                        ),
-                        X["{}_TargetEncoded".format(col)],
-                    )
+                    if isinstance(self.nBins, dict):
+
+                        X[col + "_" + str(self.nBins[col]) + "_Bins"] = binner.transform(X[[col]])
+
+                        X["{}_TargetEncoded".format(col)] = np.where(
+                            X["{}_TargetEncoded".format(col)].isnull(),
+                            X["{}_{}_Bins".format(col, self.nBins[col])].map(
+                                self.stats[col]
+                            ),
+                            X["{}_TargetEncoded".format(col)],
+                        )
+                    else:
+                        X[col + "_" + str(self.nBins) + "_Bins"] = binner.transform(X[[col]])
+
+                        X["{}_TargetEncoded".format(col)] = np.where(
+                            X["{}_TargetEncoded".format(col)].isnull(),
+                            X["{}_{}_Bins".format(col, self.nBins)].map(
+                                self.stats[col]
+                            ),
+                            X["{}_TargetEncoded".format(col)],
+                        )
                 else:
                     X["{}_TargetEncoded".format(col)] = np.where(
                         X["{}_TargetEncoded".format(col)].isnull(),

@@ -98,7 +98,7 @@ class Machine:
     )
 
 
-    def __init__(self, data, removeFeatures=[], overrideCat=None, overrideNum=None, dateFeatures=None, target=None,
+    def __init__(self, data, removeFeatures=[], forceToCategorical=None, forceToNumeric=None, dateFeatures=None, target=None,
                     targetType=None):
         """
         Documentation:
@@ -117,9 +117,9 @@ class Machine:
                     Input data provided as a Pandas DataFrame.
                 removeFeatures : list, default = []
                     Features to be completely removed from dataset.
-                overrideCat : list, default = None
+                forceToCategorical : list, default = None
                     Preidentified categorical features that would otherwise be labeled as numeric.
-                overrideNum : list, default = None
+                forceToNumeric : list, default = None
                     Preidentified numeric features that would otherwise be labeled as categorical.
                 dateFeatures : list, default = None
                     Features comprised of calendar date values.
@@ -143,8 +143,8 @@ class Machine:
             if target is not None
             else data.drop(self.removeFeatures, axis=1)
         )
-        self.overrideCat = overrideCat
-        self.overrideNum = overrideNum
+        self.forceToCategorical = forceToCategorical
+        self.forceToNumeric = forceToNumeric
         self.dateFeatures = dateFeatures
         self.targetType = targetType
 
@@ -166,19 +166,19 @@ class Machine:
         self.featureType = {}
 
         # categorical features
-        if self.overrideCat is None:
+        if self.forceToCategorical is None:
             self.featureType["categorical"] = []
         else:
-            self.featureType["categorical"] = self.overrideCat
+            self.featureType["categorical"] = self.forceToCategorical
 
             # convert column dtype to "category"
-            self.data[self.overrideCat] = self.data[self.overrideCat].astype("category")
+            self.data[self.forceToCategorical] = self.data[self.forceToCategorical].astype("category")
 
         # numeric features
-        if self.overrideNum is None:
+        if self.forceToNumeric is None:
             self.featureType["numeric"] = []
         else:
-            self.featureType["numeric"] = self.overrideNum
+            self.featureType["numeric"] = self.forceToNumeric
 
         # boolean featuers
         self.featureType["boolean"] = []
