@@ -7,176 +7,176 @@ from collections import Counter
 
 import eif
 
-class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
+class outlier_iqr(base.TransformerMixin, base.BaseEstimator):
     """
-    Documentation:
-        Description:
-            Identifies outliers using inter-quartile range method.
-        Parameters:
-            outlierCount : int
-                Minimum number of values across all features that need to be outliers
+    documentation:
+        description:
+            identifies outliers using inter_quartile range method.
+        parameters:
+            outlier_count : int
+                minimum number of values across all features that need to be outliers
                 in order for an observation to be flagged.
-            iqrStep : float
-                Multiplier that controls level of sensitivity of outlier detection method.
-                Higher values for iqrStep will cause OutlierIQR to only detect increasingly
+            iqr_step : float
+                multiplier that controls level of sensitivity of outlier detection method.
+                higher values for iqr_step will cause outlier_iqr to only detect increasingly
                 extreme values.
             features : list
-                List of features to be evaluated for outliers.
-            dropOutliers : boolean, default = False
-                If True, drops outliers from the input data.
-        Returns:
-            X : array
-                Dataset with outlier observations removed.
+                list of features to be evaluated for outliers.
+            drop_outliers : boolean, default=False
+                if True, drops outliers from the input data.
+        returns:
+            x : array
+                dataset with outlier observations removed.
     """
 
-    def __init__(self, outlierCount, iqrStep, features, dropOutliers=False):
-        self.outlierCount = outlierCount
-        self.iqrStep = iqrStep
+    def __init__(self, outlier_count, iqr_step, features, drop_outliers=False):
+        self.outlier_count = outlier_count
+        self.iqr_step = iqr_step
         self.features = features
-        self.dropOutliers = dropOutliers
+        self.drop_outliers = drop_outliers
 
-    def fit(self, X, y=None):
+    def fit(self, x, y=None):
         return self
 
-    def transform(self, X):
+    def transform(self, x):
         outlier_indices = []
 
         # iterate over features(columns)
         for col in self.features:
-            Q1 = np.percentile(X[col], 25)
-            Q3 = np.percentile(X[col], 75)
-            IQR = Q3 - Q1
+            q1 = np.percentile(x[col], 25)
+            q3 = np.percentile(x[col], 75)
+            iqr = q3 - q1
 
             # outlier step
-            outlier_step = self.iqrStep * IQR
+            outlier_step = self.iqr_step * iqr
 
-            # Determine a list of indices of outliers for feature col
-            outlier_list_col = X[
-                (X[col] < Q1 - outlier_step) | (X[col] > Q3 + outlier_step)
+            # determine a list of indices of outliers for feature col
+            outlier_list_col = x[
+                (x[col] < q1 - outlier_step) | (x[col] > q3 + outlier_step)
             ].index
 
             # append the found outlier indices for col to the list of outlier indices
             outlier_indices.extend(outlier_list_col)
 
-        # select observations containing more than 'outlierCount' outliers
+        # select observations containing more than 'outlier_count' outliers
         outlier_indices = Counter(outlier_indices)
 
         self.outliers_ = list(
-            k for k, v in outlier_indices.items() if v >= self.outlierCount
+            k for k, v in outlier_indices.items() if v >= self.outlier_count
         )
 
-        if self.dropOutliers:
-            X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
+        if self.drop_outliers:
+            x = x.drop(self.outliers_, axis=0).reset_index(drop=True)
 
-        return X
+        return x
 
 
-class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
+class extended_iso_forest(base.TransformerMixin, base.BaseEstimator):
     """
-    Documentation:
-        Description:
-            Identifies outliers using Extended Isolation Forest method.
-        Parameters:
+    documentation:
+        description:
+            identifies outliers using extended isolation forest method.
+        parameters:
             cols : list
-                Columns to be evaluated by Extended Isolation Forest
-            nTrees : int
-                Number of trees to be used.
-            sampleSize : int
-                Sub-sample size for creating each trees. Values must be smaller that input dataset
+                columns to be evaluated by extended isolation forest
+            n_trees : int
+                number of trees to be used.
+            sample_size : int
+                sub_sample size for creating each trees. values must be smaller that input dataset
                 row count.
-            ExtensionLevel : int
-                Degrees of freedom for choosing hyperplanes that divide data. Value must be smaller
+            extension_level : int
+                degrees of freedom for choosing hyperplanes that divide data. value must be smaller
                 than input dataset column count.
-            anomaliesRatio : float
-                Percent of input dataset observations to identify as outliers.
-            dropOutliers : boolean, default = False
-                Dictates whether identified outliers are removed from input dataset.
-        Returns:
-            X : array
-                Dataset with outlier observations removed.
+            anomalies_ratio : float
+                percent of input dataset observations to identify as outliers.
+            drop_outliers : boolean, default=False
+                dictates whether identified outliers are removed from input dataset.
+        returns:
+            x : array
+                dataset with outlier observations removed.
     """
 
-    def __init__(self, cols, nTrees, sampleSize, ExtensionLevel, anomaliesRatio, dropOutliers=False):
+    def __init__(self, cols, n_trees, sample_size, extension_level, anomalies_ratio, drop_outliers=False):
         self.cols= cols
-        self.nTrees = nTrees
-        self.sampleSize = sampleSize
-        self.ExtensionLevel = ExtensionLevel
-        self.anomaliesRatio = anomaliesRatio
-        self.dropOutliers = dropOutliers
+        self.n_trees = n_trees
+        self.sample_size = sample_size
+        self.extension_level = extension_level
+        self.anomalies_ratio = anomalies_ratio
+        self.drop_outliers = drop_outliers
 
-    def fit(self, X, y=None):
+    def fit(self, x, y=None):
         return self
 
-    def transform(self, X):
-        extIso = eif.iForest(
-            X = X[self.cols].values,
-            ntrees=self.nTrees,
-            sample_size=self.sampleSize,
-            ExtensionLevel=self.ExtensionLevel,
+    def transform(self, x):
+        ext_iso = eif.i_forest(
+            x = x[self.cols].values,
+            ntrees=self.n_trees,
+            sample_size=self.sample_size,
+            extension_level=self.extension_level,
         )
 
         # calculate anomaly scores
-        anomalyScores = extIso.compute_paths(
-            X_in=X[self.cols].values
+        anomaly_scores = ext_iso.compute_paths(
+            x_in=x[self.cols].values
         )
 
-        anomalyScoresSorted = pd.DataFrame(
-            anomalyScores,
-            index = X.index,
-            columns = ['Anomaly score']
+        anomaly_scores_sorted = pd.DataFrame(
+            anomaly_scores,
+            index = x.index,
+            columns = ['anomaly score']
         ).sort_values(
-            ['Anomaly score'],
-            ascending = False
+            ['anomaly score'],
+            ascending=False
         )
 
         self.outliers_ = np.array(
-            anomalyScoresSorted[:int(np.ceil(self.anomaliesRatio * X.shape[0]))].index
+            anomaly_scores_sorted[:int(np.ceil(self.anomalies_ratio * x.shape[0]))].index
         )
 
-        if self.dropOutliers:
-            X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
+        if self.drop_outliers:
+            x = x.drop(self.outliers_, axis=0).reset_index(drop=True)
 
-        return X
+        return x
 
 
-def outlierSummary(self, iqrOutliers, ifOutliers, eifOutliers):
+def outlier_summary(self, iqr_outliers, if_outliers, eif_outliers):
     """
-    Documentation:
-        Description:
-            Creates Pandas DataFrame summarizing which observations were flagged
+    documentation:
+        description:
+            creates pandas DataFrame summarizing which observations were flagged
             as outliers and by which outlier detection method each observation was
             identified.
-        Parameters:
-            iqrOutliers : array
-                Array contains indexes of observations identified as outliers using
-                IQR method.
-            ifOutliers : array
-                Array contains indexes of observations identified as outliers using
-                Isolition Forest method.
-            eifOutliers : array
-                Array contains indexes of observations identified as outliers using
-                Extended Isolition Forest method.
-        Returns:
-            outlierSummary : Pandas DataFrame
+        parameters:
+            iqr_outliers : array
+                array contains indexes of observations identified as outliers using
+                iqr method.
+            if_outliers : array
+                array contains indexes of observations identified as outliers using
+                isolition forest method.
+            eif_outliers : array
+                array contains indexes of observations identified as outliers using
+                extended isolition forest method.
+        returns:
+            outlier_summary : pandas DataFrame
                 DataFrame summarizing outlier
     """
-    # merge and de-duplicate outlier index values
-    outlierIxs = np.unique(np.concatenate([iqrOutliers, ifOutliers, eifOutliers]))
+    # merge and de_duplicate outlier index values
+    outlier_ixs = np.unique(np.concatenate([iqr_outliers, if_outliers, eif_outliers]))
 
     # create shell dataframe
-    outlierSummary = pd.DataFrame(
-        columns = ['IQR','IF','EIF'],
-        index = outlierIxs
+    outlier_summary = pd.DataFrame(
+        columns = ['iqr','if','eif'],
+        index = outlier_ixs
     )
 
     # fill nulls based on index value match
-    outlierSummary['IQR'] = outlierSummary['IQR'].loc[iqrOutliers].fillna(value='X')
-    outlierSummary['IF'] = outlierSummary['IF'].loc[ifOutliers].fillna(value='X')
-    outlierSummary['EIF'] = outlierSummary['EIF'].loc[eifOutliers].fillna(value='X')
+    outlier_summary['iqr'] = outlier_summary['iqr'].loc[iqr_outliers].fillna(value='x')
+    outlier_summary['if'] = outlier_summary['if'].loc[if_outliers].fillna(value='x')
+    outlier_summary['eif'] = outlier_summary['eif'].loc[eif_outliers].fillna(value='x')
 
     # add summary columns and sort
-    outlierSummary['Count'] = outlierSummary.count(axis = 1)
-    outlierSummary = outlierSummary.sort_values(['Count'], ascending = False)
+    outlier_summary['count'] = outlier_summary.count(axis = 1)
+    outlier_summary = outlier_summary.sort_values(['count'], ascending=False)
 
-    outlierSummary = outlierSummary.fillna('')
-    return outlierSummary
+    outlier_summary = outlier_summary.fillna('')
+    return outlier_summary

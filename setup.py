@@ -1,26 +1,26 @@
 import setuptools
 
 
-with open("README.md") as f:
-    LONG_DESCRIPTION = f.read()
+with open("readme.md") as f:
+    long_description = f.read()
 
-DESCRIPTION = "Accelerate the end-to-end machine learning pipeline"
-DISTNAME = "mlmachine"
-LICENSE = "MIT"
-# DOWNLOAD_URL = 'https://pypi.org/project/'
-MAINTAINER = "Tyler Peterson"
-MAINTAINER_EMAIL = "petersontylerd@gmail.com"
-PROJECT_URLS = {
-    "Bug Tracker": "https://github.com/Petersontylerd/mlmachine/issues",
-    "Source Code": "https://github.com/Petersontylerd/mlmachine",
+description = "accelerate the end_to_end machine learning pipeline"
+distname = "mlmachine"
+license = "mit"
+# download_url = 'https://pypi.org/project/'
+maintainer = "tyler peterson"
+maintainer_email = "petersontylerd@gmail.com"
+project_urls = {
+    "bug tracker": "https://github.com/petersontylerd/mlmachine/issues",
+    "source code": "https://github.com/petersontylerd/mlmachine",
 }
-URL = "https://github.com/Petersontylerd/mlmachine"
-VERSION = "0.0.14"
+url = "https://github.com/petersontylerd/mlmachine"
+version = "0.0.14"
 
 
 def setup_package():
     metadata = dict(
-        name=DISTNAME,
+        name=distname,
         packages=[
             "mlmachine",
             "mlmachine.datasets",
@@ -31,29 +31,29 @@ def setup_package():
             "mlmachine.model.explain",
             "mlmachine.model.tune",
         ],
-        maintainer=MAINTAINER,
-        maintainer_email=MAINTAINER_EMAIL,
-        description=DESCRIPTION,
-        keywords=["Machine learning", "Data science"],
-        license=LICENSE,
-        url=URL,
-        # download_url = DOWNLOAD_URL,
-        project_urls=PROJECT_URLS,
-        version=VERSION,
-        long_description=LONG_DESCRIPTION,
+        maintainer=maintainer,
+        maintainer_email=maintainer_email,
+        description=description,
+        keywords=["machine learning", "data science"],
+        license=license,
+        url=url,
+        # download_url = download_url,
+        project_urls=project_urls,
+        version=version,
+        long_description=long_description,
         classifiers=[
-            "Development Status :: 2 - Pre-Alpha",
-            "Intended Audience :: Developers",
-            "Intended Audience :: Science/Research",
-            "Topic :: Scientific/Engineering",
-            "Topic :: Scientific/Engineering :: Artificial Intelligence",
-            "Topic :: Scientific/Engineering :: Information Analysis",
-            "Topic :: Scientific/Engineering :: Visualization",
-            "Topic :: Software Development",
-            "Topic :: Software Development :: Libraries :: Python Modules",
-            "License :: OSI Approved :: MIT License",
-            "Programming Language :: Python :: 3",
-            "Operating System :: OS Independent",
+            "development status :: 2 - pre_alpha",
+            "intended audience :: developers",
+            "intended audience :: science/research",
+            "topic :: scientific/engineering",
+            "topic :: scientific/engineering :: artificial intelligence",
+            "topic :: scientific/engineering :: information analysis",
+            "topic :: scientific/engineering :: visualization",
+            "topic :: software development",
+            "topic :: software development :: libraries :: python modules",
+            "license :: osi approved :: mit license",
+            "programming language :: python :: 3",
+            "operating system :: os independent",
         ],
         python_requires=">=3.5",
         install_requires=[i.strip() for i in open("requirements.txt").readlines()],

@@ -2,46 +2,46 @@ import numpy as np
 import pandas as pd
 
 
-def missingDataDropperAll(self, data):
+def missing_data_dropper_all(self, data):
     """
-    Documentation:
-        Description:
-            Drops columns that include any missing data from self.data.
-        Parameters:
-            data : Pandas DataFrame, default = None
-                Pandas DataFrame containing independent variables.
-        Returns:
-            data : Pandas DataFrame
-                Modified input with all columns containing missing data removed.
+    documentation:
+        description:
+            drops columns that include any missing data from self.data.
+        parameters:
+            data : pandas DataFrame, default =None
+                pandas DataFrame containing independent variables.
+        returns:
+            data : pandas DataFrame
+                modified input with all columns containing missing data removed.
     """
-    missingCols = data.isnull().sum()
-    missingCols = missingCols[missingCols > 0].index
-    data = data.drop(missingCols, axis=1)
+    missing_cols = data.isnull().sum()
+    missing_cols = missing_cols[missing_cols > 0].index
+    data = data.drop(missing_cols, axis=1)
 
     return data
 
 
-def missingColCompare(self, train, validation):
+def missing_col_compare(self, train, validation):
     """
-    Documentation:
-        Description:
-            Compares the columns that contain missing data in the training dataset
-            to the columns that contain missing data in the validation dataset. Prints
+    documentation:
+        description:
+            compares the columns that contain missing data in the training dataset
+            to the columns that contain missing data in the validation dataset. prints
             a summary of the disjunction.
-        Parameters:
-            train : Pandas DataFrame
-                Training dataset.
-            validation : Pandas DataFrame
-                Validation dataset.
+        parameters:
+            train : pandas DataFrame
+                training dataset.
+            validation : pandas DataFrame
+                validation dataset.
     """
-    trainMissing = train.isnull().sum()
-    trainMissing = trainMissing[trainMissing > 0].index
+    train_missing = train.isnull().sum()
+    train_missing = train_missing[train_missing > 0].index
 
-    validationMissing = validation.isnull().sum()
-    validationMissing = validationMissing[validationMissing > 0].index
+    validation_missing = validation.isnull().sum()
+    validation_missing = validation_missing[validation_missing > 0].index
 
-    print("Missing in validation, not train")
-    print(set(validationMissing) - set(trainMissing))
+    print("missing in validation, not train")
+    print(set(validation_missing) - set(train_missing))
     print("")
-    print("Missing in train, not validation")
-    print(set(trainMissing) - set(validationMissing))
+    print("missing in train, not validation")
+    print(set(train_missing) - set(validation_missing))

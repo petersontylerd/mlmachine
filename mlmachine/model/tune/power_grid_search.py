@@ -5,57 +5,57 @@ import numpy as np
 
 class PowerGridSearcher:
     """
-    Documentation:
-        Definition:
-            Class capable of performing GridSearchCV and RandomizedSearchCV on
+    documentation:
+        definition:
+            class capable of performing GridSearchCV and RandomizedSearchCV on
             multiple models, each with its own parameter grid, in a single execution.
-            Also returns a score summary sheet.
-        Parameters:
+            also returns a score summary sheet.
+        parameters:
             models : dict
-                Dictionary of instantiated sklearn models.
+                dictionary of instantiated sklearn models.
             params : dict of dicts
-                Dictionary containing nested dictionaries of parameter grids for each model.
+                dictionary containing nested dictionaries of parameter grids for each model.
     """
 
     def __init__(self, models, params):
         if not set(models.keys()).issubset(set(params.keys())):
             missing_params = list(set(models.keys()) - set(params.keys()))
             raise ValueError(
-                "Some estimators are missing parameters: {0}".format(missing_params)
+                "some estimators are missing parameters: {0}".format(missing_params)
             )
         self.models = models
         self.params = params
         self.keys = models.keys()
         self.grid_searches = {}
 
-    # Full GridSearchCV
-    def fitMultiGsCV(self, X, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True):
+    # full GridSearchCV
+    def fit_multi_gs_cv(self, x, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True):
         """
-        Documentation:
-            Definition:
-                Method for performing GridSearchCV on multiple models, each with its own parameter
+        documentation:
+            definition:
+                method for performing GridSearchCV on multiple models, each with its own parameter
                 grid, in a single execution.
-            Parameters:
-                X : array
-                    Input dataset.
+            parameters:
+                x : array
+                    input dataset.
                 y : array
-                    Input dataset labels.
+                    input dataset labels.
                 cv : int, default = 5
-                    The of folds to perform in cross-validation.
+                    the of folds to perform in cross_validation.
                 verbose : int, default = 0
-                    Controls amount of information printed to console during fit.
+                    controls amount of information printed to console during fit.
                 n_jobs : int, default = 1
-                    Number of works to deploy upon execution, if applicable.
-                scoring : string (sklearn evaluation metric), default = None
-                    Number of works to deploy upon execution, if applicable.
-                refit : boolean, default = True
-                    Dictates whether method is refit with the best model upon grid seach completion.
-            Returns:
+                    number of works to deploy upon execution, if applicable.
+                scoring : string (sklearn evaluation metric), default =None
+                    number of works to deploy upon execution, if applicable.
+                refit : boolean, default=True
+                    dictates whether method is refit with the best model upon grid seach completion.
+            returns:
                 gs : GridSearchCV object
-                    Full GridSearchCV object.
+                    full GridSearchCV object.
         """
         for key in self.keys:
-            print("Running GridSearchCV for {0}".format(key))
+            print("running GridSearchCV for {0}".format(key))
             model = self.models[key]
             params = self.params[key]
             gs = GridSearchCV(
@@ -68,40 +68,40 @@ class PowerGridSearcher:
                 refit=refit,
                 return_train_score=True,
             )
-            gs.fit(X, y)
+            gs.fit(x, y)
             self.grid_searches[key] = gs
         return gs
 
     # RandomizedSearchCV
-    def fitMultiRgsCV(self, X, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True, n_iter=15):
+    def fit_multi_rgs_cv(self, x, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True, n_iter=15):
         """
-        Documentation:
-            Definition:
-                Method for performing RandomizedGridSearchCV on multiple models, each with its own parameter
+        documentation:
+            definition:
+                method for performing randomized_GridSearchCV on multiple models, each with its own parameter
                 grid, in a single execution.
-            Parameters:
-                X : array
-                    Input dataset.
+            parameters:
+                x : array
+                    input dataset.
                 y : array
-                    Input dataset labels.
+                    input dataset labels.
                 cv : int, default = 5
-                    The of folds to perform in cross-validation.
+                    the of folds to perform in cross_validation.
                 verbose : int, default = 0
-                    Controls amount of information printed to console during fit.
+                    controls amount of information printed to console during fit.
                 n_jobs : int, default = 1
-                    Number of works to deploy upon execution, if applicable.
-                scoring : string (sklearn evaluation metric), default = None
-                    Number of works to deploy upon execution, if applicable.
-                refit : boolean, default = True
-                    Dictates whether method is refit with the best model upon grid seach completion.
+                    number of works to deploy upon execution, if applicable.
+                scoring : string (sklearn evaluation metric), default =None
+                    number of works to deploy upon execution, if applicable.
+                refit : boolean, default=True
+                    dictates whether method is refit with the best model upon grid seach completion.
                 n_iter : int, default = 15
-                    Number of random permutations to evaluate.
-            Returns:
-                rgs : RandomizedGridSearchCV object
-                    Full RandomizedGridSearchCV object.
+                    number of random permutations to evaluate.
+            returns:
+                rgs : randomized_GridSearchCV object
+                    full randomized_GridSearchCV object.
         """
         for key in self.keys:
-            print("Running RandomizedSearchCV for {0}".format(key))
+            print("running RandomizedSearchCV for {0}".format(key))
             model = self.models[key]
             params = self.params[key]
             rgs = RandomizedSearchCV(
@@ -115,23 +115,23 @@ class PowerGridSearcher:
                 return_train_score=True,
                 n_iter=n_iter,
             )
-            rgs.fit(X, y)
+            rgs.fit(x, y)
             self.grid_searches[key] = rgs
         return rgs
 
 
-    def scoreSummary(self, sort_by="mean_score"):
+    def score_summary(self, sort_by="mean_score"):
         """
-        Documentation:
-            Definition:
-                Method for performing RandomizedGridSearchCV on multiple models, each with its own
+        documentation:
+            definition:
+                method for performing randomized_GridSearchCV on multiple models, each with its own
                 parameter grid, in a single execution.
-            Parameters:
+            parameters:
                 sort_by : string (columns of score summary)
-                    Column on which to sort score summary.
-            Returns:
-                df : Pandas DataFrame
-                    DataFrame containing results summary of GridsearchCV or RandomizedGridSearchCV.
+                    column on which to sort score summary.
+            returns:
+                df : pandas DataFrame
+                    DataFrame containing results summary of gridsearch_cv or randomized_GridSearchCV.
         """
         def row(key, scores, params):
             d = {
@@ -141,7 +141,7 @@ class PowerGridSearcher:
                 "mean_score": np.mean(scores),
                 "std_score": np.std(scores),
             }
-            return pd.Series({**params, **d})
+            return pd.series({**params, **d})
 
         rows = []
         for k in self.grid_searches:
@@ -157,7 +157,7 @@ class PowerGridSearcher:
             for p, s in zip(params, all_scores):
                 rows.append((row(k, s, p)))
 
-        df = pd.concat(rows, axis=1).T.sort_values([sort_by], ascending=False)
+        df = pd.concat(rows, axis=1).t.sort_values([sort_by], ascending=False)
 
         columns = ["estimator", "min_score", "mean_score", "max_score", "std_score"]
         columns = columns + [c for c in df.columns if c not in columns]
@@ -165,26 +165,26 @@ class PowerGridSearcher:
         return df[columns]
 
 
-def powerGridModelBuilder(self, results, modelIx):
+def PowerGridModelBuilder(self, results, model_ix):
     """
-    Documentation:
-        Description:
-            Model building utility to be used with powerGridSearch summary results. Returns
+    documentation:
+        description:
+            model building utility to be used with power_grid_search summary results. returns
             estimator and dictionary of 'parameter : value' pairs to be passed as kwarg
-            to model. Used to efficiently reinstantiated specific models.
-        Parameters:
-            results : Pandas DataFrame
+            to model. used to efficiently reinstantiated specific models.
+        parameters:
+            results : pandas DataFrame
                 DataFrame containing score summary generated by PowerGridSearcher.
-            modelIx : int
-                Row index of specific model summarized in results DataFrame.
-        Returns:
+            model_ix : int
+                row index of specific model summarized in results DataFrame.
+        returns:
             estimator : sklearn model
                 sklearn model object.
             params.to_dict() : dictionary
-                Dictionary containing model parameters value.
+                dictionary containing model parameters value.
     """
-    estimator = results.loc[modelIx][0]
-    params = results.loc[modelIx][5:].dropna(axis=0)
+    estimator = results.loc[model_ix][0]
+    params = results.loc[model_ix][5:].dropna(axis=0)
 
     # convert floats that are effectively ints to ints
     for ix in params.index:

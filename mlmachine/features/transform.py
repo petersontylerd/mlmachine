@@ -8,223 +8,223 @@ import sklearn.base as base
 import sklearn.preprocessing as preprocessing
 
 
-class EqualWidthBinner(base.TransformerMixin, base.BaseEstimator):
+class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
     """
-    Documentation:
-        Description:
-            Bin numeric columns into specified segments. Bins training data
+    documentation:
+        description:
+            bin numeric columns into specified segments. bins training data
             features, and stores the cut points to be used on validation and
             unseen data.
-        Parameters:
-            equalBinDict : dictionary, default = None
-                Dictionary containing 'column : label' pairs. Label is a list that
-                proscribes the bin labels to be used for each paired column. The bin
-                size is calculated based off of the the number of labels. The labels
+        parameters:
+            equal_bin_dict : dictionary, default =None
+                dictionary containing 'column : label' pairs. label is a list that
+                proscribes the bin labels to be used for each paired column. the bin
+                size is calculated based off of the the number of labels. the labels
                 are expected to be a list that describes how the bins should be named,
                 i.e. a label list of ['low','med','high'] will instruct the binner to
                 create three bins and then call each bin 'low','med' and 'high'.
-            train : boolean, default = True
-                Tells class whether we are binning training data or unseen data.
-            trainValue : dict, default = None
-                Dictionary containing 'feature : mode' pairs to be used to transform
-                validation data. Only used when train = False. Retrieved from training
-                data pipeline using named steps. Variable to be retrieved from traing
-                pipeline is called trainValue_..
-        Returns:
-            X : array
-                Dataset with additional columns represented binned versions of input columns.
+            train : boolean, default=True
+                tells class whether we are binning training data or unseen data.
+            train_value : dict, default =None
+                dictionary containing 'feature : mode' pairs to be used to transform
+                validation data. only used when train=False. retrieved from training
+                data pipeline using named steps. variable to be retrieved from traing
+                pipeline is called train_value_..
+        returns:
+            x : array
+                dataset with additional columns represented binned versions of input columns.
     """
 
-    def __init__(self, equalBinDict=None, train=True, trainValue=None):
-        self.equalBinDict = equalBinDict
+    def __init__(self, equal_bin_dict=None, train=True, train_value=None):
+        self.equal_bin_dict = equal_bin_dict
         self.train = train
-        self.trainValue = trainValue
+        self.train_value = train_value
 
-    def fit(self, X, y=None):
+    def fit(self, x, y=None):
         return self
 
-    def transform(self, X):
-        # Encode training data
+    def transform(self, x):
+        # encode training data
         if self.train:
 
             # create shell dictionary to store learned bins for each column
-            self.trainValue_ = {}
+            self.train_value_ = {}
 
             # iterate through column : label pairs
-            for col, label in self.equalBinDict.items():
+            for col, label in self.equal_bin_dict.items():
 
                 # retrieve bin cutoffs from original column
-                _, bins = pd.cut(X[col], bins=len(label), labels=label, retbins=True)
+                _, bins = pd.cut(x[col], bins=len(label), labels=label, retbins=True)
 
                 # add binned version of original column to dataset
-                X["{}{}".format(col, "EqualBin")] = pd.cut(
-                    X[col], bins=len(label), labels=label
+                x["{}{}".format(col, "equal_bin")] = pd.cut(
+                    x[col], bins=len(label), labels=label
                 )
 
-                # build colValueDict
-                self.trainValue_[col] = bins
+                # build col_value_dict
+                self.train_value_[col] = bins
 
-        # For each column, bin the values based on the cut-offs learned on training data
+        # for each column, bin the values based on the cut_offs learned on training data
         else:
-            # TODO - does not currently apply bin label. just the interval index range. not usable.
+            # todo - does not currently apply bin label. just the interval index range. not usable.
             # iterate through columns and stored bins that were learned from training data
-            for col, bins in self.trainValue.items():
-                trainBins = pd.IntervalIndex.from_breaks(bins)
+            for col, bins in self.train_value.items():
+                train_bins = pd.interval_index.from_breaks(bins)
                 print(bins)
-                print(trainBins)
-                print(type(trainBins))
-                X["{}{}".format(col, "EqualBin")] = pd.cut(X[col], bins=trainBins)
-        return X
+                print(train_bins)
+                print(type(train_bins))
+                x["{}{}".format(col, "equal_bin")] = pd.cut(x[col], bins=train_bins)
+        return x
 
 
-class PercentileBinner(base.TransformerMixin, base.BaseEstimator):
+class percentile_binner(base.TransformerMixin, base.BaseEstimator):
     """
-    Documentation:
-        Description:
-            Bin numeric columns into segments based on percentile cut-offs.
-        Parameters:
+    documentation:
+        description:
+            bin numeric columns into segments based on percentile cut_offs.
+        parameters:
             cols : list
-                List of colummns to be binned. The percentiles are derived from
+                list of colummns to be binned. the percentiles are derived from
                 the raw data.
             percs : list
-                Percentiles for determining cut-off points for bins.
-            train : boolean, default = True
-                Tells class whether we are binning training data or unseen data.
-            trainValue : dict, default = None
-                Dictionary containing 'feature : mode' pairs to be used to transform
-                validation data. Only used when train = False. Retrieved from training
-                data pipeline using named steps. Variable to be retrieved from traing
-                pipeline is called trainValue_..
-        Returns:
-            X : array
-                Dataset with additional columns represented binned versions of input columns.
+                percentiles for determining cut_off points for bins.
+            train : boolean, default=True
+                tells class whether we are binning training data or unseen data.
+            train_value : dict, default =None
+                dictionary containing 'feature : mode' pairs to be used to transform
+                validation data. only used when train=False. retrieved from training
+                data pipeline using named steps. variable to be retrieved from traing
+                pipeline is called train_value_..
+        returns:
+            x : array
+                dataset with additional columns represented binned versions of input columns.
     """
 
-    def __init__(self, cols=None, percs=None, train=True, trainValue=None):
+    def __init__(self, cols=None, percs=None, train=True, train_value=None):
         self.cols = cols
         self.percs = percs
         self.train = train
-        self.trainValue = trainValue
+        self.train_value = train_value
 
-    def fit(self, X, y=None):
+    def fit(self, x, y=None):
         return self
 
-    def transform(self, X):
+    def transform(self, x):
         # bin training data
         if self.train:
 
             # create shell dictionary to store percentile values for each column
-            self.trainValue_ = {}
+            self.train_value_ = {}
 
             # iterate through columns by name
             for col in self.cols:
-                # create empty PercBin column
-                binCol = "{}PercBin".format(col)
-                X[binCol] = np.nan
+                # create empty perc_bin column
+                bin_col = "{}perc_bin".format(col)
+                x[bin_col] = np.nan
 
-                # determine percentile cut-offs
-                percVals = []
+                # determine percentile cut_offs
+                perc_vals = []
                 for perc in self.percs:
-                    percVals.append(np.percentile(X[col], perc))
+                    perc_vals.append(np.percentile(x[col], perc))
 
                 # iterate through custom binning
-                for ix, ceil in enumerate(percVals):
+                for ix, ceil in enumerate(perc_vals):
                     # first item
                     if ix == 0:
-                        X.loc[X[col] <= ceil, binCol] = ix
+                        x.loc[x[col] <= ceil, bin_col] = ix
 
                     # next to last and last item
-                    elif ix == len(percVals) - 1:
-                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
-                        X.loc[X[col] > ceil, binCol] = ix + 1
+                    elif ix == len(perc_vals) - 1:
+                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
+                        x.loc[x[col] > ceil, bin_col] = ix + 1
                     # everything in between
                     else:
-                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
 
                     # increment the floor
                     floor = ceil
 
-                # build colValueDict
-                self.trainValue_[col] = percVals
+                # build col_value_dict
+                self.train_value_[col] = perc_vals
 
                 # set data type
-                X[binCol] = X[binCol].astype("int64")
+                x[bin_col] = x[bin_col].astype("int64")
 
         # bin validation data based on percentile values learned from training data
         else:
             # iterate through columns by name
-            for col in self.trainValue.keys():
-                # create empty PercBin column
-                binCol = "{}PercBin".format(col)
-                X[binCol] = np.nan
+            for col in self.train_value.keys():
+                # create empty perc_bin column
+                bin_col = "{}perc_bin".format(col)
+                x[bin_col] = np.nan
 
                 # iterate through bin values
-                for ix, ceil in enumerate(self.trainValue[col]):
+                for ix, ceil in enumerate(self.train_value[col]):
                     # first item
                     if ix == 0:
-                        X.loc[X[col] <= ceil, binCol] = ix
+                        x.loc[x[col] <= ceil, bin_col] = ix
                     # next to last and last item
-                    elif ix == len(self.trainValue[col]) - 1:
-                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
-                        X.loc[X[col] > ceil, binCol] = ix + 1
+                    elif ix == len(self.train_value[col]) - 1:
+                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
+                        x.loc[x[col] > ceil, bin_col] = ix + 1
                     # everything in between
                     else:
-                        X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
 
                     # increment the floor
                     floor = ceil
 
                 # set data type
-                X[binCol] = X[binCol].astype("int64")
-        return X
+                x[bin_col] = x[bin_col].astype("int64")
+        return x
 
 
-class CustomBinner(base.TransformerMixin, base.BaseEstimator):
+class custom_binner(base.TransformerMixin, base.BaseEstimator):
     """
-    Documentation:
-        Description:
-            Bin numeric columns into custom segments.
-        Parameters:
-            customBinDict : dictionary
-                Dictionary containing 'column : bin' specifcation pairs. Bin specifications
+    documentation:
+        description:
+            bin numeric columns into custom segments.
+        parameters:
+            custom_bin_dict : dictionary
+                dictionary containing 'column : bin' specifcation pairs. bin specifications
                 should be a list.
-        Returns:
-            X : array
-                Dataset with additional columns represented binned versions of input columns.
+        returns:
+            x : array
+                dataset with additional columns represented binned versions of input columns.
     """
 
-    def __init__(self, customBinDict):
-        self.customBinDict = customBinDict
+    def __init__(self, custom_bin_dict):
+        self.custom_bin_dict = custom_bin_dict
 
-    def fit(self, X, y=None):
+    def fit(self, x, y=None):
         return self
 
-    def transform(self, X):
+    def transform(self, x):
         # iterate through columns by name
-        for col in self.customBinDict.keys():
-            # create empty CustomBin column
-            binCol = "{}CustomBin".format(col)
-            X[binCol] = np.nan
+        for col in self.custom_bin_dict.keys():
+            # create empty custom_bin column
+            bin_col = "{}custom_bin".format(col)
+            x[bin_col] = np.nan
 
-            # append featureDtype dict
-            # self.featureType['categorical'].append(binCol)
+            # append feature_dtype dict
+            # self.feature_type['categorical'].append(bin_col)
 
             # iterate through custom binning
-            for ix, ceil in enumerate(self.customBinDict[col]):
+            for ix, ceil in enumerate(self.custom_bin_dict[col]):
                 # first item
                 if ix == 0:
-                    X.loc[X[col] <= ceil, binCol] = ix
+                    x.loc[x[col] <= ceil, bin_col] = ix
                 # next to last and last item
-                elif ix == len(self.customBinDict[col]) - 1:
-                    X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
-                    X.loc[X[col] > ceil, binCol] = ix + 1
+                elif ix == len(self.custom_bin_dict[col]) - 1:
+                    x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
+                    x.loc[x[col] > ceil, bin_col] = ix + 1
                 # everything in between
                 else:
-                    X.loc[(X[col] > floor) & (X[col] <= ceil), binCol] = ix
+                    x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
 
                 # increment the floor
                 floor = ceil
 
             # set data type
-            X[binCol] = X[binCol].astype("int64")
-        return X
+            x[bin_col] = x[bin_col].astype("int64")
+        return x
