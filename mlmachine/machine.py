@@ -8,6 +8,7 @@ import pandas as pd
 import sklearn.model_selection as model_selection
 import sklearn.preprocessing as preprocessing
 
+
 class Machine:
     """
     Documentation:
@@ -18,9 +19,7 @@ class Machine:
     """
 
     # import mlmachine submodules
-    from .explore.edaMissing import (
-        edaMissingSummary,
-    )
+    from .explore.edaMissing import edaMissingSummary
     from .explore.edaSuite import (
         dfSideBySide,
         edaCatTargetCatFeat,
@@ -52,9 +51,7 @@ class Machine:
         OutlierIQR,
         outlierSummary,
     )
-    from .features.selection import (
-        FeatureSelector,
-    )
+    from .features.selection import FeatureSelector
     from .features.transform import (
         CustomBinner,
         EqualWidthBinner,
@@ -97,9 +94,16 @@ class Machine:
         oofGenerator,
     )
 
-
-    def __init__(self, data, removeFeatures=[], forceToCategorical=None, forceToNumeric=None, dateFeatures=None, target=None,
-                    targetType=None):
+    def __init__(
+        self,
+        data,
+        removeFeatures=[],
+        forceToCategorical=None,
+        forceToNumeric=None,
+        dateFeatures=None,
+        target=None,
+        targetType=None,
+    ):
         """
         Documentation:
             Description:
@@ -172,7 +176,9 @@ class Machine:
             self.featureType["categorical"] = self.forceToCategorical
 
             # convert column dtype to "category"
-            self.data[self.forceToCategorical] = self.data[self.forceToCategorical].astype("category")
+            self.data[self.forceToCategorical] = self.data[
+                self.forceToCategorical
+            ].astype("category")
 
         # numeric features
         if self.forceToNumeric is None:
@@ -190,7 +196,12 @@ class Machine:
         for column in [i for i in self.data.columns if i not in handled]:
 
             # if column is numeric and contains only two unique values, set as boolean
-            if pd.api.types.is_numeric_dtype(self.data[column]) and len(self.data[column].unique()) == 2 and np.min(self.data[column].unique()) == 0  and np.max(self.data[column].unique()) == 1:
+            if (
+                pd.api.types.is_numeric_dtype(self.data[column])
+                and len(self.data[column].unique()) == 2
+                and np.min(self.data[column].unique()) == 0
+                and np.max(self.data[column].unique()) == 1
+            ):
                 self.featureType["boolean"].append(column)
 
                 # set column in dataset as categorical data type
@@ -211,7 +222,6 @@ class Machine:
         self.numericFeatures = self.featureType["numeric"]
         self.categoricalFeatures = self.featureType["categorical"]
 
-
     def featureTypeUpdate(self, columnsToDrop=None):
         """
         Documentation:
@@ -226,7 +236,13 @@ class Machine:
         # set column data type as "category" where approrpirate
         for column in self.data.columns:
             # if column is numeric and contains only two unique values, set as boolean
-            if pd.api.types.is_numeric_dtype(self.data[column]) and not pd.api.types.is_bool_dtype(self.data[column]) and len(self.data[column].unique()) == 2 and not "*" in column and column not in self.categoricalFeatures:
+            if (
+                pd.api.types.is_numeric_dtype(self.data[column])
+                and not pd.api.types.is_bool_dtype(self.data[column])
+                and len(self.data[column].unique()) == 2
+                and not "*" in column
+                and column not in self.categoricalFeatures
+            ):
                 self.data[column] = self.data[column].astype("bool")
             # if column dtype is object, set as category
             elif pd.api.types.is_object_dtype(self.data[column]):
@@ -245,7 +261,9 @@ class Machine:
 
             # remove from featureType
             for k in self.featureType.keys():
-                self.featureType[k] = [x for x in self.featureType[k] if x not in columnsToDrop]
+                self.featureType[k] = [
+                    x for x in self.featureType[k] if x not in columnsToDrop
+                ]
 
             # drop columns from main dataset
             self.data = self.data.drop(columnsToDrop, axis=1)
@@ -266,11 +284,12 @@ class Machine:
         for featureTypeKey in self.featureType.keys():
             for column in self.featureType[featureTypeKey]:
                 if column not in self.data.columns:
-                    self.featureType[featureTypeKey] = [x for x in self.featureType[featureTypeKey] if x not in [column]]
+                    self.featureType[featureTypeKey] = [
+                        x for x in self.featureType[featureTypeKey] if x not in [column]
+                    ]
 
         # sort columns alphabeticalls by name
         self.data = self.data.sort_index(axis=1)
-
 
     def encodeTarget(self, reverse=False):
         """
@@ -289,7 +308,7 @@ class Machine:
         self.target = pd.Series(
             self.le_.fit_transform(self.target.values.reshape(-1)),
             name=self.target.name,
-            index=self.target.index
+            index=self.target.index,
         )
 
         print("******************\nCategorical label encoding\n")
@@ -329,7 +348,7 @@ class Machine:
         return df
 
 
-def trainTestCompile(data, targetCol, validSize = 0.2, randomState = 1):
+def trainTestCompile(data, targetCol, validSize=0.2, randomState=1):
     """
     Description:
         Intakes a single dataset and returns a training dataset and a validation dataset
@@ -354,8 +373,8 @@ def trainTestCompile(data, targetCol, validSize = 0.2, randomState = 1):
         X = data.drop([targetCol], axis=1)
 
     XTrain, XValid, yTrain, yValid = model_selection.train_test_split(
-            X, y, test_size=validSize, random_state=1, stratify=y
-        )
+        X, y, test_size=validSize, random_state=1, stratify=y
+    )
 
     dfTrain = XTrain.merge(yTrain, left_index=True, right_index=True)
     dfValid = XValid.merge(yValid, left_index=True, right_index=True)
