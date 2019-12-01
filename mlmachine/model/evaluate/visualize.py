@@ -12,8 +12,19 @@ from prettierplot import style
 import shap
 
 
-def classification_panel(self, model, x_train, y_train, x_valid=None, y_valid=None, cm_labels =None, n_folds=3,
-                        title_scale=0.7, color_map="viridis", random_state=1):
+def classification_panel(
+    self,
+    model,
+    x_train,
+    y_train,
+    x_valid=None,
+    y_valid=None,
+    cm_labels=None,
+    n_folds=3,
+    title_scale=0.7,
+    color_map="viridis",
+    random_state=1,
+):
     """
     documentation:
         description:
@@ -45,10 +56,10 @@ def classification_panel(self, model, x_train, y_train, x_valid=None, y_valid=No
                 random number seed.
     """
 
-    print('*' * 55)
-    print('* estimator: {}'.format(model.estimator.__name__))
-    print('* parameter set: {}'.format(model.model_iter))
-    print('*' * 55)
+    print("*" * 55)
+    print("* estimator: {}".format(model.estimator.__name__))
+    print("* parameter set: {}".format(model.model_iter))
+    print("*" * 55)
 
     # visualize results with confusion matrix
     p = PrettierPlot(chart_prop=18)
@@ -61,13 +72,17 @@ def classification_panel(self, model, x_train, y_train, x_valid=None, y_valid=No
         y_shift=0.4,
         x_shift=0.25,
         position=211,
-        title_scale=title_scale
+        title_scale=title_scale,
     )
 
     # conditional control for which data is used to generate predictions
     if x_valid is not None:
         y_pred = model.fit(x_train, y_train).predict(x_valid)
-        print(metrics.classification_report(y_valid, y_pred, labels=np.unique(y_train.values)))
+        print(
+            metrics.classification_report(
+                y_valid, y_pred, labels=np.unique(y_train.values)
+            )
+        )
         p.pretty_confusion_matrix(
             y_True=y_valid,
             y_pred=y_pred,
@@ -76,7 +91,11 @@ def classification_panel(self, model, x_train, y_train, x_valid=None, y_valid=No
         )
     else:
         y_pred = model.fit(x_train, y_train).predict(x_train)
-        print(metrics.classification_report(y_train, y_pred, labels=np.unique(y_train.values)))
+        print(
+            metrics.classification_report(
+                y_train, y_pred, labels=np.unique(y_train.values)
+            )
+        )
         p.pretty_confusion_matrix(
             y_True=y_train,
             y_pred=y_pred,
@@ -90,15 +109,15 @@ def classification_panel(self, model, x_train, y_train, x_valid=None, y_valid=No
     p = PrettierPlot(chart_prop=15)
     ax = p.make_canvas(
         title="roc curve - {} data\n_model: {}\n_parameter set: {}".format(
-            'training' if x_valid is None else 'validation',
-             model.estimator.__name__,
-             model.model_iter
+            "training" if x_valid is None else "validation",
+            model.estimator.__name__,
+            model.model_iter,
         ),
         x_label="False positive rate",
         y_label="True positive rate",
         y_shift=0.5,
         position=111 if x_valid is not None else 121,
-        title_scale=title_scale
+        title_scale=title_scale,
     )
     p.pretty_roc_curve(
         model=model,
@@ -115,13 +134,13 @@ def classification_panel(self, model, x_train, y_train, x_valid=None, y_valid=No
     if x_valid is None:
         # cross_validated roc curve
         cv = list(
-            model_selection.stratified_k_fold(
+            model_selection.StratifiedKFold(
                 n_splits=n_folds, shuffle=True, random_state=random_state
             ).split(x_train, y_train)
         )
 
         # generate colors
-        color_list = style.color_gen(color_map, num = len(cv))
+        color_list = style.color_gen(color_map, num=len(cv))
 
         # plot roc curves
         ax = p.make_canvas(
@@ -153,8 +172,18 @@ def classification_panel(self, model, x_train, y_train, x_valid=None, y_valid=No
     plt.show()
 
 
-def regression_panel(self, model, x_train, y_train, x_valid=None, y_valid=None, n_folds=3, title_scale=0.7,
-                    color_map="viridis", random_state=1):
+def regression_panel(
+    self,
+    model,
+    x_train,
+    y_train,
+    x_valid=None,
+    y_valid=None,
+    n_folds=3,
+    title_scale=0.7,
+    color_map="viridis",
+    random_state=1,
+):
     """
     documentation:
         description:
@@ -192,7 +221,7 @@ def regression_panel(self, model, x_train, y_train, x_valid=None, y_valid=None, 
 
     model.fit(x_train.values, y_train.values)
 
-    print('*' * 27)
+    print("*" * 27)
     print("full training dataset performance\n")
 
     ## training dataset
@@ -211,29 +240,30 @@ def regression_panel(self, model, x_train, y_train, x_valid=None, y_valid=None, 
     )
 
     p.pretty2d_scatter(
-        x=y_pred,
-        y=y_pred - y_train.values,
-        size=7,
-        color=style.style_grey,
-        ax=ax,
+        x=y_pred, y=y_pred - y_train.values, size=7, color=style.style_grey, ax=ax,
     )
-    plt.hlines(y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2)
+    plt.hlines(
+        y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2
+    )
     plt.show()
 
     # training data results summary
-    results = self.regression_stats(model=model,
-                              y_True=y_train.values,
-                              y_pred=y_pred,
-                              feature_count=x_train.shape[1]
-                        )
+    results = self.regression_stats(
+        model=model,
+        y_True=y_train.values,
+        y_pred=y_pred,
+        feature_count=x_train.shape[1],
+    )
     # create shell results DataFrame and append
-    feature_selector_summary = pd.DataFrame(columns = list(results.keys()))
-    feature_selector_summary = feature_selector_summary.append(results, ignore_index=True)
+    feature_selector_summary = pd.DataFrame(columns=list(results.keys()))
+    feature_selector_summary = feature_selector_summary.append(
+        results, ignore_index=True
+    )
 
     ## validation dataset
     # if validation data is provided...
     if x_valid is not None:
-        print('*' * 27)
+        print("*" * 27)
         print("full validation dataset performance\n")
 
         y_pred = model.predict(x_valid.values)
@@ -251,39 +281,40 @@ def regression_panel(self, model, x_train, y_train, x_valid=None, y_valid=None, 
         )
 
         p.pretty2d_scatter(
-            x=y_pred,
-            y=y_pred - y_valid.values,
-            size=7,
-            color=style.style_grey,
-            ax=ax,
+            x=y_pred, y=y_pred - y_valid.values, size=7, color=style.style_grey, ax=ax,
         )
-        plt.hlines(y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2)
+        plt.hlines(
+            y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2
+        )
         plt.show()
 
         # validation data results summary
         y_pred = model.predict(x_valid.values)
-        results = self.regression_stats(model=model,
-                                  y_True=y_valid.values,
-                                  y_pred=y_pred,
-                                  feature_count=x_train.shape[1],
-                                  data_type='validation'
-                            )
-        feature_selector_summary = feature_selector_summary.append(results, ignore_index=True)
+        results = self.regression_stats(
+            model=model,
+            y_True=y_valid.values,
+            y_pred=y_pred,
+            feature_count=x_train.shape[1],
+            data_type="validation",
+        )
+        feature_selector_summary = feature_selector_summary.append(
+            results, ignore_index=True
+        )
         display(feature_selector_summary)
 
     else:
         # if validation data is not provided, then perform k_fold cross validation on
         # training data
         cv = list(
-            model_selection.k_fold(
+            model_selection.KFold(
                 n_splits=n_folds, shuffle=True, random_state=random_state
             ).split(x_train, y_train)
         )
 
         # generate colors
-        color_list = style.color_gen(color_map, num = len(cv))
+        color_list = style.color_gen(color_map, num=len(cv))
 
-        print('*' * 27)
+        print("*" * 27)
         print("cross_validation performance\n")
 
         # residual plot
@@ -315,13 +346,15 @@ def regression_panel(self, model, x_train, y_train, x_valid=None, y_valid=None, 
             x_valid_cv = x_train.iloc[valid_ix]
             y_valid_cv = y_train.iloc[valid_ix]
 
-            y_pred = model.fit(x_train_cv.values, y_train_cv.values).predict(x_valid_cv.values)
+            y_pred = model.fit(x_train_cv.values, y_train_cv.values).predict(
+                x_valid_cv.values
+            )
 
             ax = p.make_canvas(
-                title="cv fold {}".format(i+1),
+                title="cv fold {}".format(i + 1),
                 nrows=nrows,
                 ncols=ncols,
-                index=i+1,
+                index=i + 1,
                 title_scale=title_scale,
             )
 
@@ -332,16 +365,25 @@ def regression_panel(self, model, x_train, y_train, x_valid=None, y_valid=None, 
                 color=color_list[i],
                 ax=ax,
             )
-            plt.hlines(y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2)
+            plt.hlines(
+                y=0,
+                xmin=np.min(y_pred),
+                xmax=np.max(y_pred),
+                color=style.style_grey,
+                lw=2,
+            )
 
             # cv fold results summary
-            results = self.regression_stats(model=model,
-                                      y_True=y_valid_cv,
-                                      y_pred=y_pred,
-                                      feature_count=x_valid_cv.shape[1],
-                                      data_type='validation',
-                                      fold=i+1
-                                )
-            feature_selector_summary = feature_selector_summary.append(results, ignore_index=True)
+            results = self.regression_stats(
+                model=model,
+                y_True=y_valid_cv,
+                y_pred=y_pred,
+                feature_count=x_valid_cv.shape[1],
+                data_type="validation",
+                fold=i + 1,
+            )
+            feature_selector_summary = feature_selector_summary.append(
+                results, ignore_index=True
+            )
         plt.show()
         display(feature_selector_summary)

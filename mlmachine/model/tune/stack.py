@@ -1,7 +1,7 @@
 import ast
 
 import numpy as np
-from collections import ordered_dict
+from collections import OrderedDict
 
 from sklearn import model_selection
 import sklearn.decomposition as decomposition
@@ -52,7 +52,7 @@ def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
     n_valid = x_valid.shape[0]
 
     # kfold train/test index generator
-    kf = model_selection.k_fold(n_splits=n_folds)
+    kf = model_selection.KFold(n_splits=n_folds)
 
     # create shell arrays for holding results
     oof_train = np.zeros((n_train,))
@@ -83,7 +83,9 @@ def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
     return oof_train.reshape(-1, 1), oof_valid.reshape(-1, 1)
 
 
-def model_stacker(self, models, bayes_optim_summary, x_train, y_train, x_valid, n_folds, n_jobs):
+def model_stacker(
+    self, models, bayes_optim_summary, x_train, y_train, x_valid, n_folds, n_jobs
+):
     """
     documentation:
         description:
@@ -132,12 +134,16 @@ def model_stacker(self, models, bayes_optim_summary, x_train, y_train, x_valid, 
             )
 
             oof_train_model, oof_valid_model = self.oof_generator(
-                model=model, x_train=x_train, y_train=y_train, x_valid=x_valid, n_folds=n_folds
+                model=model,
+                x_train=x_train,
+                y_train=y_train,
+                x_valid=x_valid,
+                n_folds=n_folds,
             )
             try:
                 oof_train = np.hstack((oof_train, oof_train_model))
                 oof_valid = np.hstack((oof_valid, oof_valid_model))
-            except name_error:
+            except NameError:
                 oof_train = oof_train_model
                 oof_valid = oof_valid_model
     return oof_train, oof_valid, columns

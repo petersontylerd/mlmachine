@@ -37,7 +37,9 @@ from prettierplot import style
 
 
 # set optimization parameters
-def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs, verbose):
+def objective(
+    space, results_file, model, data, target, scoring, n_folds, n_jobs, verbose
+):
     """
     documentation:
         description:
@@ -97,10 +99,9 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
     else:
         score_transform = scoring
 
-
     cv = model_selection.cross_val_score(
         estimator=eval("{0}(**{1})".format(model, space)),
-        x=data,
+        X=data,
         y=target,
         verbose=verbose,
         n_jobs=n_jobs,
@@ -110,7 +111,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
     run_time = timer() - start
 
     # calculate loss based on scoring method
-    if score_transform in ["accuracy","f1_micro","f1_macro","roc_auc"]:
+    if score_transform in ["accuracy", "f1_micro", "f1_macro", "roc_auc"]:
         loss = 1 - cv.mean()
 
         mean_score = cv.mean()
@@ -179,7 +180,19 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
     }
 
 
-def ExecBayesOptimSearch(self, all_space, data, target, scoring, columns=None, n_folds=3, n_jobs=4, iters=50, verbose=0, results_file=None):
+def ExecBayesOptimSearch(
+    self,
+    all_space,
+    data,
+    target,
+    scoring,
+    columns=None,
+    n_folds=3,
+    n_jobs=4,
+    iters=50,
+    verbose=0,
+    results_file=None,
+):
     """
     documentation:
         definition:
@@ -218,7 +231,9 @@ def ExecBayesOptimSearch(self, all_space, data, target, scoring, columns=None, n
                 ./bayes_optimization_summary_{data}_{time}.csv.
     """
     if results_file is None:
-        results_file = "bayes_optimization_summary_{}_{}.csv".format(scoring, strftime("%y%m%d_%h%m%s", gmtime()))
+        results_file = "bayes_optimization_summary_{}_{}.csv".format(
+            scoring, strftime("%y%m%d_%h%m%s", gmtime())
+        )
 
     # add file header
     with open(results_file, "w", newline="") as outfile:
@@ -267,17 +282,21 @@ def ExecBayesOptimSearch(self, all_space, data, target, scoring, columns=None, n
             # create a copy of the underlying data array
             input_data = data.copy()
         else:
-            raise AttributeError("input data set must be either a pandas DataFrame or a numpy ndarray")
+            raise AttributeError(
+                "input data set must be either a pandas DataFrame or a numpy ndarray"
+            )
 
         # conditionally handle input target
-        if isinstance(target, pd.core.series.series):
+        if isinstance(target, pd.core.series.Series):
             # use underlying numpy ndarray
             input_target = target.values
         elif isinstance(target, np.ndarray):
             # create a copy of the underlying data array
             input_target = target.copy()
         else:
-            raise AttributeError("input target must be either a pandas series or a numpy ndarray")
+            raise AttributeError(
+                "input target must be either a pandas series or a numpy ndarray"
+            )
 
         # override default arguments with next estimator and the cv parameters
         objective.__defaults__ = (
@@ -299,7 +318,7 @@ def ExecBayesOptimSearch(self, all_space, data, target, scoring, columns=None, n
             space=space,
             algo=tpe.suggest,
             max_evals=iters,
-            Trials=Trials(),
+            trials=Trials(),
             verbose=verbose,
         )
 
@@ -329,12 +348,13 @@ class BayesOptimModelBuilder:
     """
 
     def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
-        self.bayes_optim_summary=bayes_optim_summary
-        self.estimator=estimator
-        self.model_iter=model_iter
-        self.n_jobs=n_jobs
+        self.bayes_optim_summary = bayes_optim_summary
+        self.estimator = estimator
+        self.model_iter = model_iter
+        self.n_jobs = n_jobs
         self.params = self.bayes_optim_summary[
-            (self.bayes_optim_summary["estimator"] == self.estimator) & (self.bayes_optim_summary["iteration"] == self.model_iter)
+            (self.bayes_optim_summary["estimator"] == self.estimator)
+            & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
 
         # turn string into dict
@@ -348,10 +368,10 @@ class BayesOptimModelBuilder:
         estimator_args = inspect.getfullargspec(self.estimator).args
 
         if "probability" in estimator_args:
-            self.params['probability']=True
+            self.params["probability"] = True
 
         if "n_jobs" in estimator_args:
-            self.params['n_jobs'] = self.n_jobs
+            self.params["n_jobs"] = self.n_jobs
 
         # instantiate model
         self.model = self.estimator(**self.params)
@@ -395,10 +415,10 @@ class BasicModelBuilder:
 
     def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
 
-        self.estimator=estimator
-        self.params={} if params is None else params
-        self.n_jobs=n_jobs
-        self.random_state=random_state
+        self.estimator = estimator
+        self.params = {} if params is None else params
+        self.n_jobs = n_jobs
+        self.random_state = random_state
 
         # convert estimator argument to sklearn api object if needed
         if isinstance(self.estimator, str):
@@ -408,13 +428,13 @@ class BasicModelBuilder:
         estimator_args = inspect.getfullargspec(self.estimator).args
 
         if "probability" in estimator_args:
-            self.params['probability']=True
+            self.params["probability"] = True
 
         if "n_jobs" in estimator_args:
-            self.params['n_jobs'] = self.n_jobs
+            self.params["n_jobs"] = self.n_jobs
 
         if "random_state" in estimator_args:
-            self.params['random_state'] = self.random_state
+            self.params["random_state"] = self.random_state
 
         # instantiate model
         self.model = self.estimator(**self.params)
@@ -453,7 +473,9 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
                 loss recorded in an iteration.
     """
 
-    estimator_df = bayes_optim_summary[bayes_optim_summary["estimator"] == estimator].reset_index(drop=True)
+    estimator_df = bayes_optim_summary[
+        bayes_optim_summary["estimator"] == estimator
+    ].reset_index(drop=True)
 
     # create a new dataframe for storing parameters
     estimator_summary = pd.DataFrame(
@@ -472,7 +494,15 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     return estimator_summary
 
 
-def model_loss_plot(self, bayes_optim_summary, estimator, chart_prop=15, trim_outliers=True, outlier_control=1.5, title_scale=0.7):
+def model_loss_plot(
+    self,
+    bayes_optim_summary,
+    estimator,
+    chart_prop=15,
+    trim_outliers=True,
+    outlier_control=1.5,
+    title_scale=0.7,
+):
     """
     documentation:
         definition:
@@ -501,13 +531,18 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_prop=15, trim_ou
                 controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
     """
-    estimator_summary = self.unpack_bayes_optim_summary(bayes_optim_summary=bayes_optim_summary, estimator=estimator)
+    estimator_summary = self.unpack_bayes_optim_summary(
+        bayes_optim_summary=bayes_optim_summary, estimator=estimator
+    )
     if trim_outliers:
-        mean = estimator_summary['iter_loss'].mean()
-        median = estimator_summary['iter_loss'].median()
-        std = estimator_summary['iter_loss'].std()
-        cap = mean + (2.0*std)
-        estimator_summary = estimator_summary[(estimator_summary['iter_loss'] < cap) & (estimator_summary['iter_loss'] < outlier_control * median)]
+        mean = estimator_summary["iter_loss"].mean()
+        median = estimator_summary["iter_loss"].median()
+        std = estimator_summary["iter_loss"].std()
+        cap = mean + (2.0 * std)
+        estimator_summary = estimator_summary[
+            (estimator_summary["iter_loss"] < cap)
+            & (estimator_summary["iter_loss"] < outlier_control * median)
+        ]
 
     # create regression plot
     p = PrettierPlot(chart_prop=chart_prop)
@@ -517,16 +552,21 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_prop=15, trim_ou
         position=111,
         title_scale=title_scale,
     )
-    p.pretty_reg_plot(x="iteration",
-        y="iter_loss",
-        data=estimator_summary,
-        y_units="ffff",
-        ax=ax
+    p.pretty_reg_plot(
+        x="iteration", y="iter_loss", data=estimator_summary, y_units="ffff", ax=ax
     )
     plt.show()
 
 
-def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, chart_prop = 17, title_scale=0.7):
+def model_param_plot(
+    self,
+    bayes_optim_summary,
+    estimator,
+    all_space,
+    n_iter,
+    chart_prop=17,
+    title_scale=0.7,
+):
     """
     documentation:
         definition:
@@ -556,14 +596,16 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
     """
-    estimator_summary = self.unpack_bayes_optim_summary(bayes_optim_summary = bayes_optim_summary, estimator = estimator)
+    estimator_summary = self.unpack_bayes_optim_summary(
+        bayes_optim_summary=bayes_optim_summary, estimator=estimator
+    )
 
     # return space belonging to estimator
     estimator_space = all_space[estimator]
 
-    print('*' * 100)
-    print('* {}'.format(estimator))
-    print('*' * 100)
+    print("*" * 100)
+    print("* {}".format(estimator))
+    print("*" * 100)
 
     # iterate through each parameter
     for param in estimator_space.keys():
@@ -581,16 +623,14 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
         actual_dist = ["none" if v is None else v for v in actual_dist]
         actual_dist = np.array(actual_dist)
 
-        actual_iter_df = estimator_summary[["iteration",param]]
+        actual_iter_df = estimator_summary[["iteration", param]]
 
         # plot distributions for categorical params
         if any(isinstance(d, str) for d in theoretical_dist):
 
             p = PrettierPlot(chart_prop=chart_prop)
             # theoretical plot
-            unique_vals, unique_counts = np.unique(
-                theoretical_dist, return_counts=True
-            )
+            unique_vals, unique_counts = np.unique(theoretical_dist, return_counts=True)
             ax = p.make_canvas(
                 title="theoretical plot\n* {}".format(param),
                 y_shift=0.8,
@@ -608,7 +648,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
             # actual plot
             unique_vals, unique_counts = np.unique(actual_dist, return_counts=True)
-            if param == 'loss':
+            if param == "loss":
                 print(unique_vals)
                 print(unique_counts)
 
@@ -662,7 +702,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
             ## create custom legend
             # create labels
             label_color = {}
-            legend_labels = ['theoretical','actual']
+            legend_labels = ["theoretical", "actual"]
             color_list = [style.style_grey, style.style_blue]
             for ix, i in enumerate(legend_labels):
                 label_color[i] = color_list[ix]
@@ -683,7 +723,6 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
             # label font color
             for text in leg.get_texts():
                 plt.setp(text, color="grey")
-
 
             ax = p.make_canvas(
                 title="regression plot\n* {}".format(estimator),

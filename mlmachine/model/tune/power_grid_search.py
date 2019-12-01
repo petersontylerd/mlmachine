@@ -29,7 +29,9 @@ class PowerGridSearcher:
         self.grid_searches = {}
 
     # full GridSearchCV
-    def fit_multi_gs_cv(self, x, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True):
+    def fit_multi_gs_cv(
+        self, x, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True
+    ):
         """
         documentation:
             definition:
@@ -73,7 +75,9 @@ class PowerGridSearcher:
         return gs
 
     # RandomizedSearchCV
-    def fit_multi_rgs_cv(self, x, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True, n_iter=15):
+    def fit_multi_rgs_cv(
+        self, x, y, cv=5, n_jobs=1, verbose=0, scoring=None, refit=True, n_iter=15
+    ):
         """
         documentation:
             definition:
@@ -119,7 +123,6 @@ class PowerGridSearcher:
             self.grid_searches[key] = rgs
         return rgs
 
-
     def score_summary(self, sort_by="mean_score"):
         """
         documentation:
@@ -133,6 +136,7 @@ class PowerGridSearcher:
                 df : pandas DataFrame
                     DataFrame containing results summary of gridsearch_cv or randomized_GridSearchCV.
         """
+
         def row(key, scores, params):
             d = {
                 "estimator": key,

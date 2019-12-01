@@ -38,7 +38,9 @@ def eda_missing_summary(self, data=None, color=style.style_grey):
         display(percent_missing)
 
         p = PrettierPlot(chart_prop=15)
-        ax = p.make_canvas(title="percent missing by feature", y_shift=0.8, position=221)
+        ax = p.make_canvas(
+            title="percent missing by feature", y_shift=0.8, position=221
+        )
         p.pretty_bar_v(
             x=percent_missing.index,
             counts=percent_missing["percent missing"],

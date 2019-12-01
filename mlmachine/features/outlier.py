@@ -7,7 +7,8 @@ from collections import Counter
 
 import eif
 
-class outlier_iqr(base.TransformerMixin, base.BaseEstimator):
+
+class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
     """
     documentation:
         description:
@@ -18,7 +19,7 @@ class outlier_iqr(base.TransformerMixin, base.BaseEstimator):
                 in order for an observation to be flagged.
             iqr_step : float
                 multiplier that controls level of sensitivity of outlier detection method.
-                higher values for iqr_step will cause outlier_iqr to only detect increasingly
+                higher values for iqr_step will cause OutlierIQR to only detect increasingly
                 extreme values.
             features : list
                 list of features to be evaluated for outliers.
@@ -71,7 +72,7 @@ class outlier_iqr(base.TransformerMixin, base.BaseEstimator):
         return x
 
 
-class extended_iso_forest(base.TransformerMixin, base.BaseEstimator):
+class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
     """
     documentation:
         description:
@@ -96,8 +97,16 @@ class extended_iso_forest(base.TransformerMixin, base.BaseEstimator):
                 dataset with outlier observations removed.
     """
 
-    def __init__(self, cols, n_trees, sample_size, extension_level, anomalies_ratio, drop_outliers=False):
-        self.cols= cols
+    def __init__(
+        self,
+        cols,
+        n_trees,
+        sample_size,
+        extension_level,
+        anomalies_ratio,
+        drop_outliers=False,
+    ):
+        self.cols = cols
         self.n_trees = n_trees
         self.sample_size = sample_size
         self.extension_level = extension_level
@@ -109,28 +118,23 @@ class extended_iso_forest(base.TransformerMixin, base.BaseEstimator):
 
     def transform(self, x):
         ext_iso = eif.i_forest(
-            x = x[self.cols].values,
+            x=x[self.cols].values,
             ntrees=self.n_trees,
             sample_size=self.sample_size,
             extension_level=self.extension_level,
         )
 
         # calculate anomaly scores
-        anomaly_scores = ext_iso.compute_paths(
-            x_in=x[self.cols].values
-        )
+        anomaly_scores = ext_iso.compute_paths(x_in=x[self.cols].values)
 
         anomaly_scores_sorted = pd.DataFrame(
-            anomaly_scores,
-            index = x.index,
-            columns = ['anomaly score']
-        ).sort_values(
-            ['anomaly score'],
-            ascending=False
-        )
+            anomaly_scores, index=x.index, columns=["anomaly score"]
+        ).sort_values(["anomaly score"], ascending=False)
 
         self.outliers_ = np.array(
-            anomaly_scores_sorted[:int(np.ceil(self.anomalies_ratio * x.shape[0]))].index
+            anomaly_scores_sorted[
+                : int(np.ceil(self.anomalies_ratio * x.shape[0]))
+            ].index
         )
 
         if self.drop_outliers:
@@ -164,19 +168,16 @@ def outlier_summary(self, iqr_outliers, if_outliers, eif_outliers):
     outlier_ixs = np.unique(np.concatenate([iqr_outliers, if_outliers, eif_outliers]))
 
     # create shell dataframe
-    outlier_summary = pd.DataFrame(
-        columns = ['iqr','if','eif'],
-        index = outlier_ixs
-    )
+    outlier_summary = pd.DataFrame(columns=["iqr", "if", "eif"], index=outlier_ixs)
 
     # fill nulls based on index value match
-    outlier_summary['iqr'] = outlier_summary['iqr'].loc[iqr_outliers].fillna(value='x')
-    outlier_summary['if'] = outlier_summary['if'].loc[if_outliers].fillna(value='x')
-    outlier_summary['eif'] = outlier_summary['eif'].loc[eif_outliers].fillna(value='x')
+    outlier_summary["iqr"] = outlier_summary["iqr"].loc[iqr_outliers].fillna(value="x")
+    outlier_summary["if"] = outlier_summary["if"].loc[if_outliers].fillna(value="x")
+    outlier_summary["eif"] = outlier_summary["eif"].loc[eif_outliers].fillna(value="x")
 
     # add summary columns and sort
-    outlier_summary['count'] = outlier_summary.count(axis = 1)
-    outlier_summary = outlier_summary.sort_values(['count'], ascending=False)
+    outlier_summary["count"] = outlier_summary.count(axis=1)
+    outlier_summary = outlier_summary.sort_values(["count"], ascending=False)
 
-    outlier_summary = outlier_summary.fillna('')
+    outlier_summary = outlier_summary.fillna("")
     return outlier_summary

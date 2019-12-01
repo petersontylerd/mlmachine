@@ -42,7 +42,9 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
                 strategy while also consider select columns as a group by variable.
     """
 
-    def __init__(self, null_col, context_col, strategy="mean", train=True, train_value=None):
+    def __init__(
+        self, null_col, context_col, strategy="mean", train=True, train_value=None
+    ):
         self.null_col = null_col
         self.context_col = context_col
         self.strategy = strategy
@@ -51,12 +53,22 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
 
     def fit(self, x, y=None):
         if self.strategy == "mean":
-            self.train_value = x[x[self.null_col].notnull()].groupby(self.context_col).mean()[self.null_col]
+            self.train_value = (
+                x[x[self.null_col].notnull()]
+                .groupby(self.context_col)
+                .mean()[self.null_col]
+            )
         elif self.strategy == "median":
-            self.train_value = x[x[self.null_col].notnull()].groupby(self.context_col).median()[self.null_col]
+            self.train_value = (
+                x[x[self.null_col].notnull()]
+                .groupby(self.context_col)
+                .median()[self.null_col]
+            )
         elif self.strategy == "most_frequent":
-            self.train_value = x[x[self.null_col].notnull()].groupby(self.context_col)[self.null_col].agg(
-                lambda x: x.value_counts().index[0]
+            self.train_value = (
+                x[x[self.null_col].notnull()]
+                .groupby(self.context_col)[self.null_col]
+                .agg(lambda x: x.value_counts().index[0])
             )
 
         self.train_value = self.train_value.reset_index()
@@ -85,6 +97,7 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
             attribute_names : list
                 list of features to select from DataFrame.
     """
+
     def __init__(self, attribute_names):
         self.attribute_names = attribute_names
 
@@ -107,6 +120,7 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
                 list of features to select from DataFrame to be passed into the
                 wrapped transformer..
     """
+
     def __init__(self, transformer):
         self.transformer = transformer
 
@@ -122,13 +136,13 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
         if isinstance(self.est, preprocessing._encoders.OneHotEncoder):
             names = self.est.get_feature_names()
 
-            prefixes = list(map(lambda x:str.replace(x, "x", ""), names))
+            prefixes = list(map(lambda x: str.replace(x, "x", ""), names))
             prefixes = sorted(list(set([x.split("_")[0] for x in prefixes])), key=int)
             prefixes = ["x" + x + "_" for x in prefixes]
 
             # repalce "x0_, x1_..." prefix with original column anme
             # prefixes = sorted(list(set([x.split("_")[0] for x in names])))
-            for a,b in zip(self.original_columns, prefixes):
+            for a, b in zip(self.original_columns, prefixes):
                 names = list(map(lambda x: str.replace(x, b, a + "_"), names))
             self.original_columns = names
 
@@ -140,27 +154,36 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
             names = self.est.get_feature_names()
 
             # remove "x" prefix from features code names
-            feature_code_names = list(map(lambda x:str.replace(x, "x", ""), names))
+            feature_code_names = list(map(lambda x: str.replace(x, "x", ""), names))
 
             # reduce feature_code_names down to [0,1,2,3...] by ignoring "^2" and sort as integers
-            feature_code_names = sorted(list(set([x.replace("^2","").split(" ")[0] for x in feature_code_names])), key=int)
+            feature_code_names = sorted(
+                list(
+                    set([x.replace("^2", "").split(" ")[0] for x in feature_code_names])
+                ),
+                key=int,
+            )
 
             # add "x" as a prefix and an "_" as a suffix to the
-            feature_code_names = ["x" + x +"_" for x in feature_code_names]
+            feature_code_names = ["x" + x + "_" for x in feature_code_names]
 
             ### build actual feature names
             # replace " " with "_ " and add an additional "_" to the full string yield names such as "x0_ x1_"
-            feature_actual_names = [x.replace(" ","_ ") + "_" for x in names]
+            feature_actual_names = [x.replace(" ", "_ ") + "_" for x in names]
 
             # change strings such as "x02_" to yield names such as "x0_2"
-            feature_actual_names = [x.replace("^2_","_^2") for x in feature_actual_names]
+            feature_actual_names = [
+                x.replace("^2_", "_^2") for x in feature_actual_names
+            ]
 
             # change strings such as "x0_ x1_" to yield names such as "x0_*x1_"
-            feature_actual_names = [x.replace(" ","*") for x in feature_actual_names]
+            feature_actual_names = [x.replace(" ", "*") for x in feature_actual_names]
 
             # replace code names with actual column names
-            for a,b in zip(self.original_columns, feature_code_names):
-                feature_actual_names = list(map(lambda x: str.replace(x, b, a), feature_actual_names))
+            for a, b in zip(self.original_columns, feature_code_names):
+                feature_actual_names = list(
+                    map(lambda x: str.replace(x, b, a), feature_actual_names)
+                )
 
             self.original_columns = feature_actual_names
 
@@ -214,15 +237,17 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
 
         return x
 
-class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
 
-    def __init__(self, target, cv, n_bins=5, drop_bin_cols=True, drop_original_cols=False):
+class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
+    def __init__(
+        self, target, cv, n_bins=5, drop_bin_cols=True, drop_original_cols=False
+    ):
         self.target = target
         self.cv = cv
-        self.transform_train=False
-        self.n_bins=n_bins
-        self.drop_bin_cols=drop_bin_cols
-        self.drop_original_cols=drop_original_cols
+        self.transform_train = False
+        self.n_bins = n_bins
+        self.drop_bin_cols = drop_bin_cols
+        self.drop_original_cols = drop_original_cols
 
     def fit(self, x, y=None):
         self.cols = x.columns
@@ -233,31 +258,40 @@ class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
         self.numeric_cols = x.select_dtypes(include=np.number).columns.tolist()
         return self
 
-    def transform(self,x, y=None):
+    def transform(self, x, y=None):
         if not self.transform_train:
             # combine input columns and target
             x = x.merge(self.target, left_index=True, right_index=True)
 
             # add empty columns to input dataset and set as numeric
             for col in self.cols:
-                x[col + '_' + 'target_encoded'] = np.nan
-                x[col + '_' + 'target_encoded'] = pd.to_numeric(x[col + '_' + 'target_encoded'])
+                x[col + "_" + "target_encoded"] = np.nan
+                x[col + "_" + "target_encoded"] = pd.to_numeric(
+                    x[col + "_" + "target_encoded"]
+                )
 
             # if column is numeric, then bin column prior to target encoding
             for col in self.numeric_cols:
                 if isinstance(self.n_bins, dict):
-                    binner = preprocessing.KBinsDiscretizer(n_bins=self.n_bins[col], encode="ordinal")
-                    #x[col] = binner.fit_transform(x[[col]])
-                    x["{}_{}_bins".format(col, self.n_bins[col])] = binner.fit_transform(x[[col]])
+                    binner = preprocessing.KBinsDiscretizer(
+                        n_bins=self.n_bins[col], encode="ordinal"
+                    )
+                    # x[col] = binner.fit_transform(x[[col]])
+                    x[
+                        "{}_{}_bins".format(col, self.n_bins[col])
+                    ] = binner.fit_transform(x[[col]])
 
                     # store binner transformer for each column
                     self.binners[col] = binner
 
                 else:
-                    binner = preprocessing.KBinsDiscretizer(n_bins=self.n_bins, encode="ordinal")
-                    #x[col] = binner.fit_transform(x[[col]])
-                    x["{}_{}_bins".format(col, self.n_bins)] = binner.fit_transform(x[[col]])
-
+                    binner = preprocessing.KBinsDiscretizer(
+                        n_bins=self.n_bins, encode="ordinal"
+                    )
+                    # x[col] = binner.fit_transform(x[[col]])
+                    x["{}_{}_bins".format(col, self.n_bins)] = binner.fit_transform(
+                        x[[col]]
+                    )
 
                     # store binner transformer for each column
                     self.binners[col] = binner
@@ -270,30 +304,53 @@ class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
                 for col in self.cols:
                     if col in self.numeric_cols:
                         if isinstance(self.n_bins, dict):
-                            x.loc[x.index[valid_ix], col + '_' + 'target_encoded'] = x_valid["{}_{}_bins".format(col, self.n_bins[col])].map(x_train.groupby("{}_{}_bins".format(col, self.n_bins[col]))[self.target.name].mean())
+                            x.loc[
+                                x.index[valid_ix], col + "_" + "target_encoded"
+                            ] = x_valid["{}_{}_bins".format(col, self.n_bins[col])].map(
+                                x_train.groupby(
+                                    "{}_{}_bins".format(col, self.n_bins[col])
+                                )[self.target.name].mean()
+                            )
                         else:
-                            x.loc[x.index[valid_ix], col + '_' + 'target_encoded'] = x_valid["{}_{}_bins".format(col, self.n_bins)].map(x_train.groupby("{}_{}_bins".format(col, self.n_bins))[self.target.name].mean())
+                            x.loc[
+                                x.index[valid_ix], col + "_" + "target_encoded"
+                            ] = x_valid["{}_{}_bins".format(col, self.n_bins)].map(
+                                x_train.groupby("{}_{}_bins".format(col, self.n_bins))[
+                                    self.target.name
+                                ].mean()
+                            )
                     else:
-                        x.loc[x.index[valid_ix], col + '_' + 'target_encoded'] = x_valid[col].map(x_train.groupby(col)[self.target.name].mean())
+                        x.loc[
+                            x.index[valid_ix], col + "_" + "target_encoded"
+                        ] = x_valid[col].map(
+                            x_train.groupby(col)[self.target.name].mean()
+                        )
 
             # ensure numeric data type
             for col in self.cols:
-                x[col + '_' + 'target_encoded'] = pd.to_numeric(x[col + '_' + 'target_encoded'])
+                x[col + "_" + "target_encoded"] = pd.to_numeric(
+                    x[col + "_" + "target_encoded"]
+                )
 
             # collect average values for transformation of unseen data
             for col in self.cols:
                 if col in self.numeric_cols:
                     if isinstance(self.n_bins, dict):
-                        self.stats[col] = x.groupby("{}_{}_bins".format(col, self.n_bins[col]))["{}_target_encoded".format(col)].mean()
+                        self.stats[col] = x.groupby(
+                            "{}_{}_bins".format(col, self.n_bins[col])
+                        )["{}_target_encoded".format(col)].mean()
                     else:
-                        self.stats[col] = x.groupby("{}_{}_bins".format(col, self.n_bins))["{}_target_encoded".format(col)].mean()
+                        self.stats[col] = x.groupby(
+                            "{}_{}_bins".format(col, self.n_bins)
+                        )["{}_target_encoded".format(col)].mean()
                 else:
-                    self.stats[col] = x.groupby(col)["{}_target_encoded".format(col)].mean()
-
+                    self.stats[col] = x.groupby(col)[
+                        "{}_target_encoded".format(col)
+                    ].mean()
 
             # flip transform_train switch to indicate that fitting has occurred
             # ensure future transform calls will go to the else branch of the conditional
-            self.transform_train=True
+            self.transform_train = True
 
             # drop target column
             x = x.drop(self.target.name, axis=1)
@@ -316,7 +373,9 @@ class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
 
                     if isinstance(self.n_bins, dict):
 
-                        x[col + "_" + str(self.n_bins[col]) + "_bins"] = binner.transform(x[[col]])
+                        x[
+                            col + "_" + str(self.n_bins[col]) + "_bins"
+                        ] = binner.transform(x[[col]])
 
                         x["{}_target_encoded".format(col)] = np.where(
                             x["{}_target_encoded".format(col)].isnull(),
@@ -326,7 +385,9 @@ class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
                             x["{}_target_encoded".format(col)],
                         )
                     else:
-                        x[col + "_" + str(self.n_bins) + "_bins"] = binner.transform(x[[col]])
+                        x[col + "_" + str(self.n_bins) + "_bins"] = binner.transform(
+                            x[[col]]
+                        )
 
                         x["{}_target_encoded".format(col)] = np.where(
                             x["{}_target_encoded".format(col)].isnull(),
@@ -338,9 +399,7 @@ class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
                 else:
                     x["{}_target_encoded".format(col)] = np.where(
                         x["{}_target_encoded".format(col)].isnull(),
-                        x[col].map(
-                            self.stats[col]
-                        ),
+                        x[col].map(self.stats[col]),
                         x["{}_target_encoded".format(col)],
                     )
 
@@ -350,6 +409,7 @@ class KFfoldTargetEncoderTrain(base.BaseEstimator, base.TransformerMixin):
             if self.drop_bin_cols:
                 x = x.drop(x.columns[x.columns.str.contains("_bins")], axis=1)
         return x
+
 
 class PandasFeatureUnion(pipeline.FeatureUnion):
     """
@@ -366,12 +426,10 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
         self._validate_transformers()
         result = Parallel(n_jobs=self.n_jobs)(
             delayed(pipeline._fit_transform_one)(
-                transformer=trans,
-                x=x,
-                y=y,
-                weight=weight,
-                **fit_params)
-            for name, trans, weight in self._iter())
+                transformer=trans, x=x, y=y, weight=weight, **fit_params
+            )
+            for name, trans, weight in self._iter()
+        )
 
         if not result:
             # all transformers are none
@@ -390,11 +448,10 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
     def transform(self, x):
         xs = Parallel(n_jobs=self.n_jobs)(
             delayed(pipeline._transform_one)(
-                transformer=trans,
-                x=x,
-                y=None,
-                weight=weight)
-            for name, trans, weight in self._iter())
+                transformer=trans, x=x, y=None, weight=weight
+            )
+            for name, trans, weight in self._iter()
+        )
         if not xs:
             # all transformers are none
             return np.zeros((x.shape[0], 0))
@@ -403,6 +460,7 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
         else:
             xs = self.merge_dataframes_by_column(xs)
         return xs
+
 
 class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
     """
@@ -414,6 +472,7 @@ class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
             pipes : sklearn FeatureUnion pipeline object
                 FeatureUnion pipeline object with all column_specific transformations.
     """
+
     def __init__(self, pipes):
         self.pipes = pipes
         self.processed_columns = []
@@ -449,6 +508,7 @@ class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
     def transform(self, x):
         return x[self.unprocessed_columns]
 
+
 class DualTransformer(base.TransformerMixin, base.BaseEstimator):
     """
     documentation:
@@ -468,6 +528,7 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
             x : array
                 yeo_johnson, and potentially box_cox (or box_cox + 1) transformed input data.
     """
+
     def __init__(self, yeojohnson=True, boxcox=True):
         self.yeojohnson = yeojohnson
         self.boxcox = boxcox
@@ -497,11 +558,11 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
             for col in x.columns:
                 # if minimum feature value is 0, do box_cox + 1
                 if np.min(x[col]) == 0:
-                    _, lmbda = stats.boxcox(x[col].values + 1, lmbda =None)
+                    _, lmbda = stats.boxcox(x[col].values + 1, lmbda=None)
                     self.bc_p1_lambdas_dict_[col] = lmbda
                 # otherwise do standard box_cox
                 elif np.min(x[col]) > 0:
-                    _, lmbda = stats.boxcox(x[col].values, lmbda =None)
+                    _, lmbda = stats.boxcox(x[col].values, lmbda=None)
                     self.bc_lambdas_dict_[col] = lmbda
         return self
 
@@ -509,17 +570,24 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
         # yeo_johnson
         if self.yeojohnson:
             for col in self.yj_lambdas_dict_.keys():
-                x[col + "_yj"] = stats.yeojohnson(x[col].values, lmbda = self.yj_lambdas_dict_[col])
+                x[col + "_yj"] = stats.yeojohnson(
+                    x[col].values, lmbda=self.yj_lambdas_dict_[col]
+                )
 
         # box_cox
         if self.boxcox:
             for col in self.bc_p1_lambdas_dict_.keys():
-                x[col + "_bc"] = stats.boxcox(x[col].values + 1, lmbda = self.bc_p1_lambdas_dict_[col])
+                x[col + "_bc"] = stats.boxcox(
+                    x[col].values + 1, lmbda=self.bc_p1_lambdas_dict_[col]
+                )
 
             for col in self.bc_lambdas_dict_.keys():
-                x[col + "_bc"] = stats.boxcox(x[col].values, lmbda = self.bc_lambdas_dict_[col])
+                x[col + "_bc"] = stats.boxcox(
+                    x[col].values, lmbda=self.bc_lambdas_dict_[col]
+                )
         return x
         # return x.drop(self.original_columns, axis=1)
+
 
 def skew_summary(self, data=None, columns=None):
     """

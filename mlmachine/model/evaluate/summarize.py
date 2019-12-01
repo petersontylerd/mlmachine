@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import sklearn.metrics as metrics
+import sklearn.model_selection as model_selection
 
 def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
     """
@@ -24,14 +25,22 @@ def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
 
     models = {}
     for estimator in bayes_optim_summary["estimator"].unique():
-        est_df = bayes_optim_summary[bayes_optim_summary["estimator"] == estimator].sort_values(
-            ["loss","std_score","train_time"], ascending=[True,True,True]
-        )["iteration"][:num_models]
+        est_df = bayes_optim_summary[
+            bayes_optim_summary["estimator"] == estimator
+        ].sort_values(
+            ["loss", "std_score", "train_time"], ascending=[True, True, True]
+        )[
+            "iteration"
+        ][
+            :num_models
+        ]
         models[estimator] = est_df.values.tolist()
     return models
 
 
-def regression_stats(self, model, y_True, y_pred, feature_count, fold=0, data_type='training'):
+def regression_stats(
+    self, model, y_True, y_pred, feature_count, fold=0, data_type="training"
+):
     """
     documentation:
         description:
@@ -57,24 +66,36 @@ def regression_stats(self, model, y_True, y_pred, feature_count, fold=0, data_ty
     """
     results = {}
 
-    results['estimator'] = model.estimator.__name__
-    results['parameter_set'] = model.model_iter
-    results['data_type'] = data_type
-    results['fold'] = fold
-    results['n'] = len(y_True)
+    results["estimator"] = model.estimator.__name__
+    results["parameter_set"] = model.model_iter
+    results["data_type"] = data_type
+    results["fold"] = fold
+    results["n"] = len(y_True)
 
-    results['explained_variance'] = metrics.explained_variance_score(y_True, y_pred)
-    results['msle'] = metrics.mean_squared_log_error(y_True, y_pred)
-    results['mean_ae'] = metrics.mean_absolute_error(y_True, y_pred)
-    results['median_ae'] = metrics.median_absolute_error(y_True, y_pred)
-    results['mse'] = metrics.mean_squared_error(y_True, y_pred)
-    results['rmse'] = np.sqrt(metrics.mean_squared_error(y_True, y_pred))
-    results['r2'] = metrics.r2_score(y_True, y_pred)
-    results['adjusted_r2'] = 1 - (1 - metrics.r2_score(y_True, y_pred)) * (len(y_True) - 1)\
-                                    / (len(y_True) - feature_count - 1)
+    results["explained_variance"] = metrics.explained_variance_score(y_True, y_pred)
+    results["msle"] = metrics.mean_squared_log_error(y_True, y_pred)
+    results["mean_ae"] = metrics.mean_absolute_error(y_True, y_pred)
+    results["median_ae"] = metrics.median_absolute_error(y_True, y_pred)
+    results["mse"] = metrics.mean_squared_error(y_True, y_pred)
+    results["rmse"] = np.sqrt(metrics.mean_squared_error(y_True, y_pred))
+    results["r2"] = metrics.r2_score(y_True, y_pred)
+    results["adjusted_r2"] = 1 - (1 - metrics.r2_score(y_True, y_pred)) * (
+        len(y_True) - 1
+    ) / (len(y_True) - feature_count - 1)
     return results
 
-def regression_results(self, model, x_train, y_train, x_valid=None, y_valid=None, n_folds=3, random_state=1, feature_selector_summary=None):
+
+def regression_results(
+    self,
+    model,
+    x_train,
+    y_train,
+    x_valid=None,
+    y_valid=None,
+    n_folds=3,
+    random_state=1,
+    feature_selector_summary=None,
+):
     """
     documentation:
         description:
@@ -109,32 +130,38 @@ def regression_results(self, model, x_train, y_train, x_valid=None, y_valid=None
 
     ## training dataset
     y_pred = model.predict(x_train.values)
-    results = self.regression_stats(model=model,
-                              y_True=y_train.values,
-                              y_pred=y_pred,
-                              feature_count=x_train.shape[1]
-                        )
+    results = self.regression_stats(
+        model=model,
+        y_True=y_train.values,
+        y_pred=y_pred,
+        feature_count=x_train.shape[1],
+    )
     # create shell results DataFrame and append
     if feature_selector_summary is None:
-        feature_selector_summary = pd.DataFrame(columns = list(results.keys()))
-    feature_selector_summary = feature_selector_summary.append(results, ignore_index=True)
+        feature_selector_summary = pd.DataFrame(columns=list(results.keys()))
+    feature_selector_summary = feature_selector_summary.append(
+        results, ignore_index=True
+    )
 
     ## validation dataset
     # if validation data is provided...
     if x_valid is not None:
         y_pred = model.predict(x_valid.values)
-        results = self.regression_stats(model=model,
-                                    y_True=y_valid.values,
-                                    y_pred=y_pred,
-                                    feature_count=x_train.shape[1],
-                                    data_type='validation'
-                            )
-        feature_selector_summary = feature_selector_summary.append(results, ignore_index=True)
+        results = self.regression_stats(
+            model=model,
+            y_True=y_valid.values,
+            y_pred=y_pred,
+            feature_count=x_train.shape[1],
+            data_type="validation",
+        )
+        feature_selector_summary = feature_selector_summary.append(
+            results, ignore_index=True
+        )
     else:
-       # if validation data is not provided, then perform k_fold cross validation on
+        # if validation data is not provided, then perform k_fold cross validation on
         # training data
         cv = list(
-            model_selection.k_fold(
+            model_selection.KFold(
                 n_splits=n_folds, shuffle=True, random_state=random_state
             ).split(x_train, y_train)
         )
@@ -145,13 +172,18 @@ def regression_results(self, model, x_train, y_train, x_valid=None, y_valid=None
             x_valid_cv = x_train.iloc[valid_ix]
             y_valid_cv = y_train.iloc[valid_ix]
 
-            y_pred = model.fit(x_train_cv.values, y_train_cv.values).predict(x_valid_cv.values)
-            results = self.regression_stats(model=model,
-                                        y_True=y_valid_cv,
-                                        y_pred=y_pred,
-                                        feature_count=x_valid_cv.shape[1],
-                                        data_type='validation',
-                                        fold=i+1
-                                )
-            feature_selector_summary = feature_selector_summary.append(results, ignore_index=True)
+            y_pred = model.fit(x_train_cv.values, y_train_cv.values).predict(
+                x_valid_cv.values
+            )
+            results = self.regression_stats(
+                model=model,
+                y_True=y_valid_cv,
+                y_pred=y_pred,
+                feature_count=x_valid_cv.shape[1],
+                data_type="validation",
+                fold=i + 1,
+            )
+            feature_selector_summary = feature_selector_summary.append(
+                results, ignore_index=True
+            )
     return feature_selector_summary

@@ -35,7 +35,10 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             color_map : string specifying built_in matplotlib colormap, default = "viridis"
                 colormap from which to draw plot colors.
     """
-    if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap:
+    if (
+        len(np.unique(self.data[self.data[feature].notnull()][feature].values))
+        < level_count_cap
+    ):
 
         # univariate summary
         uni_summ_df = pd.DataFrame(columns=[feature, "count", "proportion"])
@@ -108,11 +111,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             # display summary tables
             self.df_side_by_side(
                 dfs=(uni_summ_df, bi_summ_df, stat_test_df),
-                names=[
-                    "univariate summary",
-                    "biivariate summary",
-                    "statistical test",
-                ],
+                names=["univariate summary", "biivariate summary", "statistical test",],
             )
             if "percent_positive" in bi_summ_df:
                 bi_summ_df = bi_summ_df.drop(["percent_positive"], axis=1)
@@ -157,7 +156,13 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         ax = p.make_canvas(
             title="faceted by target\n* {}".format(feature), position=122
         )
-        p.pretty_facet_cat(df=bi_summ_df, feature=feature, label_rotate=rotation, color_map=color_map, ax=ax)
+        p.pretty_facet_cat(
+            df=bi_summ_df,
+            feature=feature,
+            label_rotate=rotation,
+            color_map=color_map,
+            ax=ax,
+        )
         plt.show()
 
 
@@ -200,9 +205,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis"):
     describe_df = describe_df.append(
         {
             "index": "skew",
-            feature: np.round(
-                stats.skew(bi_df[feature].values, nan_policy="omit"), 5
-            ),
+            feature: np.round(stats.skew(bi_df[feature].values, nan_policy="omit"), 5),
         },
         ignore_index=True,
     )
@@ -400,9 +403,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
         )
 
         # regression plot
-        ax = p.make_canvas(
-            title="regression plot\n* {}".format(feature), position=132
-        )
+        ax = p.make_canvas(title="regression plot\n* {}".format(feature), position=132)
         p.pretty_reg_plot(
             x=feature,
             y=self.target.name,
@@ -471,15 +472,11 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
         )
 
         # probability plot
-        ax = p.make_canvas(
-            title="probability plot\n* {}".format(feature), position=132
-        )
+        ax = p.make_canvas(title="probability plot\n* {}".format(feature), position=132)
         p.pretty_prob_plot(x=bi_df[(bi_df[feature].notnull())][feature].values, plot=ax)
 
         # regression plot
-        ax = p.make_canvas(
-            title="regression plot\n* {}".format(feature), position=133
-        )
+        ax = p.make_canvas(title="regression plot\n* {}".format(feature), position=133)
         p.pretty_reg_plot(
             x=feature,
             y=self.target.name,
@@ -506,7 +503,10 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             color_map : string specifying built_in matplotlib colormap, default = "viridis"
                 colormap from which to draw plot colors.
     """
-    if len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap:
+    if (
+        len(np.unique(self.data[self.data[feature].notnull()][feature].values))
+        < level_count_cap
+    ):
 
         ### summary tables
         # univariate summary
@@ -573,7 +573,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         avg_len_unique_val = sum(map(len, str(unique_vals))) / len(unique_vals)
         if len_unique_val <= 4 and avg_len_unique_val <= 12:
             rotation = 0
-        elif len_unique_val >= 5 and len_unique_val <= 8 and avg_len_unique_val <= 7.:
+        elif len_unique_val >= 5 and len_unique_val <= 8 and avg_len_unique_val <= 7.0:
             rotation = 0
         elif len_unique_val >= 9 and len_unique_val <= 14 and avg_len_unique_val <= 6:
             rotation = 0
@@ -599,7 +599,9 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             ]
 
         # bivariate box plot
-        ax = p.make_canvas(title="faceted by target\n* {}".format(feature), position=122)
+        ax = p.make_canvas(
+            title="faceted by target\n* {}".format(feature), position=122
+        )
         p.pretty_box_plot_v(
             x=feature,
             y=self.target.name,

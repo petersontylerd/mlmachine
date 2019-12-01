@@ -47,8 +47,8 @@ class Machine:
         missing_data_dropper_all,
     )
     from .features.outlier import (
-        extended_iso_forest,
-        outlier_iqr,
+        ExtendedIsoForest,
+        OutlierIQR,
         outlier_summary,
     )
     from .features.selection import FeatureSelector
@@ -284,7 +284,9 @@ class Machine:
             for column in self.feature_type[feature_type_key]:
                 if column not in self.data.columns:
                     self.feature_type[feature_type_key] = [
-                        x for x in self.feature_type[feature_type_key] if x not in [column]
+                        x
+                        for x in self.feature_type[feature_type_key]
+                        if x not in [column]
                     ]
 
         # sort columns alphabeticalls by name
