@@ -51,7 +51,7 @@ def regression_stats(
                 instantiated model object.
             y_True : pandas DataFrame or array
                 True labels.
-            y_pred : pandas series or array
+            y_pred : Pandas Series or array
                 predicted labels.
             feature_count : int
                 number of features in the observation data. used to calculate adjusted r_squared.
@@ -107,11 +107,11 @@ def regression_results(
                 instantiated model object.
             x_train : pandas DataFrame
                 training data observations.
-            y_train : pandas series
+            y_train : Pandas Series
                 training data labels.
             x_valid : pandas DataFrame, default =None
                 validation data observations.
-            y_valid : pandas series, default =None
+            y_valid : Pandas Series, default =None
                 validation data labels.
             n_folds : int, default = 3
                 number of cross_validation folds to use when generating

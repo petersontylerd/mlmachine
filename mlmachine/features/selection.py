@@ -40,8 +40,8 @@ class FeatureSelector:
             data : pandas DataFrame, default =None
                 pandas DataFrame containing independent variables. if left as none,
                 the feature dataset provided to machine during instantiation is used.
-            target : pandas series, default =None
-                pandas series containing dependent target variable. if left as none,
+            target : Pandas Series, default =None
+                Pandas Series containing dependent target variable. if left as none,
                 the target dataset provided to machine during instantiation is used.
             estimators : list of strings or sklearn api objects.
                     list of estimators to be used.

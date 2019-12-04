@@ -35,11 +35,11 @@ def classification_panel(
                 instantiated model object.
             x_train : pandas DataFrame
                 training data observations.
-            y_train : pandas series
+            y_train : Pandas Series
                 training data labels.
             x_valid : pandas DataFrame, default =None
                 validation data observations.
-            y_valid : pandas series, default =None
+            y_valid : Pandas Series, default =None
                 validation data labels.
             cm_labels : list, default =None
                 custom labels for confusion matrix axes. if left as none,
@@ -196,11 +196,11 @@ def regression_panel(
                 instantiated model object.
             x_train : pandas DataFrame
                 training data observations.
-            y_train : pandas series
+            y_train : Pandas Series
                 training data labels.
             x_valid : pandas DataFrame, default =None
                 validation data observations.
-            y_valid : pandas series, default =None
+            y_valid : Pandas Series, default =None
                 validation data labels.
             n_folds : int, default = 3
                 number of cross_validation folds to use when generating
@@ -239,7 +239,7 @@ def regression_panel(
         title_scale=title_scale,
     )
 
-    p.pretty2d_scatter(
+    p.pretty_2d_scatter(
         x=y_pred, y=y_pred - y_train.values, size=7, color=style.style_grey, ax=ax,
     )
     plt.hlines(
@@ -280,7 +280,7 @@ def regression_panel(
             title_scale=title_scale,
         )
 
-        p.pretty2d_scatter(
+        p.pretty_2d_scatter(
             x=y_pred, y=y_pred - y_valid.values, size=7, color=style.style_grey, ax=ax,
         )
         plt.hlines(
@@ -358,7 +358,7 @@ def regression_panel(
                 title_scale=title_scale,
             )
 
-            p.pretty2d_scatter(
+            p.pretty_2d_scatter(
                 x=y_pred,
                 y=y_pred - y_valid_cv.values,
                 size=7,

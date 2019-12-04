@@ -7,7 +7,7 @@ from time import gmtime, strftime
 from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
-from matplotlib.Patches import Patch
+from matplotlib.patches import Patch
 
 import numpy as np
 import pandas as pd
@@ -295,7 +295,7 @@ def ExecBayesOptimSearch(
             input_target = target.copy()
         else:
             raise AttributeError(
-                "input target must be either a pandas series or a numpy ndarray"
+                "input target must be either a Pandas Series or a numpy ndarray"
             )
 
         # override default arguments with next estimator and the cv parameters

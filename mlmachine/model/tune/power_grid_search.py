@@ -145,7 +145,7 @@ class PowerGridSearcher:
                 "mean_score": np.mean(scores),
                 "std_score": np.std(scores),
             }
-            return pd.series({**params, **d})
+            return pd.Series({**params, **d})
 
         rows = []
         for k in self.grid_searches:

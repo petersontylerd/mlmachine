@@ -16,7 +16,7 @@ def eda_transform_initial(self, data, name):
             creates a two_panel visualization. the left plot is the current distribution overlayed on a
             normal distribution. the right plot is a qqplot overlayed across a straight line.
         parameters:
-            data : pandas series
+            data : Pandas Series
                 target variables data object.
             name : string
                 name of target variable.
@@ -58,7 +58,7 @@ def eda_transform_log1(self, data, name):
             on a normal distribution. the right plot is a log + 1 adjusted qqplot overlayed across a straight
             line.
         parameters:
-            data : pandas series
+            data : Pandas Series
                 target variables data object.
             name : string
                 name of target variable.
@@ -96,22 +96,22 @@ def eda_transform_box_cox(self, data, name, lmbda):
     """
     documentation:
         description:
-            creates a two_panel visualization. the left plot is the box_cox transformed distribution overlayed
-            on a normal distribution. the right plot is a box_cox transformed qqplot overlayed across a straight
+            creates a two_panel visualization. the left plot is the box-cox transformed distribution overlayed
+            on a normal distribution. the right plot is a box-cox transformed qqplot overlayed across a straight
             line.
         parameters:
-            data : pandas series
+            data : Pandas Series
                 target variables data object.
             name : string
                 name of target variable.
             lmbda : float
-                box_cox transformation parameter.
+                box-cox transformation parameter.
     """
     p = PrettierPlot(chart_prop=15)
 
     # distribution / kernel density plot
     ax = p.make_canvas(
-        title="dist/kde - {} (box_cox, {})".format(name, lmbda),
+        title="dist/kde - {} (box-cox, {})".format(name, lmbda),
         x_label="",
         y_label="",
         y_shift=0.8,
@@ -129,7 +129,7 @@ def eda_transform_box_cox(self, data, name, lmbda):
 
     # qq plot
     ax = p.make_canvas(
-        title="probability plot - {} (box_cox, {})".format(name, lmbda),
+        title="probability plot - {} (box-cox, {})".format(name, lmbda),
         x_label="",
         y_label="",
         y_shift=0.8,

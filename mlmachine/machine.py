@@ -36,7 +36,7 @@ class Machine:
         ContextImputer,
         DataFrameSelector,
         DualTransformer,
-        KFfoldTargetEncoderTrain,
+        KFoldTargetEncoder,
         PandasFeatureUnion,
         PlayWithPandas,
         skew_summary,
@@ -133,8 +133,8 @@ class Machine:
             attributes:
                 data : pandas DataFrame
                     independent variables returned as a pandas DataFrame
-                target : pandas series
-                    dependent variable returned as a pandas series
+                target : Pandas Series
+                    dependent variable returned as a Pandas Series
                 features_by_dtype_ : dict
                     dictionary contains keys 'numeric', 'categorical' and/or 'date'. the corresponding values
                     are lists of column names that are of that feature type.
@@ -296,7 +296,7 @@ class Machine:
         """
         documentation:
             description:
-                encode categorical target column and store as a pandas series, where
+                encode categorical target column and store as a Pandas Series, where
                 the name is the name of the feature in the original dataset.
             parameters:
                 reverse : boolean, default=False
@@ -305,8 +305,8 @@ class Machine:
         # encode label
         self.le_ = preprocessing.LabelEncoder()
 
-        # store as a named pandas series
-        self.target = pd.series(
+        # store as a named Pandas Series
+        self.target = pd.Series(
             self.le_.fit_transform(self.target.values.reshape(-1)),
             name=self.target.name,
             index=self.target.index,
@@ -332,8 +332,8 @@ class Machine:
                 data : pandas DataFrame, default =None
                     pandas DataFrame containing independent variables. if left as none,
                     the feature dataset provided to machine during instantiation is used.
-                target : pandas series, default =None
-                    pandas series containing dependent target variable. if left as none,
+                target : Pandas Series, default =None
+                    Pandas Series containing dependent target variable. if left as none,
                     the target dataset provided to machine during instantiation is used.
             return:
                 df : pandas DataFrame

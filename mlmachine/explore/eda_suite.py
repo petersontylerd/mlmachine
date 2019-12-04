@@ -67,7 +67,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         )
 
         multi_index = bi_summ_df.columns
-        single_index = pd.index([i for i in multi_index.tolist()])
+        single_index = pd.Index([i for i in multi_index.tolist()])
         bi_summ_df.columns = single_index
         bi_summ_df.reset_index(inplace=True)
 
@@ -535,7 +535,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             bi_df, index=feature, aggfunc={self.target.name: stats_dict}
         )
         multi_index = bi_summ_piv_df.columns
-        single_index = pd.index([i[1] for i in multi_index.tolist()])
+        single_index = pd.Index([i[1] for i in multi_index.tolist()])
         bi_summ_piv_df.columns = single_index
         bi_summ_piv_df.reset_index(inplace=True)
 

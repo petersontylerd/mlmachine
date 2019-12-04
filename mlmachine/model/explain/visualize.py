@@ -78,7 +78,7 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
                 instantiated model object.
             data : pandas DataFrame
                 dataset from which to slice indiviudal observation.
-            target : pandas series, default =None
+            target : Pandas Series, default =None
                 True labels for observations. this is optional to allow explainations
                 for observations without labels.
             classification : boolean, default=True

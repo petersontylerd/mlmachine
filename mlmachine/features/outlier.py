@@ -36,24 +36,24 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
         self.features = features
         self.drop_outliers = drop_outliers
 
-    def fit(self, x, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, x):
+    def transform(self, X):
         outlier_indices = []
 
         # iterate over features(columns)
         for col in self.features:
-            q1 = np.percentile(x[col], 25)
-            q3 = np.percentile(x[col], 75)
+            q1 = np.percentile(X[col], 25)
+            q3 = np.percentile(X[col], 75)
             iqr = q3 - q1
 
             # outlier step
             outlier_step = self.iqr_step * iqr
 
             # determine a list of indices of outliers for feature col
-            outlier_list_col = x[
-                (x[col] < q1 - outlier_step) | (x[col] > q3 + outlier_step)
+            outlier_list_col = X[
+                (X[col] < q1 - outlier_step) | (X[col] > q3 + outlier_step)
             ].index
 
             # append the found outlier indices for col to the list of outlier indices
@@ -67,9 +67,9 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
         )
 
         if self.drop_outliers:
-            x = x.drop(self.outliers_, axis=0).reset_index(drop=True)
+            X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
 
-        return x
+        return X
 
 
 class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
@@ -85,7 +85,7 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
             sample_size : int
                 sub_sample size for creating each trees. values must be smaller that input dataset
                 row count.
-            extension_level : int
+            ExtensionLevel : int
                 degrees of freedom for choosing hyperplanes that divide data. value must be smaller
                 than input dataset column count.
             anomalies_ratio : float
@@ -109,38 +109,38 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
         self.cols = cols
         self.n_trees = n_trees
         self.sample_size = sample_size
-        self.extension_level = extension_level
+        self.ExtensionLevel = ExtensionLevel
         self.anomalies_ratio = anomalies_ratio
         self.drop_outliers = drop_outliers
 
-    def fit(self, x, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, x):
-        ext_iso = eif.i_forest(
-            x=x[self.cols].values,
+    def transform(self, X):
+        ext_iso = eif.iForest(
+            X=X[self.cols].values,
             ntrees=self.n_trees,
             sample_size=self.sample_size,
-            extension_level=self.extension_level,
+            ExtensionLevel=self.ExtensionLevel,
         )
 
         # calculate anomaly scores
-        anomaly_scores = ext_iso.compute_paths(x_in=x[self.cols].values)
+        anomaly_scores = ext_iso.compute_paths(X_in=X[self.cols].values)
 
         anomaly_scores_sorted = pd.DataFrame(
-            anomaly_scores, index=x.index, columns=["anomaly score"]
+            anomaly_scores, index=X.index, columns=["anomaly score"]
         ).sort_values(["anomaly score"], ascending=False)
 
         self.outliers_ = np.array(
             anomaly_scores_sorted[
-                : int(np.ceil(self.anomalies_ratio * x.shape[0]))
+                : int(np.ceil(self.anomalies_ratio * X.shape[0]))
             ].index
         )
 
         if self.drop_outliers:
-            x = x.drop(self.outliers_, axis=0).reset_index(drop=True)
+            X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
 
-        return x
+        return X
 
 
 def outlier_summary(self, iqr_outliers, if_outliers, eif_outliers):

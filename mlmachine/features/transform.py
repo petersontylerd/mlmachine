@@ -31,7 +31,7 @@ class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
                 data pipeline using named steps. variable to be retrieved from traing
                 pipeline is called train_value_..
         returns:
-            x : array
+            X : array
                 dataset with additional columns represented binned versions of input columns.
     """
 
@@ -40,10 +40,10 @@ class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
         self.train = train
         self.train_value = train_value
 
-    def fit(self, x, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, x):
+    def transform(self, X):
         # encode training data
         if self.train:
 
@@ -54,11 +54,11 @@ class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
             for col, label in self.equal_bin_dict.items():
 
                 # retrieve bin cutoffs from original column
-                _, bins = pd.cut(x[col], bins=len(label), labels=label, retbins=True)
+                _, bins = pd.cut(X[col], bins=len(label), labels=label, retbins=True)
 
                 # add binned version of original column to dataset
-                x["{}{}".format(col, "equal_bin")] = pd.cut(
-                    x[col], bins=len(label), labels=label
+                X["{}{}".format(col, "equal_bin")] = pd.cut(
+                    X[col], bins=len(label), labels=label
                 )
 
                 # build col_value_dict
@@ -73,8 +73,8 @@ class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
                 print(bins)
                 print(train_bins)
                 print(type(train_bins))
-                x["{}{}".format(col, "equal_bin")] = pd.cut(x[col], bins=train_bins)
-        return x
+                X["{}{}".format(col, "equal_bin")] = pd.cut(X[col], bins=train_bins)
+        return X
 
 
 class percentile_binner(base.TransformerMixin, base.BaseEstimator):
@@ -96,7 +96,7 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
                 data pipeline using named steps. variable to be retrieved from traing
                 pipeline is called train_value_..
         returns:
-            x : array
+            X : array
                 dataset with additional columns represented binned versions of input columns.
     """
 
@@ -106,10 +106,10 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
         self.train = train
         self.train_value = train_value
 
-    def fit(self, x, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, x):
+    def transform(self, X):
         # bin training data
         if self.train:
 
@@ -120,26 +120,26 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
             for col in self.cols:
                 # create empty perc_bin column
                 bin_col = "{}perc_bin".format(col)
-                x[bin_col] = np.nan
+                X[bin_col] = np.nan
 
                 # determine percentile cut_offs
                 perc_vals = []
                 for perc in self.percs:
-                    perc_vals.append(np.percentile(x[col], perc))
+                    perc_vals.append(np.percentile(X[col], perc))
 
                 # iterate through custom binning
                 for ix, ceil in enumerate(perc_vals):
                     # first item
                     if ix == 0:
-                        x.loc[x[col] <= ceil, bin_col] = ix
+                        X.loc[X[col] <= ceil, bin_col] = ix
 
                     # next to last and last item
                     elif ix == len(perc_vals) - 1:
-                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
-                        x.loc[x[col] > ceil, bin_col] = ix + 1
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), bin_col] = ix
+                        X.loc[X[col] > ceil, bin_col] = ix + 1
                     # everything in between
                     else:
-                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), bin_col] = ix
 
                     # increment the floor
                     floor = ceil
@@ -148,7 +148,7 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
                 self.train_value_[col] = perc_vals
 
                 # set data type
-                x[bin_col] = x[bin_col].astype("int64")
+                X[bin_col] = X[bin_col].astype("int64")
 
         # bin validation data based on percentile values learned from training data
         else:
@@ -156,27 +156,27 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
             for col in self.train_value.keys():
                 # create empty perc_bin column
                 bin_col = "{}perc_bin".format(col)
-                x[bin_col] = np.nan
+                X[bin_col] = np.nan
 
                 # iterate through bin values
                 for ix, ceil in enumerate(self.train_value[col]):
                     # first item
                     if ix == 0:
-                        x.loc[x[col] <= ceil, bin_col] = ix
+                        X.loc[X[col] <= ceil, bin_col] = ix
                     # next to last and last item
                     elif ix == len(self.train_value[col]) - 1:
-                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
-                        x.loc[x[col] > ceil, bin_col] = ix + 1
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), bin_col] = ix
+                        X.loc[X[col] > ceil, bin_col] = ix + 1
                     # everything in between
                     else:
-                        x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
+                        X.loc[(X[col] > floor) & (X[col] <= ceil), bin_col] = ix
 
                     # increment the floor
                     floor = ceil
 
                 # set data type
-                x[bin_col] = x[bin_col].astype("int64")
-        return x
+                X[bin_col] = X[bin_col].astype("int64")
+        return X
 
 
 class custom_binner(base.TransformerMixin, base.BaseEstimator):
@@ -189,22 +189,22 @@ class custom_binner(base.TransformerMixin, base.BaseEstimator):
                 dictionary containing 'column : bin' specifcation pairs. bin specifications
                 should be a list.
         returns:
-            x : array
+            X : array
                 dataset with additional columns represented binned versions of input columns.
     """
 
     def __init__(self, custom_bin_dict):
         self.custom_bin_dict = custom_bin_dict
 
-    def fit(self, x, y=None):
+    def fit(self, X, y=None):
         return self
 
-    def transform(self, x):
+    def transform(self, X):
         # iterate through columns by name
         for col in self.custom_bin_dict.keys():
             # create empty custom_bin column
             bin_col = "{}custom_bin".format(col)
-            x[bin_col] = np.nan
+            X[bin_col] = np.nan
 
             # append feature_dtype dict
             # self.feature_type['categorical'].append(bin_col)
@@ -213,18 +213,18 @@ class custom_binner(base.TransformerMixin, base.BaseEstimator):
             for ix, ceil in enumerate(self.custom_bin_dict[col]):
                 # first item
                 if ix == 0:
-                    x.loc[x[col] <= ceil, bin_col] = ix
+                    X.loc[X[col] <= ceil, bin_col] = ix
                 # next to last and last item
                 elif ix == len(self.custom_bin_dict[col]) - 1:
-                    x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
-                    x.loc[x[col] > ceil, bin_col] = ix + 1
+                    X.loc[(X[col] > floor) & (X[col] <= ceil), bin_col] = ix
+                    X.loc[X[col] > ceil, bin_col] = ix + 1
                 # everything in between
                 else:
-                    x.loc[(x[col] > floor) & (x[col] <= ceil), bin_col] = ix
+                    X.loc[(X[col] > floor) & (X[col] <= ceil), bin_col] = ix
 
                 # increment the floor
                 floor = ceil
 
             # set data type
-            x[bin_col] = x[bin_col].astype("int64")
-        return x
+            X[bin_col] = X[bin_col].astype("int64")
+        return X
