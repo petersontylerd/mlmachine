@@ -232,7 +232,7 @@ def ExecBayesOptimSearch(
     """
     if results_file is None:
         results_file = "bayes_optimization_summary_{}_{}.csv".format(
-            scoring, strftime("%y%m%d_%h%m%s", gmtime())
+            scoring, strftime("%y%m%d%H%M", gmtime())
         )
 
     # add file header

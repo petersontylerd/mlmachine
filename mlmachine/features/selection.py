@@ -117,7 +117,7 @@ class FeatureSelector:
         if save_to_csv:
             self.feature_selector_summary.to_csv(
                 "feature_selection_summary_{}.csv".format(
-                    strftime("%y%m%d_%h%m%s", gmtime())
+                    strftime("%y%m%d%H%M", gmtime())
                 ),
                 columns=self.feature_selector_summary.columns,
                 # index_label="index"
@@ -266,7 +266,7 @@ class FeatureSelector:
                 estimator=model.model, n_features_to_select=1, step=1, verbose=0
             )
             rfe.fit(self.data, self.target)
-            feature_dict["rfe " + estimator_name] = rfe.ranking_
+            feature_dict["RFE " + estimator_name] = rfe.ranking_
             # feature_dict["rfe " + model.estimator.__name__] = rfe.ranking_
 
         feature_df = pd.DataFrame(feature_dict, index=self.data.columns)
@@ -457,7 +457,7 @@ class FeatureSelector:
 
         if save_to_csv:
             self.cv_summary.to_csv(
-                "cv_summary_{}.csv".format(strftime("%y%m%d_%h%m%s", gmtime())),
+                "cv_summary_{}.csv".format(strftime("%y%m%d%H%M", gmtime())),
                 columns=self.cv_summary.columns,
                 index_label="index",
             )
@@ -588,7 +588,7 @@ class FeatureSelector:
             # create multi_line plot
             p = PrettierPlot()
             ax = p.make_canvas(
-                title="{}\n_best validation {} = {}\n_features dropped = {}".format(
+                title="{}\nBest validation {} = {}\nFeatures dropped = {}".format(
                     estimator, metric, score, num_dropped
                 ),
                 x_label="features removed",

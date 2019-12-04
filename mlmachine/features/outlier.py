@@ -78,7 +78,7 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
         description:
             identifies outliers using extended isolation forest method.
         parameters:
-            cols : list
+            columns : list
                 columns to be evaluated by extended isolation forest
             n_trees : int
                 number of trees to be used.
@@ -99,17 +99,17 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
 
     def __init__(
         self,
-        cols,
+        columns,
         n_trees,
         sample_size,
         extension_level,
         anomalies_ratio,
         drop_outliers=False,
     ):
-        self.cols = cols
+        self.columns = columns
         self.n_trees = n_trees
         self.sample_size = sample_size
-        self.ExtensionLevel = ExtensionLevel
+        self.extension_level = extension_level
         self.anomalies_ratio = anomalies_ratio
         self.drop_outliers = drop_outliers
 
@@ -118,14 +118,14 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
 
     def transform(self, X):
         ext_iso = eif.iForest(
-            X=X[self.cols].values,
+            X=X[self.columns].values,
             ntrees=self.n_trees,
             sample_size=self.sample_size,
-            ExtensionLevel=self.ExtensionLevel,
+            ExtensionLevel=self.extension_level,
         )
 
         # calculate anomaly scores
-        anomaly_scores = ext_iso.compute_paths(X_in=X[self.cols].values)
+        anomaly_scores = ext_iso.compute_paths(X_in=X[self.columns].values)
 
         anomaly_scores_sorted = pd.DataFrame(
             anomaly_scores, index=X.index, columns=["anomaly score"]

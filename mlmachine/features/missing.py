@@ -14,9 +14,9 @@ def missing_data_dropper_all(self, data):
             data : pandas DataFrame
                 modified input with all columns containing missing data removed.
     """
-    missing_cols = data.isnull().sum()
-    missing_cols = missing_cols[missing_cols > 0].index
-    data = data.drop(missing_cols, axis=1)
+    missing_columns = data.isnull().sum()
+    missing_columns = missing_columns[missing_columns > 0].index
+    data = data.drop(missing_columns, axis=1)
 
     return data
 

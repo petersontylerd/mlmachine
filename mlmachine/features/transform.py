@@ -83,7 +83,7 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
         description:
             bin numeric columns into segments based on percentile cut_offs.
         parameters:
-            cols : list
+            columns : list
                 list of colummns to be binned. the percentiles are derived from
                 the raw data.
             percs : list
@@ -100,8 +100,8 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
                 dataset with additional columns represented binned versions of input columns.
     """
 
-    def __init__(self, cols=None, percs=None, train=True, train_value=None):
-        self.cols = cols
+    def __init__(self, columns=None, percs=None, train=True, train_value=None):
+        self.columns = columns
         self.percs = percs
         self.train = train
         self.train_value = train_value
@@ -117,7 +117,7 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
             self.train_value_ = {}
 
             # iterate through columns by name
-            for col in self.cols:
+            for col in self.columns:
                 # create empty perc_bin column
                 bin_col = "{}perc_bin".format(col)
                 X[bin_col] = np.nan

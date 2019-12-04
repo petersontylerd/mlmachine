@@ -230,17 +230,17 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
 
 class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
     def __init__(
-        self, target, cv, n_bins=5, drop_bin_cols=True, drop_original_cols=False
+        self, target, cv, n_bins=5, drop_bin_columns=True, drop_original_columns=False
     ):
         self.target = target
         self.cv = cv
         self.transform_train = False
         self.n_bins = n_bins
-        self.drop_bin_cols = drop_bin_cols
-        self.drop_original_cols = drop_original_cols
+        self.drop_bin_columns = drop_bin_columns
+        self.drop_original_columns = drop_original_columns
 
     def fit(self, X, y=None):
-        self.cols = X.columns
+        self.columns = X.columns
         self.stats = {}
         self.binners = {}
 
@@ -254,7 +254,7 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
             X = X.merge(self.target, left_index=True, right_index=True)
 
             # add empty columns to input dataset and set as numeric
-            for col in self.cols:
+            for col in self.columns:
                 X[col + "_" + "target_encoded"] = np.nan
                 X[col + "_" + "target_encoded"] = pd.to_numeric(
                     X[col + "_" + "target_encoded"]
@@ -291,7 +291,7 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
                 x_train, x_valid = X.iloc[train_ix], X.iloc[valid_ix]
 
                 # update rows with out of fold averages
-                for col in self.cols:
+                for col in self.columns:
                     if col in self.numeric_columns:
                         if isinstance(self.n_bins, dict):
                             X.loc[
@@ -317,13 +317,13 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
                         )
 
             # ensure numeric data type
-            for col in self.cols:
+            for col in self.columns:
                 X[col + "_" + "target_encoded"] = pd.to_numeric(
                     X[col + "_" + "target_encoded"]
                 )
 
             # collect average values for transformation of unseen data
-            for col in self.cols:
+            for col in self.columns:
                 if col in self.numeric_columns:
                     if isinstance(self.n_bins, dict):
                         self.stats[col] = X.groupby(
@@ -346,9 +346,9 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
             X = X.drop(self.target.name, axis=1)
 
             # conditionally drop original and/or binned columns
-            if self.drop_original_cols:
-                X = X.drop(self.cols, axis=1)
-            if self.drop_bin_cols:
+            if self.drop_original_columns:
+                X = X.drop(self.columns, axis=1)
+            if self.drop_bin_columns:
                 X = X.drop(X.columns[X.columns.str.contains("_bins")], axis=1)
         else:
             # ieterate through all columns in the summary stats dict
@@ -394,9 +394,9 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
                     )
 
             # conditionally drop original and/or binned columns
-            if self.drop_original_cols:
-                X = X.drop(self.cols, axis=1)
-            if self.drop_bin_cols:
+            if self.drop_original_columns:
+                X = X.drop(self.columns, axis=1)
+            if self.drop_bin_columns:
                 X = X.drop(X.columns[X.columns.str.contains("_bins")], axis=1)
         return X
 
@@ -474,22 +474,22 @@ class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
 
         # for each transformer in the input pipe
         for pipe_trans in self.pipes.transformer_list:
-            pipe_cols = []
+            pipe_columns = []
 
             # for each step in each transformer
             for step in pipe_trans[1].steps:
                 # add all columns specified in DataFrameSelector objects
                 if isinstance(step[1], DataFrameSelector):
-                    pipe_cols.append(step[1].attribute_names)
-                    pipe_cols = list(set(itertools.chain(*pipe_cols)))
+                    pipe_columns.append(step[1].attribute_names)
+                    pipe_columns = list(set(itertools.chain(*pipe_columns)))
                 # remove all columns specified in ContextImputer objects
                 elif isinstance(step[1], ContextImputer):
-                    remove_cols = step[1].context_col
-                    if isinstance(remove_cols, str):
-                        pipe_cols = [i for i in pipe_cols if i not in [remove_cols]]
+                    remove_columns = step[1].context_col
+                    if isinstance(remove_columns, str):
+                        pipe_columns = [i for i in pipe_columns if i not in [remove_columns]]
 
             # collect columns in processed_columns attribute
-            self.processed_columns.append(pipe_cols)
+            self.processed_columns.append(pipe_columns)
 
         # flatten processed_columns
         self.processed_columns = list(set(itertools.chain(*self.processed_columns)))
