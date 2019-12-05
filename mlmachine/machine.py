@@ -349,7 +349,7 @@ class Machine:
         return df
 
 
-def train_test_compile(data, target_col, valid_size=0.2, random_state=1):
+def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
     """
     description:
         intakes a single dataset and returns a training dataset and a validation dataset
