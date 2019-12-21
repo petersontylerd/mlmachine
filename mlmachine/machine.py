@@ -38,7 +38,7 @@ class Machine:
         DualTransformer,
         KFoldTargetEncoder,
         PandasFeatureUnion,
-        PlayWithPandas,
+        PandasPipeline,
         skew_summary,
         UnprocessedColumnAdder,
     )
@@ -77,7 +77,7 @@ class Machine:
     from .model.tune.bayesian_optim_search import (
         BasicModelBuilder,
         BayesOptimModelBuilder,
-        ExecBayesOptimSearch,
+        exec_bayes_optim_search,
         model_loss_plot,
         model_param_plot,
         objective,

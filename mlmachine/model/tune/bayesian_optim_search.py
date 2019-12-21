@@ -37,9 +37,7 @@ from prettierplot import style
 
 
 # set optimization parameters
-def objective(
-    space, results_file, model, data, target, scoring, n_folds, n_jobs, verbose
-):
+def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs, verbose):
     """
     documentation:
         description:
@@ -180,19 +178,8 @@ def objective(
     }
 
 
-def ExecBayesOptimSearch(
-    self,
-    all_space,
-    data,
-    target,
-    scoring,
-    columns=None,
-    n_folds=3,
-    n_jobs=4,
-    iters=50,
-    verbose=0,
-    results_file=None,
-):
+def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None, n_folds=3,
+                        n_jobs=4, iters=50, verbose=0, results_file=None,):
     """
     documentation:
         definition:

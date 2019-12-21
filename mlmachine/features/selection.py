@@ -92,26 +92,26 @@ class FeatureSelector:
 
         # add summary stats
         self.feature_selector_summary.insert(
-            loc=0, column="average", value=self.feature_selector_summary.mean(axis=1)
+            loc=0, column="rank average", value=self.feature_selector_summary.mean(axis=1)
         )
         self.feature_selector_summary.insert(
             loc=1,
-            column="stdev",
+            column="rank stdev",
             value=self.feature_selector_summary.iloc[:, 1:].std(axis=1),
         )
         self.feature_selector_summary.insert(
             loc=2,
-            column="low",
+            column="rank low",
             value=self.feature_selector_summary.iloc[:, 2:].min(axis=1),
         )
         self.feature_selector_summary.insert(
             loc=3,
-            column="high",
+            column="rank high",
             value=self.feature_selector_summary.iloc[:, 3:].max(axis=1),
         )
 
         self.feature_selector_summary = self.feature_selector_summary.sort_values(
-            "average"
+            "rank average"
         )
 
         if save_to_csv:
@@ -129,7 +129,7 @@ class FeatureSelector:
         documentation:
             description:
                 for each feature, calculate f_values and p_values in the context of a
-                classification probelm.
+                classification problem.
         """
         # calculate f_values and p_values
         univariate = feature_selection.f_classif(self.data, self.target)
@@ -227,9 +227,8 @@ class FeatureSelector:
 
             # build dict
             feature_dict[
-                "feature_importance "
-                + estimator_name
-                # "feature_importance " + model.estimator.__name__
+                estimator_name
+                + "_feature_importance"
             ] = model.feature_importances(self.data.values, self.target)
 
         feature_df = pd.DataFrame(feature_dict, index=self.data.columns)
@@ -266,9 +265,8 @@ class FeatureSelector:
                 estimator=model.model, n_features_to_select=1, step=1, verbose=0
             )
             rfe.fit(self.data, self.target)
-            feature_dict["RFE " + estimator_name] = rfe.ranking_
-            # feature_dict["rfe " + model.estimator.__name__] = rfe.ranking_
-
+            feature_dict[estimator_name + "_RFE"] = rfe.ranking_
+            
         feature_df = pd.DataFrame(feature_dict, index=self.data.columns)
 
         # overwrite values with rank where lower ranks convey higher importance
@@ -288,9 +286,9 @@ class FeatureSelector:
         feature_df = self.data.merge(self.target, left_index=True, right_index=True)
 
         feature_df = pd.DataFrame(feature_df.corr().abs()[self.target.name])
-        feature_df = feature_df.rename(columns={self.target.name: "target_correlation"})
+        feature_df = feature_df.rename(columns={self.target.name: "correlation_to_target"})
 
-        feature_df = feature_df.sort_values("target_correlation", ascending=False)
+        feature_df = feature_df.sort_values("correlation_to_target", ascending=False)
         feature_df = feature_df.drop(self.target.name, axis=0)
 
         # overwrite values with rank where lower ranks convey higher importance
@@ -299,17 +297,8 @@ class FeatureSelector:
 
         return feature_df
 
-    def feature_selector_cross_val(
-        self,
-        scoring,
-        feature_selector_summary=None,
-        estimators=None,
-        n_folds=3,
-        step=1,
-        n_jobs=4,
-        verbose=True,
-        save_to_csv=True,
-    ):
+    def feature_selector_cross_val(self, scoring, feature_selector_summary=None, estimators=None,
+                                    n_folds=3, step=1, n_jobs=4, verbose=True, save_to_csv=True,):
         """
         documentation:
             description:
@@ -349,7 +338,7 @@ class FeatureSelector:
                 feature_selector_summary = self.feature_selector_summary
             except AttributeError:
                 raise AttributeError(
-                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from csv"
+                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
                 )
 
         # load estimators if needed
@@ -404,9 +393,9 @@ class FeatureSelector:
                 for i in np.arange(0, feature_selector_summary.shape[0], step):
                     # collect names of top columns
                     if i == 0:
-                        top = feature_selector_summary.sort_values("average").index
+                        top = feature_selector_summary.sort_values("rank average").index
                     else:
-                        top = feature_selector_summary.sort_values("average").index[:-i]
+                        top = feature_selector_summary.sort_values("rank average").index[:-i]
 
                     # custom metric handling
                     if metric == "root_mean_squared_error":
@@ -448,7 +437,6 @@ class FeatureSelector:
                         metric,
                         step_increment,
                     ]
-                    # cv.loc[row_ix] = [model.estimator.__name__, training, validation, metric, step_increment]
                     step_increment += step
                     row_ix += 1
 
@@ -464,17 +452,8 @@ class FeatureSelector:
 
         return self.cv_summary
 
-    def feature_selector_results_plot(
-        self,
-        metric,
-        cv_summary=None,
-        feature_selector_summary=None,
-        top_sets=0,
-        show_features=False,
-        show_scores=None,
-        marker_on=True,
-        title_scale=0.7,
-    ):
+    def feature_selector_results_plot(self, metric, cv_summary=None, feature_selector_summary=None, top_sets=0,
+                                    show_features=False, show_scores=None, marker_on=True, title_scale=0.7,):
         """
         documentation:
             description:
@@ -515,7 +494,7 @@ class FeatureSelector:
                 feature_selector_summary = self.feature_selector_summary
             except AttributeError:
                 raise AttributeError(
-                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from csv"
+                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
                 )
 
         # load cv summary if needed
@@ -528,7 +507,7 @@ class FeatureSelector:
                 cv_summary = self.cv_summary
             except AttributeError:
                 raise AttributeError(
-                    "no cv_summary detected. either execute method feature_selector_cross_val or load from csv"
+                    "no cv_summary detected. either execute method feature_selector_cross_val or load from .csv"
                 )
 
         for estimator in cv_summary["estimator"].unique():
@@ -575,13 +554,13 @@ class FeatureSelector:
                 if num_dropped > 0:
                     features = feature_selector_summary.shape[0] - num_dropped
                     features_used = (
-                        feature_selector_summary.sort_values("average")
+                        feature_selector_summary.sort_values("rank average")
                         .index[:features]
                         .values
                     )
                 else:
                     features_used = feature_selector_summary.sort_values(
-                        "average"
+                        "rank average"
                     ).index.values
                 print(features_used)
 
@@ -609,9 +588,7 @@ class FeatureSelector:
             )
             plt.show()
 
-    def create_cross_val_features_df(
-        self, metric, cv_summary=None, feature_selector_summary=None
-    ):
+    def create_cross_val_features_df(self, metric, cv_summary=None, feature_selector_summary=None):
         """
         documentation:
             description:
@@ -639,7 +616,7 @@ class FeatureSelector:
                 feature_selector_summary = self.feature_selector_summary
             except AttributeError:
                 raise AttributeError(
-                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from csv"
+                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
                 )
 
         # load cv summary if needed
@@ -652,7 +629,7 @@ class FeatureSelector:
                 cv_summary = self.cv_summary
             except AttributeError:
                 raise AttributeError(
-                    "no cv_summary detected. either execute method feature_selector_suite or load from csv"
+                    "no cv_summary detected. either execute method feature_selector_suite or load from .csv"
                 )
 
         # create empty DataFrame with feature names as index
@@ -678,13 +655,13 @@ class FeatureSelector:
             if num_dropped > 0:
                 features = feature_selector_summary.shape[0] - num_dropped
                 features_used = (
-                    feature_selector_summary.sort_values("average")
+                    feature_selector_summary.sort_values("rank average")
                     .index[:features]
                     .values
                 )
             else:
                 features_used = feature_selector_summary.sort_values(
-                    "average"
+                    "rank average"
                 ).index.values
 
             # create column for estimator and populate with marker
@@ -727,7 +704,7 @@ class FeatureSelector:
                 cross_val_features_df = self.cross_val_features_df
             except AttributeError:
                 raise AttributeError(
-                    "no cross_val_features_df detected. either execute method create_cross_val_features_df or load from csv"
+                    "no cross_val_features_df detected. either execute method create_cross_val_features_df or load from .csv"
                 )
 
         # create empty dict with feature names as index

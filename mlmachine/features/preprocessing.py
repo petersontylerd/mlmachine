@@ -108,7 +108,7 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         return X[self.attribute_names]
 
 
-class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
+class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
         Description:
@@ -146,7 +146,7 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = names
 
         # if the class is a PolynomialFeatures instance
-        elif isinstance(self.est, preprocessing.data.PolynomialFeatures):
+        elif isinstance(self.est, preprocessing._data.PolynomialFeatures):
 
             ### replace feature code names with actual feature names
             # capture object's feature code names
@@ -206,7 +206,7 @@ class PlayWithPandas(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = names
 
         # if the class is a category_encoders BinaryEncoder instance
-        elif isinstance(self.est, preprocessing.data.QuantileTransformer):
+        elif isinstance(self.est, preprocessing._data.QuantileTransformer):
             names = []
 
             for col in self.original_columns:
@@ -563,19 +563,19 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
         # yeo-johnson
         if self.yeojohnson:
             for col in self.yj_lambdas_dict_.keys():
-                X[col + "_yj"] = stats.yeojohnson(
+                X[col + "_yeojohnson"] = stats.yeojohnson(
                     X[col].values, lmbda=self.yj_lambdas_dict_[col]
                 )
 
         # box_cox
         if self.boxcox:
             for col in self.bc_p1_lambdas_dict_.keys():
-                X[col + "_bc"] = stats.boxcox(
+                X[col + "_boxcox"] = stats.boxcox(
                     X[col].values + 1, lmbda=self.bc_p1_lambdas_dict_[col]
                 )
 
             for col in self.bc_lambdas_dict_.keys():
-                X[col + "_bc"] = stats.boxcox(
+                X[col + "_boxcox"] = stats.boxcox(
                     X[col].values, lmbda=self.bc_lambdas_dict_[col]
                 )
         return X
