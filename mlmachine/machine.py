@@ -40,7 +40,6 @@ class Machine:
         PandasFeatureUnion,
         PandasPipeline,
         skew_summary,
-        UnprocessedColumnAdder,
     )
     from .features.missing import (
         missing_col_compare,
@@ -177,7 +176,7 @@ class Machine:
             # convert column dtype to "category"
             self.data[self.force_to_categorical] = self.data[
                 self.force_to_categorical
-            ].astype("category")
+            ].astype("object")
 
         # numeric features
         if self.force_to_numeric is None:
@@ -211,7 +210,7 @@ class Machine:
                 self.feature_type["categorical"].append(column)
 
                 # set column in dataset as categorical data type
-                self.data[column] = self.data[column].astype("category")
+                self.data[column] = self.data[column].astype("object")
 
             # numeric features
             elif pd.api.types.is_numeric_dtype(self.data[column]):
@@ -245,7 +244,7 @@ class Machine:
                 self.data[column] = self.data[column].astype("bool")
             # if column dtype is object, set as category
             elif pd.api.types.is_object_dtype(self.data[column]):
-                self.data[column] = self.data[column].astype("category")
+                self.data[column] = self.data[column].astype("object")
 
         # determine columns already being tracked
         tracked_columns = []

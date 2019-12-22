@@ -92,20 +92,75 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
     documentation:
         description:
             select a susbset set of features of a pandas DataFrame as part of a
-            pipeline.
+            pipeline. capable of select and/or deselecting columns by name and by
+            data type.
         parameters:
-            attribute_names : list
-                list of features to select from DataFrame.
+            include_columns : list
+                list of features to select from Pandas DataFrame.
+            include_dtypes : list
+                list of strings describing dtypes to select.
+            exclude_columns : list
+                list of features to deselect from Pandas DataFrame.
+            exclude_dtypes : list
+                list of strings describing dtypes to deselect.
     """
 
-    def __init__(self, attribute_names):
-        self.attribute_names = attribute_names
+    def __init__(self, include_columns=None, include_dtypes=None, exclude_columns=None, exclude_dtypes=None):
+        self.include_columns = include_columns
+        self.include_dtypes = include_dtypes
+        self.exclude_columns = exclude_columns
+        self.exclude_dtypes = exclude_dtypes
+
 
     def fit(self, X, y=None):
+
+        self.all_columns = X.columns.tolist()
+        self.selected_columns = []
+        self.removed_columns = []
+
+        ## selection
+        # select columns by name
+        if self.include_columns is not None:
+            self.selected_columns.append(self.include_columns)
+
+        # select columns by dtype
+        if self.include_dtypes is not None:
+            for dtype in self.include_dtypes:
+                self.selected_columns.append(X.select_dtypes(include=dtype).columns.tolist())
+
+        # flatten list and remove duplicates
+        self.selected_columns = list(set(itertools.chain(*self.selected_columns)))
+
+        ## deselection
+        # deselect columns by name
+        if self.exclude_columns is not None:
+            self.removed_columns.append(self.exclude_columns)
+#             self.all_columns = [column for column in self.all_columns if column not in self.exclude_columns]
+
+        # deselect columns by dtype
+        if self.exclude_dtypes is not None:
+            for dtype in self.exclude_dtypes:
+                self.removed_columns.append(X.select_dtypes(include=dtype).columns.tolist())
+#                 self.all_columns = list(set(self.all_columns).difference(X.select_dtypes(include=dtype).columns.tolist()))
+
+        # flatten list and remove duplicates
+        self.removed_columns = list(set(itertools.chain(*self.removed_columns)))
+
+        ## reconcile selections and removals
+        if len(self.selected_columns) == 0:
+            self.selected_columns = list(set(self.all_columns).difference(self.removed_columns))
+        else:
+            self.selected_columns = list(set(self.selected_columns) & set(self.all_columns))
+            self.selected_columns = list(set(self.selected_columns).difference(self.removed_columns))
+
+        # add back any columns specifically listed for inclusion
+        if self.include_columns is not None:
+            self.selected_columns = list(set(self.selected_columns + self.include_columns))
+            
         return self
 
     def transform(self, X):
-        return X[self.attribute_names]
+        return X[self.selected_columns]
 
 
 class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
@@ -453,53 +508,6 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
         else:
             Xs = self.merge_dataframes_by_column(Xs)
         return Xs
-
-
-class UnprocessedColumnAdder(base.TransformerMixin, base.BaseEstimator):
-    """
-    documentation:
-        description:
-            add the columns not processed by other transformers in pipeline to the final
-            output dataset.
-        parameters:
-            pipes : sklearn FeatureUnion pipeline object
-                FeatureUnion pipeline object with all column_specific transformations.
-    """
-
-    def __init__(self, pipes):
-        self.pipes = pipes
-        self.processed_columns = []
-
-    def fit(self, X, y=None):
-
-        # for each transformer in the input pipe
-        for pipe_trans in self.pipes.transformer_list:
-            pipe_columns = []
-
-            # for each step in each transformer
-            for step in pipe_trans[1].steps:
-                # add all columns specified in DataFrameSelector objects
-                if isinstance(step[1], DataFrameSelector):
-                    pipe_columns.append(step[1].attribute_names)
-                    pipe_columns = list(set(itertools.chain(*pipe_columns)))
-                # remove all columns specified in ContextImputer objects
-                elif isinstance(step[1], ContextImputer):
-                    remove_columns = step[1].context_col
-                    if isinstance(remove_columns, str):
-                        pipe_columns = [i for i in pipe_columns if i not in [remove_columns]]
-
-            # collect columns in processed_columns attribute
-            self.processed_columns.append(pipe_columns)
-
-        # flatten processed_columns
-        self.processed_columns = list(set(itertools.chain(*self.processed_columns)))
-
-        # compare columns of input dataset with processed_columns to identify unprocessed columns
-        self.unprocessed_columns = list(set(X.columns) - set(self.processed_columns))
-        return self
-
-    def transform(self, X):
-        return X[self.unprocessed_columns]
 
 
 class DualTransformer(base.TransformerMixin, base.BaseEstimator):
