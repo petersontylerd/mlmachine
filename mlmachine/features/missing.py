@@ -8,7 +8,7 @@ def missing_data_dropper_all(self, data):
         description:
             drops columns that include any missing data from self.data.
         parameters:
-            data : pandas DataFrame, default =None
+            data : pandas DataFrame, default=None
                 pandas DataFrame containing independent variables.
         returns:
             data : pandas DataFrame

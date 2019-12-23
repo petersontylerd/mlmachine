@@ -48,9 +48,9 @@ class PowerGridSearcher:
                     controls amount of information printed to console during fit.
                 n_jobs : int, default = 1
                     number of works to deploy upon execution, if applicable.
-                scoring : string (sklearn evaluation metric), default =None
+                scoring : string (sklearn evaluation metric), default=None
                     number of works to deploy upon execution, if applicable.
-                refit : boolean, default=True
+                refit : bool, default=True
                     dictates whether method is refit with the best model upon grid seach completion.
             returns:
                 gs : GridSearchCV object
@@ -94,9 +94,9 @@ class PowerGridSearcher:
                     controls amount of information printed to console during fit.
                 n_jobs : int, default = 1
                     number of works to deploy upon execution, if applicable.
-                scoring : string (sklearn evaluation metric), default =None
+                scoring : string (sklearn evaluation metric), default=None
                     number of works to deploy upon execution, if applicable.
-                refit : boolean, default=True
+                refit : bool, default=True
                     dictates whether method is refit with the best model upon grid seach completion.
                 n_iter : int, default = 15
                     number of random permutations to evaluate.

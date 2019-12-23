@@ -37,11 +37,11 @@ def classification_panel(
                 training data observations.
             y_train : Pandas Series
                 training data labels.
-            x_valid : pandas DataFrame, default =None
+            x_valid : pandas DataFrame, default=None
                 validation data observations.
-            y_valid : Pandas Series, default =None
+            y_valid : Pandas Series, default=None
                 validation data labels.
-            cm_labels : list, default =None
+            cm_labels : list, default=None
                 custom labels for confusion matrix axes. if left as none,
                 will default to 0, 1, 2...
             n_folds : int, default = 3
@@ -198,9 +198,9 @@ def regression_panel(
                 training data observations.
             y_train : Pandas Series
                 training data labels.
-            x_valid : pandas DataFrame, default =None
+            x_valid : pandas DataFrame, default=None
                 validation data observations.
-            y_valid : Pandas Series, default =None
+            y_valid : Pandas Series, default=None
                 validation data labels.
             n_folds : int, default = 3
                 number of cross_validation folds to use when generating

@@ -20,12 +20,23 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
+# TODO
+"""
+cat target num feat =
+    - dist plot - don't repeat x axis labels
+    - box plot - don't repeat x axis labels
+    - target encod eplots all loooks bad
+feature type update
+    if one of the split("_") strings matches something in the force object
+
+"""
+
 def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis"):
     """
     documentation:
         description:
-            produces exploratory data visualizations and statistical summaries for a categorical
-            feature in the context of a categorical target.
+            produces exploratory data visualizations and statistical summaries for a object
+            feature in the context of a object target.
         parameters
             feature : string
                 feature to visualize.
@@ -170,8 +181,8 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis"):
     """
     documentation:
         description:
-            produces exploratory data visualizations and statistical summaries for a numeric
-            feature in the context of a categorical target.
+            produces exploratory data visualizations and statistical summaries for a number
+            feature in the context of a object target.
         parameters
             feature : string
                 feature to visualize.
@@ -324,8 +335,8 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
     """
     documentation:
         description:
-            produces exploratory data visualizations and statistical summaries for a numeric
-            feature in the context of a numeric target.
+            produces exploratory data visualizations and statistical summaries for a number
+            feature in the context of a number target.
         parameters
             feature : string
                 feature to visualize.
@@ -344,8 +355,8 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
     # instantiate charting object
     p = PrettierPlot(chart_prop=15, plot_orientation="wide")
 
-    # if numeric variable has fewer than a set number of unique variables, represent variable
-    # as a categorical variable vs. a numeric target variable
+    # if number variable has fewer than a set number of unique variables, represent variable
+    # as a object variable vs. a number target variable
     if len(np.unique(bi_df[feature].values)) <= 20:
 
         describe_df = describe_df.rename(columns={"index": ""})
@@ -434,8 +445,8 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
             ax=ax,
         )
 
-    # if numeric variable has greater than a set number of unique variables, represent variable
-    # as a numeric variable vs. a numeric target variable
+    # if number variable has greater than a set number of unique variables, represent variable
+    # as a number variable vs. a number target variable
     else:
 
         # add skew and curtosis to describe_df
@@ -492,8 +503,8 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
     """
     documentation:
         description:
-            produces exploratory data visualizations and statistical summaries for a numeric
-            feature in the context of a categorical target.
+            produces exploratory data visualizations and statistical summaries for a number
+            feature in the context of a object target.
         parameters
             feature : string
                 feature to visualize.

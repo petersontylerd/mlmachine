@@ -92,26 +92,12 @@ class Machine:
         oof_generator,
     )
 
-    def __init__(
-        self,
-        data,
-        remove_features=[],
-        force_to_categorical=None,
-        force_to_numeric=None,
-        date_features=None,
-        target=None,
-        target_type=None,
-    ):
+    def __init__(self, data, remove_features=[], force_to_object=None, force_to_number=None,
+                    force_to_bool=None, date_features=None, target=None, target_type=None):
         """
         documentation:
             description:
-                __init__ handles initial processing of main data set, identification of
-                select features to be removed (if any), identification of select features
-                to be considered as categorical despite the feature data type(s) (if any),
-                identification of select features to be considered as numerical despite
-                the feature data type(s) (if any), identification of select features to be
-                considered as calendar date features (if any), identification of the feature
-                representing the target (if there is one) and the type of target. returns
+                __init__ handles initial processing of main data set. returns
                 data frame of independent variables, series containing dependent variable
                 and a dictionary that categorizes features by data type.
             parameters:
@@ -119,23 +105,25 @@ class Machine:
                     input data provided as a pandas DataFrame.
                 remove_features : list, default = []
                     features to be completely removed from dataset.
-                force_to_categorical : list, default =None
-                    preidentified categorical features that would otherwise be labeled as numeric.
-                force_to_numeric : list, default =None
-                    preidentified numeric features that would otherwise be labeled as categorical.
-                date_features : list, default =None
+                force_to_object : list, default=None
+                    preidentified object dtype features that would otherwise be given a different dtype.
+                force_to_number : list, default=None
+                    preidentified number dtype features that would otherwise be given a different dtype.
+                force_to_bool : list, default=None
+                    preidentified bool dtype features that would otherwise be given a different dtype.
+                date_features : list, default=None
                     features comprised of calendar date values.
-                target : list, default =None
+                target : list, default=None
                     name of column containing dependent variable.
-                target_type : list, default =None
-                    target variable type, either 'categorical' or 'numeric'
+                target_type : list, default=None
+                    target variable type, either 'category' or 'number'
             attributes:
                 data : pandas DataFrame
                     independent variables returned as a pandas DataFrame
                 target : Pandas Series
                     dependent variable returned as a Pandas Series
                 features_by_dtype_ : dict
-                    dictionary contains keys 'numeric', 'categorical' and/or 'date'. the corresponding values
+                    dictionary contains keys 'number', 'object', 'bool', and 'date'. the corresponding values
                     are lists of column names that are of that feature type.
         """
         self.remove_features = remove_features
@@ -145,8 +133,9 @@ class Machine:
             if target is not None
             else data.drop(self.remove_features, axis=1)
         )
-        self.force_to_categorical = force_to_categorical
-        self.force_to_numeric = force_to_numeric
+        self.force_to_object = force_to_object
+        self.force_to_number = force_to_number
+        self.force_to_number = force_to_bool
         self.date_features = date_features
         self.target_type = target_type
 
@@ -154,38 +143,38 @@ class Machine:
         self.feature_type_capture()
 
         # encode the target column if there is one
-        if self.target is not None and self.target_type == "categorical":
+        if self.target is not None and self.target_type == "object":
             self.encode_target()
 
     def feature_type_capture(self):
         """
         documentation:
             description:
-                determine feature type for each feature as being categorical, numeric
-                or boolean.
+                determine feature type for each feature as being object, number
+                or bool.
         """
         ### populate feature_type dictionary with feature type label for each each
         self.feature_type = {}
 
-        # categorical features
-        if self.force_to_categorical is None:
-            self.feature_type["categorical"] = []
+        # object features
+        if self.force_to_object is None:
+            self.feature_type["object"] = []
         else:
-            self.feature_type["categorical"] = self.force_to_categorical
+            self.feature_type["object"] = self.force_to_object
 
             # convert column dtype to "category"
-            self.data[self.force_to_categorical] = self.data[
-                self.force_to_categorical
+            self.data[self.force_to_object] = self.data[
+                self.force_to_object
             ].astype("object")
 
-        # numeric features
-        if self.force_to_numeric is None:
-            self.feature_type["numeric"] = []
+        # number features
+        if self.force_to_number is None:
+            self.feature_type["number"] = []
         else:
-            self.feature_type["numeric"] = self.force_to_numeric
+            self.feature_type["number"] = self.force_to_number
 
-        # boolean featuers
-        self.feature_type["boolean"] = []
+        # bool featuers
+        self.feature_type["bool"] = []
 
         # compile single list of features that have already been categorized
         handled = [i for i in sum(self.feature_type.values(), [])]
@@ -193,53 +182,53 @@ class Machine:
         ### determine feature type for remaining columns
         for column in [i for i in self.data.columns if i not in handled]:
 
-            # if column is numeric and contains only two unique values, set as boolean
+            # if column is number and contains only two unique values, set as bool
             if (
                 pd.api.types.is_numeric_dtype(self.data[column])
                 and len(self.data[column].unique()) == 2
                 and np.min(self.data[column].unique()) == 0
                 and np.max(self.data[column].unique()) == 1
             ):
-                self.feature_type["boolean"].append(column)
+                self.feature_type["bool"].append(column)
 
-                # set column in dataset as categorical data type
+                # set column in dataset as object data type
                 self.data[column] = self.data[column].astype("bool")
 
-            # object columns set as categorical features
+            # object columns set as object features
             elif pd.api.types.is_object_dtype(self.data[column]):
-                self.feature_type["categorical"].append(column)
+                self.feature_type["object"].append(column)
 
-                # set column in dataset as categorical data type
+                # set column in dataset as object data type
                 self.data[column] = self.data[column].astype("object")
 
-            # numeric features
+            # number features
             elif pd.api.types.is_numeric_dtype(self.data[column]):
-                self.feature_type["numeric"].append(column)
+                self.feature_type["number"].append(column)
 
         # original column definitions
-        self.numeric_features = self.feature_type["numeric"]
-        self.categorical_features = self.feature_type["categorical"]
+        self.number_features = self.feature_type["number"]
+        self.object_features = self.feature_type["object"]
 
     def feature_type_update(self, columns_to_drop=None):
         """
         documentation:
             description:
-                update feature_type dictionary to include new columns. ensures new categorical columns
+                update feature_type dictionary to include new columns. ensures new object columns
                 in dataset have the dtype "category". optionally drops specific columns from the dataset
                 and feature_type.
             parameters:
-                columns_to_drop : list, default =None
+                columns_to_drop : list, default=None
                     columns to drop from output dataset(s)/
         """
         # set column data type as "category" where approrpirate
         for column in self.data.columns:
-            # if column is numeric and contains only two unique values, set as boolean
+            # if column is number and contains only two unique values, set as bool
             if (
                 pd.api.types.is_numeric_dtype(self.data[column])
                 and not pd.api.types.is_bool_dtype(self.data[column])
                 and len(self.data[column].unique()) == 2
                 and not "*" in column
-                and column not in self.categorical_features
+                and column not in self.object_features
             ):
                 self.data[column] = self.data[column].astype("bool")
             # if column dtype is object, set as category
@@ -268,15 +257,15 @@ class Machine:
 
         # update feature_type
         for column in [i for i in self.data.columns if i not in tracked_columns]:
-            # categorical features
+            # object features
             if pd.api.types.is_bool_dtype(self.data[column]):
-                self.feature_type["boolean"].append(column)
-            # categorical features
-            elif pd.api.types.is_categorical(self.data[column]):
-                self.feature_type["categorical"].append(column)
-            # numeric features
+                self.feature_type["bool"].append(column)
+            # object features
+            elif pd.api.types.is_object(self.data[column]):
+                self.feature_type["object"].append(column)
+            # number features
             elif pd.api.types.is_numeric_dtype(self.data[column]):
-                self.feature_type["numeric"].append(column)
+                self.feature_type["number"].append(column)
 
         # remove columns no longer in dataset from feature_type object
         for feature_type_key in self.feature_type.keys():
@@ -295,10 +284,10 @@ class Machine:
         """
         documentation:
             description:
-                encode categorical target column and store as a Pandas Series, where
+                encode object target column and store as a Pandas Series, where
                 the name is the name of the feature in the original dataset.
             parameters:
-                reverse : boolean, default=False
+                reverse : bool, default=False
                     reverses encoding of target variables back to original variables.
         """
         # encode label
@@ -311,7 +300,7 @@ class Machine:
             index=self.target.index,
         )
 
-        print("******************\n_categorical label encoding\n")
+        print("******************\n_object label encoding\n")
         for orig_lbl, enc_lbl in zip(
             np.sort(self.le_.classes_), np.sort(np.unique(self.target))
         ):
@@ -328,10 +317,10 @@ class Machine:
                 helper function for recombining the features in the 'data' variable
                 and the 'target' variable into one pandas DataFrame.
             parameters:
-                data : pandas DataFrame, default =None
+                data : pandas DataFrame, default=None
                     pandas DataFrame containing independent variables. if left as none,
                     the feature dataset provided to machine during instantiation is used.
-                target : Pandas Series, default =None
+                target : Pandas Series, default=None
                     Pandas Series containing dependent target variable. if left as none,
                     the target dataset provided to machine during instantiation is used.
             return:

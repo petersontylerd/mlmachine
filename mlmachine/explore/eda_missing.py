@@ -13,7 +13,7 @@ def eda_missing_summary(self, data=None, color=style.style_grey):
         description:
             creates vertical bar chart visualizating the percent of rows of a feature that is missing.
         parameters:
-            data : pandas DataFrame, default =None
+            data : pandas DataFrame, default=None
                 pandas DataFrame containing independent variables. if left as none,
                 the feature dataset provided to machine during instantiation is used.
             color : string, color code, default = style.style_grey

@@ -78,11 +78,11 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
                 instantiated model object.
             data : pandas DataFrame
                 dataset from which to slice indiviudal observation.
-            target : Pandas Series, default =None
+            target : Pandas Series, default=None
                 True labels for observations. this is optional to allow explainations
                 for observations without labels.
-            classification : boolean, default=True
-                boolean argument indicating whether the supervised learning
+            classification : bool, default=True
+                bool argument indicating whether the supervised learning
                 task is classification or regression.
             cmap : string, colormap, default = viridis
                 colormap to use on force plot.
@@ -227,7 +227,7 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
                 size of dots.
             alpha : float, default = 0.7
                 transparency of dots.
-            ax : axes object, default =None
+            ax : axes object, default=None
                 axis on which to place visual.
     """
 

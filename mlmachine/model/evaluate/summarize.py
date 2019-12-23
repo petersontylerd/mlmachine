@@ -109,16 +109,16 @@ def regression_results(
                 training data observations.
             y_train : Pandas Series
                 training data labels.
-            x_valid : pandas DataFrame, default =None
+            x_valid : pandas DataFrame, default=None
                 validation data observations.
-            y_valid : Pandas Series, default =None
+            y_valid : Pandas Series, default=None
                 validation data labels.
             n_folds : int, default = 3
                 number of cross_validation folds to use when generating
                 cv roc graph.
             random_state : int, default = 1
                 random number seed.
-            feature_selector_summary : pndas DataFrame, default =None
+            feature_selector_summary : pndas DataFrame, default=None
                 pandas DataFrame containing various summary statistics pertaining to model performance. if none, returns summary
                 pandas DataFrame for the input model. if feature_selector_summary DataFrame is provided from a previous run, the new
                 performance results are appended to the provivded summary.

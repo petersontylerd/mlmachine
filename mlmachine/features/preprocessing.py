@@ -19,7 +19,7 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
     """
     documentation:
         description:
-            impute numerical columns with certain value, as specified by the strategy parameter. also
+            impute numberal columns with certain value, as specified by the strategy parameter. also
             utilizes one or more additional context columns as a group by value to add more subtlety to
             fill_value identification. imputes training data features, and stores impute values to be used
             on validation and unseen data.
@@ -30,9 +30,9 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
                 list of one or most columns to group by to add context to null column.
             strategy : string, default = 'mean'
                 imputing stategy. takes values 'mean', 'median' and 'most_frequent'.
-            train : boolean, default=True
+            train : bool, default=True
                 tells class whether we are imputing training data or unseen data.
-            train_value : dict, default =None
+            train_value : dict, default=None
                 only used when train=False. value is a dictionary containing 'feature : value' pairs.
                 dictionary is retrieved from training data pipeline using named steps. the attribute is
                 called train_value_.
@@ -94,6 +94,13 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
             select a susbset set of features of a pandas DataFrame as part of a
             pipeline. capable of select and/or deselecting columns by name and by
             data type.
+
+            Note - if there is a logical conflict between include and exclude
+            parameters, the class will first prioritize the column parameters
+            over the dtype parameters in order to support subsetting. If the
+            logic cannot be resolved by this rule alone, exclusion parameters
+            will be prioritized over inclusion parameters.
+
         parameters:
             include_columns : list
                 list of features to select from Pandas DataFrame.
@@ -105,62 +112,165 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
                 list of strings describing dtypes to deselect.
     """
 
-    def __init__(self, include_columns=None, include_dtypes=None, exclude_columns=None, exclude_dtypes=None):
+    def __init__(
+        self,
+        include_columns=None,
+        include_dtypes=None,
+        exclude_columns=None,
+        exclude_dtypes=None,
+    ):
         self.include_columns = include_columns
         self.include_dtypes = include_dtypes
         self.exclude_columns = exclude_columns
         self.exclude_dtypes = exclude_dtypes
 
-
     def fit(self, X, y=None):
 
         self.all_columns = X.columns.tolist()
         self.selected_columns = []
-        self.removed_columns = []
+        self.remove_columns = []
 
         ## selection
         # select columns by name
         if self.include_columns is not None:
-            self.selected_columns.append(self.include_columns)
+            self.selected_columns.extend(self.include_columns)
 
         # select columns by dtype
         if self.include_dtypes is not None:
             for dtype in self.include_dtypes:
-                self.selected_columns.append(X.select_dtypes(include=dtype).columns.tolist())
+                self.selected_columns.extend(
+                    X.select_dtypes(include=dtype).columns.tolist()
+                )
 
         # flatten list and remove duplicates
-        self.selected_columns = list(set(itertools.chain(*self.selected_columns)))
+        self.selected_columns = list(set(self.selected_columns))
 
         ## deselection
         # deselect columns by name
         if self.exclude_columns is not None:
-            self.removed_columns.append(self.exclude_columns)
-#             self.all_columns = [column for column in self.all_columns if column not in self.exclude_columns]
+            self.remove_columns.extend(self.exclude_columns)
 
         # deselect columns by dtype
         if self.exclude_dtypes is not None:
             for dtype in self.exclude_dtypes:
-                self.removed_columns.append(X.select_dtypes(include=dtype).columns.tolist())
-#                 self.all_columns = list(set(self.all_columns).difference(X.select_dtypes(include=dtype).columns.tolist()))
+                self.remove_columns.extend(
+                    X.select_dtypes(include=dtype).columns.tolist()
+                )
 
         # flatten list and remove duplicates
-        self.removed_columns = list(set(itertools.chain(*self.removed_columns)))
+        self.remove_columns = list(set(self.remove_columns))
 
         ## reconcile selections and removals
-        if len(self.selected_columns) == 0:
-            self.selected_columns = list(set(self.all_columns).difference(self.removed_columns))
-        else:
-            self.selected_columns = list(set(self.selected_columns) & set(self.all_columns))
-            self.selected_columns = list(set(self.selected_columns).difference(self.removed_columns))
+        # if the only input is to exclude, remove remove_columns from all_columns
+        if len(self.remove_columns) > 0 and len(self.selected_columns) == 0:
+            self.final_columns = list(
+                set(self.all_columns).difference(self.remove_columns)
+            )
 
-        # add back any columns specifically listed for inclusion
-        if self.include_columns is not None:
-            self.selected_columns = list(set(self.selected_columns + self.include_columns))
-            
+        # if the only input is to include, keep only the select_columns
+        elif len(self.selected_columns) > 0 and len(self.remove_columns) == 0:
+            self.final_columns = self.selected_columns
+
+        #
+        elif (
+            self.include_columns is not None
+            and self.include_dtypes is None
+            and self.exclude_columns is not None
+            and self.exclude_dtypes is None
+        ):
+            self.final_columns = self.selected_columns
+            self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
+
+        #
+        elif (
+            self.include_columns is not None
+            and self.include_dtypes is None
+            and self.exclude_columns is None
+            and self.exclude_dtypes is not None
+        ):
+            self.final_columns = self.selected_columns
+
+        #
+        elif (
+            self.include_columns is None
+            and self.include_dtypes is not None
+            and self.exclude_columns is not None
+            and self.exclude_dtypes is None
+        ):
+            self.final_columns = self.selected_columns
+            self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
+
+        #
+        elif (
+            self.include_columns is None
+            and self.include_dtypes is not None
+            and self.exclude_columns is None
+            and self.exclude_dtypes is not None
+        ):
+            self.final_columns = self.selected_columns
+            self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
+
+        #
+        elif (
+            self.include_columns is not None
+            and self.include_dtypes is not None
+            and self.exclude_columns is not None
+            and self.exclude_dtypes is None
+        ):
+            self.final_columns = self.selected_columns
+            self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
+
+        #
+        elif (
+            self.include_columns is not None
+            and self.include_dtypes is not None
+            and self.exclude_columns is None
+            and self.exclude_dtypes is not None
+        ):
+            self.final_columns = self.selected_columns
+
+        #
+        elif (
+            self.include_columns is None
+            and self.include_dtypes is not None
+            and self.exclude_columns is not None
+            and self.exclude_dtypes is not None
+        ):
+            self.final_columns = self.selected_columns
+            self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
+
+        #
+        elif (
+            self.include_columns is not None
+            and self.include_dtypes is None
+            and self.exclude_columns is not None
+            and self.exclude_dtypes is not None
+        ):
+            self.final_columns = self.selected_columns
+
+        #
+        elif (
+            self.include_columns is not None
+            and self.include_dtypes is not None
+            and self.exclude_columns is not None
+            and self.exclude_dtypes is not None
+        ):
+            self.final_columns = self.selected_columns
+
+        #
+        elif (
+            self.include_columns is None
+            and self.include_dtypes is None
+            and self.exclude_columns is None
+            and self.exclude_dtypes is None
+        ):
+            self.final_columns = self.all_columns
+
         return self
 
     def transform(self, X):
-        return X[self.selected_columns]
+        return X[self.final_columns]
+
 
 
 class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
@@ -241,6 +351,14 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
 
             self.original_columns = names
 
+        # if the class is a OrdinalEncoder instance
+        elif isinstance(self.est, preprocessing._encoders.OrdinalEncoder):
+            names = []
+            for col in self.original_columns:
+                names.append(col + "_Encoded")
+
+            self.original_columns = names
+
         # if the class is a category_encoders CountEncoder instance
         elif isinstance(self.est, ce.count.CountEncoder):
             names = []
@@ -299,8 +417,8 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
         self.stats = {}
         self.binners = {}
 
-        # indentify any numeric columns in input dataset
-        self.numeric_columns = X.select_dtypes(include=np.number).columns.tolist()
+        # indentify any number columns in input dataset
+        self.number_columns = X.select_dtypes("number").columns.tolist()
         return self
 
     def transform(self, X, y=None):
@@ -308,15 +426,15 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
             # combine input columns and target
             X = X.merge(self.target, left_index=True, right_index=True)
 
-            # add empty columns to input dataset and set as numeric
+            # add empty columns to input dataset and set as number
             for col in self.columns:
                 X[col + "_" + "target_encoded"] = np.nan
-                X[col + "_" + "target_encoded"] = pd.to_numeric(
+                X[col + "_" + "target_encoded"] = pd.to_number(
                     X[col + "_" + "target_encoded"]
                 )
 
-            # if column is numeric, then bin column prior to target encoding
-            for col in self.numeric_columns:
+            # if column is number, then bin column prior to target encoding
+            for col in self.number_columns:
                 if isinstance(self.n_bins, dict):
                     binner = preprocessing.KBinsDiscretizer(
                         n_bins=self.n_bins[col], encode="ordinal"
@@ -347,7 +465,7 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
 
                 # update rows with out of fold averages
                 for col in self.columns:
-                    if col in self.numeric_columns:
+                    if col in self.number_columns:
                         if isinstance(self.n_bins, dict):
                             X.loc[
                                 X.index[valid_ix], col + "_" + "target_encoded"
@@ -371,15 +489,15 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
                             x_train.groupby(col)[self.target.name].mean()
                         )
 
-            # ensure numeric data type
+            # ensure number data type
             for col in self.columns:
-                X[col + "_" + "target_encoded"] = pd.to_numeric(
+                X[col + "_" + "target_encoded"] = pd.to_number(
                     X[col + "_" + "target_encoded"]
                 )
 
             # collect average values for transformation of unseen data
             for col in self.columns:
-                if col in self.numeric_columns:
+                if col in self.number_columns:
                     if isinstance(self.n_bins, dict):
                         self.stats[col] = X.groupby(
                             "{}_{}_bins".format(col, self.n_bins[col])
@@ -409,11 +527,11 @@ class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
             # ieterate through all columns in the summary stats dict
             for col in self.stats.keys():
 
-                # add shell column and update by mapping encodings to categorical values or bins
+                # add shell column and update by mapping encodings to object values or bins
                 X["{}_target_encoded".format(col)] = np.nan
 
-                # perform binning on numeric columns
-                if col in self.numeric_columns:
+                # perform binning on number columns
+                if col in self.number_columns:
                     binner = self.binners[col]
 
                     if isinstance(self.n_bins, dict):
@@ -521,9 +639,9 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
 
             note - this method adds additional columns rather than updating existing columns inplace.
         parameters:
-            yeojohnson : boolean, default=True
+            yeojohnson : bool, default=True
                 conditional controls whether yeo-johnson transformation is applied to input data.
-            boxcox : boolean, default=True
+            boxcox : bool, default=True
                 conditional controls whether box_cox transformation is applied to input data.
         returns:
             X : array
@@ -594,21 +712,21 @@ def skew_summary(self, data=None, columns=None):
     """
     documentation:
         description:
-            displays pandas DataFrame summarizing the skew of each numeric variable. also summarizes
+            displays pandas DataFrame summarizing the skew of each number variable. also summarizes
             the percent of a column that has a value of zero.
         parameters:
-            data : pandas DataFrame, default =None
+            data : pandas DataFrame, default=None
                 pandas DataFrame containing independent variables. if left as none,
                 the feature dataset provided to machine during instantiation is used.
-            columns : list of strings, default =None
+            columns : list of strings, default=None
                 list containing string names of columns. if left as none, the value associated
-                with sel.feature_type["numeric"] will be used as the column list.
+                with sel.feature_type["number"] will be used as the column list.
     """
-    # use data/feature_type["numeric"] columns provided during instantiation if left unspecified
+    # use data/feature_type["number"] columns provided during instantiation if left unspecified
     if data is None:
         data = self.data
     if columns is None:
-        columns = self.feature_type["numeric"]
+        columns = self.feature_type["number"]
 
     skewness = (
         data[columns]

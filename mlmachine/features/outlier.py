@@ -23,7 +23,7 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
                 extreme values.
             features : list
                 list of features to be evaluated for outliers.
-            drop_outliers : boolean, default=False
+            drop_outliers : bool, default=False
                 if True, drops outliers from the input data.
         returns:
             x : array
@@ -90,7 +90,7 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
                 than input dataset column count.
             anomalies_ratio : float
                 percent of input dataset observations to identify as outliers.
-            drop_outliers : boolean, default=False
+            drop_outliers : bool, default=False
                 dictates whether identified outliers are removed from input dataset.
         returns:
             x : array

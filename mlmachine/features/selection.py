@@ -37,17 +37,17 @@ class FeatureSelector:
             on a list of estimators. also includes methods for performing corss_validation and
             visualization of the results.p
         parameters:
-            data : pandas DataFrame, default =None
+            data : pandas DataFrame, default=None
                 pandas DataFrame containing independent variables. if left as none,
                 the feature dataset provided to machine during instantiation is used.
-            target : Pandas Series, default =None
+            target : Pandas Series, default=None
                 Pandas Series containing dependent target variable. if left as none,
                 the target dataset provided to machine during instantiation is used.
             estimators : list of strings or sklearn api objects.
                     list of estimators to be used.
-            rank : boolean, default=True
+            rank : bool, default=True
                 conditional controlling whether to overwrite values with rank of values.
-            classification : boolean, default=True
+            classification : bool, default=True
                 conditional controlling whether object is informed that the supervised learning
                 task is a classification task.
     """
@@ -66,7 +66,7 @@ class FeatureSelector:
                 run all feature selections processes and aggregate results. calculate summary
                 statistics on results.
             parameters:
-                save_to_csv : boolean, default=True
+                save_to_csv : bool, default=True
                     conditional controlling whethor or not the feature selection summary results
                     are saved to a csv file.
         """
@@ -308,10 +308,10 @@ class FeatureSelector:
             parameters:
                 scoring : list of strings
                     list containing strings for one or more performance scoring metrics.
-                feature_selector_summary : pandas DataFrame or str, default =None
+                feature_selector_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
-                estimators : list of strings or sklearn api objects, default =None
+                estimators : list of strings or sklearn api objects, default=None
                     list of estimators to be used. if none, use object's internal attribute specified during instantiation.
                 n_folds : int, default = 3
                     number of folds to use in cross validation.
@@ -320,9 +320,9 @@ class FeatureSelector:
                 n_jobs : int, default = 4
                     number of works to use when training the model. this parameter will be
                     ignored if the model does not have this parameter.
-                verbose : boolean, default=True
+                verbose : bool, default=True
                     conditional controlling whether each estimator name is printed prior to cross_validation.
-                save_to_csv : boolean, default=True
+                save_to_csv : bool, default=True
                     conditional controlling whethor or not the feature selection summary results
                     are saved to a csv file.
         """
@@ -462,21 +462,21 @@ class FeatureSelector:
             parameters:
                 metric : string
                     metric to visualize.
-                cv_summary : pandas DataFrame or str, default =None
+                cv_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing cross_validation results.
                     if none, use object's internal attribute specified during instantiation.
-                feature_selector_summary : pandas DataFrame or str, default =None
+                feature_selector_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
                 top_sets : int, default = 5
                     number of rows to display of the performance summary table
-                show_features : boolean, default=False
+                show_features : bool, default=False
                     conditional controlling whether to print feature set for best validation
                     score.
-                show_scores : int or none, default =None
+                show_scores : int or none, default=None
                     display certain number of top features. if none, display nothing. if int, display
                     the specified number of features as a pandas DataFrame.
-                marker_on : boolean, default=True
+                marker_on : bool, default=True
                     conditional controlling whether to display marker for each individual score.
                 title_scale : float, default = 1.0
                     controls the scaling up (higher value) and scaling down (lower value) of the size of
@@ -597,10 +597,10 @@ class FeatureSelector:
             parameters:
                 metric : string
                     metric to visualize.
-                cv_summary : pandas DataFrame or str, default =None
+                cv_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing cross_validation results.
                     if none, use object's internal attribute specified during instantiation.
-                feature_selector_summary : pandas DataFrame or str, default =None
+                feature_selector_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
         """
@@ -672,7 +672,7 @@ class FeatureSelector:
         self.cross_val_features_df["count"] = self.cross_val_features_df.count(axis=1)
         self.cross_val_features_df = self.cross_val_features_df.fillna("")
 
-        # add numerical index starting at 1
+        # add numberal index starting at 1
         self.cross_val_features_df = self.cross_val_features_df.reset_index()
         self.cross_val_features_df.index = np.arange(
             1, len(self.cross_val_features_df) + 1
@@ -689,7 +689,7 @@ class FeatureSelector:
                 for each estimator, visualize the training and validation performance
                 for each feature set.
             parameters:
-                cross_val_features_df : pandas DataFrame, default =None
+                cross_val_features_df : pandas DataFrame, default=None
                     pandas DataFrame, or str of csv file location, containing summary of features used
                     in each estimator to achieve best validation score. if none, use object's internal
                     attribute specified during instantiation.

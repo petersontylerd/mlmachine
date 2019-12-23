@@ -203,7 +203,7 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
                  is not an actual sklearn evaluation method. if "root_mean_squared_log_error" is specified, model
                  is optimized using "neg_mean_squared_error" and then the square root is taken of the absolute value
                  of the results, effectively creating the "root_mean_squared_log_error" score to be minimized.
-            columns : dict, default =None
+            columns : dict, default=None
                 dictionary containing str/list key/value pairs, where the str is the name of the estimator
                 and the list contains string of column names. enables utilization of different features sets for
                 each estimator.
@@ -213,7 +213,7 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
                 number of works to deploy upon execution, if applicable.
             verbose : int, default=0
                 controls amount of information printed to console during fit.
-            results_file : string, default =None
+            results_file : string, default=None
                 file destination for results summary csv. if none, defaults to
                 ./bayes_optimization_summary_{data}_{time}.csv.
     """
@@ -323,7 +323,7 @@ class BayesOptimModelBuilder:
             estimator : string or sklearn api object
                 name of estimator to build. needs the format of [submodule].[estimator].
             model_iter : int
-                numerical identifier for a specific parameter set used in a training
+                numberal identifier for a specific parameter set used in a training
                 iteration.
             n_jobs : int, default = 4
                 number of works to use when training the model. this parameter will be
@@ -387,7 +387,7 @@ class BasicModelBuilder:
         parameters:
             estimator : sklearn model, as either an uncalled object or a string.
                 model to instantiate.
-            params : dictionary, default =None
+            params : dictionary, default=None
                 dictionary containing 'parameter : value' pairs. if no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
@@ -507,7 +507,7 @@ def model_loss_plot(
             chart_prop : float, default = 15
                 control chart proportions. higher values scale up size of chart objects, lower
                 values scale down size of chart objects.
-            trim_outliers : boolean, default=True
+            trim_outliers : bool, default=True
                 this removes extremely high (poor) results by trimming values that observations where
                 the loss is greater than 2 standard deviations away from the mean.
             outlier_control : float: default = 1.5
@@ -559,7 +559,7 @@ def model_param_plot(
         definition:
             visualize hyper_parameter optimization over the iterations. compares theoretical
             distribution to the distribution of values that were actually chosen. for parameters
-            with a numeric range of values, this function also visualizes how the parameter
+            with a number range of values, this function also visualizes how the parameter
             value changes over time.
         parameters
             bayes_optim_summary : pandas DataFrame
@@ -612,7 +612,7 @@ def model_param_plot(
 
         actual_iter_df = estimator_summary[["iteration", param]]
 
-        # plot distributions for categorical params
+        # plot distributions for object params
         if any(isinstance(d, str) for d in theoretical_dist):
 
             p = PrettierPlot(chart_prop=chart_prop)
@@ -656,7 +656,7 @@ def model_param_plot(
 
             plt.show()
 
-        # plot distributions for numeric params
+        # plot distributions for number params
         else:
             # using dictionary to convert specific columns
             convert_dict = {"iteration": int, param: float}

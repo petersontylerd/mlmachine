@@ -12,20 +12,20 @@ class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
     """
     documentation:
         description:
-            bin numeric columns into specified segments. bins training data
+            bin number columns into specified segments. bins training data
             features, and stores the cut points to be used on validation and
             unseen data.
         parameters:
-            equal_bin_dict : dictionary, default =None
+            equal_bin_dict : dictionary, default=None
                 dictionary containing 'column : label' pairs. label is a list that
                 proscribes the bin labels to be used for each paired column. the bin
                 size is calculated based off of the the number of labels. the labels
                 are expected to be a list that describes how the bins should be named,
                 i.e. a label list of ['low','med','high'] will instruct the binner to
                 create three bins and then call each bin 'low','med' and 'high'.
-            train : boolean, default=True
+            train : bool, default=True
                 tells class whether we are binning training data or unseen data.
-            train_value : dict, default =None
+            train_value : dict, default=None
                 dictionary containing 'feature : mode' pairs to be used to transform
                 validation data. only used when train=False. retrieved from training
                 data pipeline using named steps. variable to be retrieved from traing
@@ -81,16 +81,16 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
     """
     documentation:
         description:
-            bin numeric columns into segments based on percentile cut_offs.
+            bin number columns into segments based on percentile cut_offs.
         parameters:
             columns : list
                 list of colummns to be binned. the percentiles are derived from
                 the raw data.
             percs : list
                 percentiles for determining cut_off points for bins.
-            train : boolean, default=True
+            train : bool, default=True
                 tells class whether we are binning training data or unseen data.
-            train_value : dict, default =None
+            train_value : dict, default=None
                 dictionary containing 'feature : mode' pairs to be used to transform
                 validation data. only used when train=False. retrieved from training
                 data pipeline using named steps. variable to be retrieved from traing
@@ -183,7 +183,7 @@ class custom_binner(base.TransformerMixin, base.BaseEstimator):
     """
     documentation:
         description:
-            bin numeric columns into custom segments.
+            bin number columns into custom segments.
         parameters:
             custom_bin_dict : dictionary
                 dictionary containing 'column : bin' specifcation pairs. bin specifications
@@ -207,7 +207,7 @@ class custom_binner(base.TransformerMixin, base.BaseEstimator):
             X[bin_col] = np.nan
 
             # append feature_dtype dict
-            # self.feature_type['categorical'].append(bin_col)
+            # self.feature_type['object'].append(bin_col)
 
             # iterate through custom binning
             for ix, ceil in enumerate(self.custom_bin_dict[col]):
