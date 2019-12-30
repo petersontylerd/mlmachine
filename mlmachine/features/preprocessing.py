@@ -112,13 +112,9 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
                 list of strings describing dtypes to deselect.
     """
 
-    def __init__(
-        self,
-        include_columns=None,
-        include_dtypes=None,
-        exclude_columns=None,
-        exclude_dtypes=None,
-    ):
+    def __init__(self, include_columns=None, include_dtypes=None, exclude_columns=None,
+                    exclude_dtypes=None):
+                    
         self.include_columns = include_columns
         self.include_dtypes = include_dtypes
         self.exclude_columns = exclude_columns
@@ -720,13 +716,13 @@ def skew_summary(self, data=None, columns=None):
                 the feature dataset provided to machine during instantiation is used.
             columns : list of strings, default=None
                 list containing string names of columns. if left as none, the value associated
-                with sel.feature_type["number"] will be used as the column list.
+                with sel.feature_by_type["number"] will be used as the column list.
     """
-    # use data/feature_type["number"] columns provided during instantiation if left unspecified
+    # use data/feature_by_type["number"] columns provided during instantiation if left unspecified
     if data is None:
         data = self.data
     if columns is None:
-        columns = self.feature_type["number"]
+        columns = self.feature_by_type["number"]
 
     skewness = (
         data[columns]

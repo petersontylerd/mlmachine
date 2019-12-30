@@ -66,6 +66,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 ignore_index=True,
             )
         uni_summ_df = uni_summ_df.sort_values(by=["proportion"], ascending=False)
+        print(uni_summ_df)
 
         # bivariate summary
         bi_df = pd.concat([self.data[feature], self.target], axis=1)

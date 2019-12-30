@@ -4,6 +4,7 @@ import importlib
 import itertools
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_numeric_dtype, is_object_dtype
 
 import sklearn.model_selection as model_selection
 import sklearn.preprocessing as preprocessing
@@ -92,8 +93,8 @@ class Machine:
         oof_generator,
     )
 
-    def __init__(self, data, remove_features=[], force_to_object=None, force_to_number=None,
-                    force_to_bool=None, date_features=None, target=None, target_type=None):
+    def __init__(self, data, remove_features=[], identify_as_bool=None, identify_as_category=None, identify_as_continuous=None,
+                identify_as_count=None, identify_as_date=None, target=None, target_type=None):
         """
         documentation:
             description:
@@ -105,14 +106,16 @@ class Machine:
                     input data provided as a pandas DataFrame.
                 remove_features : list, default = []
                     features to be completely removed from dataset.
-                force_to_object : list, default=None
-                    preidentified object dtype features that would otherwise be given a different dtype.
-                force_to_number : list, default=None
-                    preidentified number dtype features that would otherwise be given a different dtype.
-                force_to_bool : list, default=None
-                    preidentified bool dtype features that would otherwise be given a different dtype.
-                date_features : list, default=None
-                    features comprised of calendar date values.
+                identify_as_bool : list, default=None
+                    preidentified boolean features. columns given bool dtype.
+                identify_as_category : list, default=None
+                    preidentified category features. columns given float64 dtype.
+                identify_as_count : list, default=None
+                    preidentified count features. columns given float64 dtype.
+                identify_as_continuous : list, default=None
+                    preidentified continuous features. columns given float64 dtype.
+                identify_as_date : list, default=None
+                    preidentified date features. columns given datetime64 dtype.
                 target : list, default=None
                     name of column containing dependent variable.
                 target_type : list, default=None
@@ -122,8 +125,8 @@ class Machine:
                     independent variables returned as a pandas DataFrame
                 target : Pandas Series
                     dependent variable returned as a Pandas Series
-                features_by_dtype_ : dict
-                    dictionary contains keys 'number', 'object', 'bool', and 'date'. the corresponding values
+                feature_by_type : dict
+                    dictionary contains keys 'bool','continuous','count','date','nominal' and 'ordinal'. the corresponding values
                     are lists of column names that are of that feature type.
         """
         self.remove_features = remove_features
@@ -133,17 +136,18 @@ class Machine:
             if target is not None
             else data.drop(self.remove_features, axis=1)
         )
-        self.force_to_object = force_to_object
-        self.force_to_number = force_to_number
-        self.force_to_number = force_to_bool
-        self.date_features = date_features
+        self.identify_as_bool = identify_as_bool
+        self.identify_as_category = identify_as_category
+        self.identify_as_continuous = identify_as_continuous
+        self.identify_as_count = identify_as_count
+        self.identify_as_date = identify_as_date
         self.target_type = target_type
 
-        # execute method feature_type_capture
+        # execute method feature_by_type_capture
         self.feature_type_capture()
 
         # encode the target column if there is one
-        if self.target is not None and self.target_type == "object":
+        if self.target is not None and self.target_type == "category":
             self.encode_target()
 
     def feature_type_capture(self):
@@ -153,129 +157,161 @@ class Machine:
                 determine feature type for each feature as being object, number
                 or bool.
         """
-        ### populate feature_type dictionary with feature type label for each each
-        self.feature_type = {}
+        ### populate feature_by_type dictionary with feature type label for each feature
+        self.feature_by_type = {}
 
-        # object features
-        if self.force_to_object is None:
-            self.feature_type["object"] = []
+        # bool feature identification
+        if self.identify_as_bool is None:
+            self.feature_by_type["bool"] = []
         else:
-            self.feature_type["object"] = self.force_to_object
+            self.feature_by_type["bool"] = self.identify_as_bool
 
-            # convert column dtype to "category"
-            self.data[self.force_to_object] = self.data[
-                self.force_to_object
-            ].astype("object")
-
-        # number features
-        if self.force_to_number is None:
-            self.feature_type["number"] = []
+        # category feature identification
+        if self.identify_as_continuous is None:
+            self.feature_by_type["category"] = []
         else:
-            self.feature_type["number"] = self.force_to_number
+            self.feature_by_type["category"] = self.identify_as_category
 
-        # bool featuers
-        self.feature_type["bool"] = []
+        # continuous feature identification
+        if self.identify_as_continuous is None:
+            self.feature_by_type["continuous"] = []
+        else:
+            self.feature_by_type["continuous"] = self.identify_as_continuous
+
+        # discrete feature identification
+        if self.identify_as_count is None:
+            self.feature_by_type["count"] = []
+        else:
+            self.feature_by_type["count"] = self.identify_as_count
+
+        # discrete feature identification
+        if self.identify_as_date is None:
+            self.feature_by_type["date"] = []
+        else:
+            self.feature_by_type["date"] = self.identify_as_date
 
         # compile single list of features that have already been categorized
-        handled = [i for i in sum(self.feature_type.values(), [])]
+        tracked_columns = [i for i in sum(self.feature_by_type.values(), [])]
 
         ### determine feature type for remaining columns
-        for column in [i for i in self.data.columns if i not in handled]:
+        for column in [i for i in self.data.columns if i not in tracked_columns]:
 
-            # if column is number and contains only two unique values, set as bool
-            if (
-                pd.api.types.is_numeric_dtype(self.data[column])
-                and len(self.data[column].unique()) == 2
-                and np.min(self.data[column].unique()) == 0
-                and np.max(self.data[column].unique()) == 1
-            ):
-                self.feature_type["bool"].append(column)
+            # boolean
+            zeros_and_ones = np.sum(self.data[self.data[column].notnull()][column].eq(0) | self.data[self.data[column].notnull()][column].eq(1))
+            if zeros_and_ones == self.data[self.data[column].notnull()][column].shape[0]:
+                self.feature_by_type["bool"].append(column)
 
-                # set column in dataset as object data type
-                self.data[column] = self.data[column].astype("bool")
+            # numeric
+            elif is_numeric_dtype(self.data[column]):
+                self.data[column] = self.data[column].astype("float64")
 
-            # object columns set as object features
-            elif pd.api.types.is_object_dtype(self.data[column]):
-                self.feature_type["object"].append(column)
+                # integer
+                if self.data[column].apply(float.is_integer).all():
+                    self.feature_by_type["count"].append(column)
 
-                # set column in dataset as object data type
-                self.data[column] = self.data[column].astype("object")
+                # float
+                else:
+                    self.feature_by_type["continuous"].append(column)
 
-            # number features
-            elif pd.api.types.is_numeric_dtype(self.data[column]):
-                self.feature_type["number"].append(column)
+            # object
+            else:
+                self.feature_by_type["category"].append(column)
 
-        # original column definitions
-        self.number_features = self.feature_type["number"]
-        self.object_features = self.feature_type["object"]
+        ### set data types
+        for dtype, columns in self.feature_by_type.items():
+            if dtype == "bool":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("bool")
+            elif dtype == "category":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("object")
+            elif dtype == "continuous":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("float64")
+            elif dtype == "count":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("float64")
+            elif dtype == "date":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("datetime64[ns]")
 
-    def feature_type_update(self, columns_to_drop=None):
+
+    def feature_by_type_update(self, columns_to_drop=None):
         """
         documentation:
             description:
-                update feature_type dictionary to include new columns. ensures new object columns
+                update feature_by_type dictionary to include new columns. ensures new object columns
                 in dataset have the dtype "category". optionally drops specific columns from the dataset
-                and feature_type.
+                and feature_by_type.
             parameters:
                 columns_to_drop : list, default=None
                     columns to drop from output dataset(s)/
         """
-        # set column data type as "category" where approrpirate
-        for column in self.data.columns:
-            # if column is number and contains only two unique values, set as bool
-            if (
-                pd.api.types.is_numeric_dtype(self.data[column])
-                and not pd.api.types.is_bool_dtype(self.data[column])
-                and len(self.data[column].unique()) == 2
-                and not "*" in column
-                and column not in self.object_features
-            ):
-                self.data[column] = self.data[column].astype("bool")
-            # if column dtype is object, set as category
-            elif pd.api.types.is_object_dtype(self.data[column]):
-                self.data[column] = self.data[column].astype("object")
-
-        # determine columns already being tracked
-        tracked_columns = []
-        for k in self.feature_type.keys():
-            tracked_columns.append(self.feature_type[k])
-        tracked_columns = list(set(itertools.chain(*tracked_columns)))
+        ### updates t0 feature_by_type with new columns and drop any specified removals
+        # capture current columns
+        current_columns = self.data.columns.tolist()
 
         # remove any columns listed in columns_to_drop
         if columns_to_drop is not None:
-            # remove from tracked_columns
-            tracked_columns = [x for x in tracked_columns if x not in columns_to_drop]
+            current_columns = [x for x in current_columns if x not in columns_to_drop]
 
-            # remove from feature_type
-            for k in self.feature_type.keys():
-                self.feature_type[k] = [
-                    x for x in self.feature_type[k] if x not in columns_to_drop
-                ]
+        # update feature_by_type
+        for k in self.feature_by_type.keys():
+            self.feature_by_type[k] = [x for x in self.feature_by_type[k] if x in current_columns]
 
-            # drop columns from main dataset
-            self.data = self.data.drop(columns_to_drop, axis=1)
+        # remove any columns listed in columns_to_drop from the main dataset
+        if columns_to_drop is not None:
+            try:
+                self.data = self.data.drop(columns_to_drop, axis=1)
+            except KeyError:
+                pass
 
-        # update feature_type
-        for column in [i for i in self.data.columns if i not in tracked_columns]:
-            # object features
-            if pd.api.types.is_bool_dtype(self.data[column]):
-                self.feature_type["bool"].append(column)
-            # object features
-            elif pd.api.types.is_object(self.data[column]):
-                self.feature_type["object"].append(column)
-            # number features
-            elif pd.api.types.is_numeric_dtype(self.data[column]):
-                self.feature_type["number"].append(column)
+        ### add any currently untracked column to feature_by_type and set dtype in main dataset
+        # compile single list of features that have already been categorized
+        tracked_columns = [i for i in sum(self.feature_by_type.values(), [])]
+        untracked_columns = list(set(current_columns).difference(tracked_columns))
 
-        # remove columns no longer in dataset from feature_type object
-        for feature_type_key in self.feature_type.keys():
-            for column in self.feature_type[feature_type_key]:
-                if column not in self.data.columns:
-                    self.feature_type[feature_type_key] = [
-                        x
-                        for x in self.feature_type[feature_type_key]
-                        if x not in [column]
-                    ]
+        for column in untracked_columns:
+
+            # boolean
+            zeros_and_ones = np.sum(self.data[self.data[column].notnull()][column].eq(0) | self.data[self.data[column].notnull()][column].eq(1))
+
+            if zeros_and_ones == self.data[self.data[column].notnull()][column].shape[0]:
+                self.feature_by_type["bool"].append(column)
+
+            # numeric
+            elif is_numeric_dtype(self.data[column]):
+                self.data[column] = self.data[column].astype("float64")
+
+                # integer
+                if self.data[column].apply(float.is_integer).all():
+                    self.feature_by_type["count"].append(column)
+
+                # float
+                else:
+                    self.feature_by_type["continuous"].append(column)
+
+            # category
+            else:
+                self.feature_by_type["category"].append(column)
+
+        ### set data types
+        for dtype, columns in self.feature_by_type.items():
+            if dtype == "bool":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("bool")
+            elif dtype == "category":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("object")
+            elif dtype == "continuous":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("float64")
+            elif dtype == "count":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("float64")
+            elif dtype == "date":
+                for column in columns:
+                    self.data[column] = self.data[column].astype("datetime64[ns]")
 
         # sort columns alphabeticalls by name
         self.data = self.data.sort_index(axis=1)
@@ -300,7 +336,7 @@ class Machine:
             index=self.target.index,
         )
 
-        print("******************\n_object label encoding\n")
+        print("******************\ncategory label encoding\n")
         for orig_lbl, enc_lbl in zip(
             np.sort(self.le_.classes_), np.sort(np.unique(self.target))
         ):
