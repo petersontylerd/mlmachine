@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 import seaborn as sns
+import squarify
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tkr
 import matplotlib.cm
@@ -31,7 +32,7 @@ feature type update
 
 """
 
-def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis"):
+def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None):
     """
     documentation:
         description:
@@ -45,13 +46,13 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 cap then the feature is skipped.
             color_map : string specifying built_in matplotlib colormap, default = "viridis"
                 colormap from which to draw plot colors.
+            legend_labels : list, default=None
+                class labels to be displayed in plot legend(s).
     """
-    if (
-        len(np.unique(self.data[self.data[feature].notnull()][feature].values))
-        < level_count_cap
-    ):
+    if (len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap):
 
-        # univariate summary
+        ### data summaries
+        # feature summary
         uni_summ_df = pd.DataFrame(columns=[feature, "count", "proportion"])
         unique_vals, unique_counts = np.unique(
             self.data[self.data[feature].notnull()][feature], return_counts=True
@@ -66,9 +67,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 ignore_index=True,
             )
         uni_summ_df = uni_summ_df.sort_values(by=["proportion"], ascending=False)
-        print(uni_summ_df)
 
-        # bivariate summary
+        # feature vs. target summary
         bi_df = pd.concat([self.data[feature], self.target], axis=1)
 
         bi_summ_df = (
@@ -83,11 +83,26 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         bi_summ_df.columns = single_index
         bi_summ_df.reset_index(inplace=True)
 
-        # add percent_positive column
-        if len(np.unique(self.target)):
-            bi_summ_df["percent_positive"] = (
-                bi_summ_df[1] / (bi_summ_df[1] + bi_summ_df[0])
-            ) * 100
+        # calculate percent of 100 by class label
+        prop_df = pd.concat([self.data[feature], self.target], axis=1)
+        prop_df = prop_df.groupby([feature, self.target.name]).agg({self.target.name : {"count": "count"}})
+        prop_df = prop_df.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
+        prop_df = prop_df.reset_index()
+
+        multiIndex = prop_df.columns
+        singleIndex = [i[0] for i in multiIndex.tolist()]
+        singleIndex[-1] = "Count"
+        prop_df.columns = singleIndex
+        prop_df = prop_df.reset_index(drop=True)
+
+        prop_df = pd.pivot_table(prop_df, values=["Count"], columns=[feature], index=[self.target.name], aggfunc={"Count": np.mean})
+        prop_df = prop_df.reset_index(drop=True)
+
+        multiIndex = prop_df.columns
+        singleIndex = [i[1] for i in multiIndex.tolist()]
+        prop_df.columns = singleIndex
+        prop_df = prop_df.reset_index(drop=True)
+        prop_df.insert(loc=0, column='Class', value=legend_labels)
 
         # execute z_test
         if len(np.unique(bi_df[bi_df[feature].notnull()][feature])) == 2:
@@ -122,8 +137,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
             # display summary tables
             self.df_side_by_side(
-                dfs=(uni_summ_df, bi_summ_df, stat_test_df),
-                names=["univariate summary", "biivariate summary", "statistical test",],
+                dfs=(uni_summ_df, bi_summ_df, prop_df, stat_test_df),
+                names=["Feature summary", "Feature vs. target summary", "Target proportion", "Statistical test",],
             )
             if "percent_positive" in bi_summ_df:
                 bi_summ_df = bi_summ_df.drop(["percent_positive"], axis=1)
@@ -131,12 +146,13 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         else:
             # display summary tables
             self.df_side_by_side(
-                dfs=(uni_summ_df, bi_summ_df),
-                names=["univariate summary", "biivariate summary"],
+                dfs=(uni_summ_df, bi_summ_df, prop_df),
+                names=["Feature summary", "Feature vs. target summary", "Target proportion"],
             )
             if "percent_positive" in bi_summ_df:
                 bi_summ_df = bi_summ_df.drop(["percent_positive"], axis=1)
 
+        ### visualizations
         # set label rotation angle
         len_unique_val = len(unique_vals)
         avg_len_unique_val = sum(map(len, str(unique_vals))) / len(unique_vals)
@@ -152,29 +168,39 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         # instantiate charting object
         p = PrettierPlot(chart_prop=15, plot_orientation="wide")
 
-        # univariate plot
-        ax = p.make_canvas(title="univariate\n* {}".format(feature), position=121)
-
-        p.pretty_bar_v(
-            x=list(map(str, unique_vals.tolist())),
-            counts=unique_counts,
-            label_rotate=rotation,
-            color=style.style_grey,
-            y_units="f",
-            ax=ax,
-        )
+        # treemap plot
+        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131)
+        # squarify.plot(
+        #     sizes=uni_summ_df["count"].values,
+        #     label=uni_summ_df[feature].values,
+        #     color=style.color_gen(name=color_map, num=len(uni_summ_df[feature].values)),
+        #     alpha=0.7,
+        #     ax=ax
+        # )
+        # plt.axis('off')
 
         # bivariate plot
-        ax = p.make_canvas(
-            title="faceted by target\n* {}".format(feature), position=122
-        )
+        ax = p.make_canvas(title="Category counts by target\n* {}".format(feature), position=132)
         p.pretty_facet_cat(
             df=bi_summ_df,
             feature=feature,
             label_rotate=rotation,
             color_map=color_map,
+            bbox=(1.0, 1.22),
+            legend_labels=legend_labels,
             ax=ax,
         )
+
+        # percent of total
+        ax = p.make_canvas(title="Target proportion by category\n* {}".format(feature), position=133)
+        p.pretty_stacked_bar_h(
+            df=prop_df.drop("Class", axis=1),
+            bbox=(1.0, 1.22),
+            legend_labels=legend_labels,
+            color_map=color_map,
+            ax=ax,
+        )
+
         plt.show()
 
 

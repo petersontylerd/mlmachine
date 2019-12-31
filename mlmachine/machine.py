@@ -167,7 +167,7 @@ class Machine:
             self.feature_by_type["bool"] = self.identify_as_bool
 
         # category feature identification
-        if self.identify_as_continuous is None:
+        if self.identify_as_category is None:
             self.feature_by_type["category"] = []
         else:
             self.feature_by_type["category"] = self.identify_as_category
