@@ -695,7 +695,7 @@ def model_param_plot(
                 label_color[i] = color_list[ix]
 
             # create Patches
-            Patches = [Patch(color=v, label=k) for k, v in label_color.items()]
+            Patches = [Patch(color=v, label=k, alpha=alpha) for k, v in label_color.items()]
 
             # draw legend
             leg = plt.legend(

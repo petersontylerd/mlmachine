@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.api.types import is_numeric_dtype, is_object_dtype
 import numpy as np
 
 import seaborn as sns
@@ -21,16 +22,6 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-# TODO
-"""
-cat target num feat =
-    - dist plot - don't repeat x axis labels
-    - box plot - don't repeat x axis labels
-    - target encod eplots all loooks bad
-feature type update
-    if one of the split("_") strings matches something in the force object
-
-"""
 
 def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None):
     """
@@ -68,6 +59,9 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             )
         uni_summ_df = uni_summ_df.sort_values(by=["proportion"], ascending=False)
 
+        if is_numeric_dtype(uni_summ_df[feature]):
+            uni_summ_df[feature] = uni_summ_df[feature].astype("int64")
+
         # feature vs. target summary
         bi_df = pd.concat([self.data[feature], self.target], axis=1)
 
@@ -78,8 +72,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             .pivot(columns=self.target.name, index=feature, values=0)
         )
 
-        multi_index = bi_summ_df.columns
-        single_index = pd.Index([i for i in multi_index.tolist()])
+        single_index = pd.Index(legend_labels) if legend_labels is not None else pd.Index([i for i in bi_summ_df.columns.tolist()])
         bi_summ_df.columns = single_index
         bi_summ_df.reset_index(inplace=True)
 
@@ -169,15 +162,14 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         p = PrettierPlot(chart_prop=15, plot_orientation="wide")
 
         # treemap plot
-        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131)
-        # squarify.plot(
-        #     sizes=uni_summ_df["count"].values,
-        #     label=uni_summ_df[feature].values,
-        #     color=style.color_gen(name=color_map, num=len(uni_summ_df[feature].values)),
-        #     alpha=0.7,
-        #     ax=ax
-        # )
-        # plt.axis('off')
+        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=0.85)
+        p.pretty_tree_map(
+            counts=uni_summ_df["count"].values,
+            labels=uni_summ_df[feature].values,
+            colors=style.color_gen(name=color_map, num=len(uni_summ_df[feature].values)),
+            alpha=0.8,
+            ax=ax,
+        )
 
         # bivariate plot
         ax = p.make_canvas(title="Category counts by target\n* {}".format(feature), position=132)
@@ -187,6 +179,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             label_rotate=rotation,
             color_map=color_map,
             bbox=(1.0, 1.22),
+            alpha=0.8,
             legend_labels=legend_labels,
             ax=ax,
         )
@@ -198,13 +191,14 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             bbox=(1.0, 1.22),
             legend_labels=legend_labels,
             color_map=color_map,
+            alpha=0.8,
             ax=ax,
         )
 
         plt.show()
 
 
-def eda_cat_target_num_feat(self, feature, color_map="viridis"):
+def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=None):
     """
     documentation:
         description:
@@ -215,13 +209,15 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis"):
                 feature to visualize.
             color_map : string specifying built_in matplotlib colormap, default = "viridis"
                 colormap from which to draw plot colors.
+            legend_labels : list, default=None
+                class labels to be displayed in plot legend(s).
     """
     # bivariate roll_up table
     bi_df = pd.concat([self.data[feature], self.target], axis=1)
 
     # bivariate summary statistics
     bi_summ_stats_df = pd.DataFrame(
-        columns=[feature, "count", "proportion", "mean", "std_dv"]
+        columns=["class", "count", "proportion", "mean", "std"]
     )
 
     for labl in np.unique(self.target):
@@ -229,14 +225,21 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis"):
 
         bi_summ_stats_df = bi_summ_stats_df.append(
             {
-                feature: labl,
+                "class": labl,
                 "count": len(feature_slice),
                 "proportion": len(feature_slice) / len(bi_df[feature]) * 100,
                 "mean": np.mean(feature_slice),
-                "std_dv": np.std(feature_slice),
+                "std": np.std(feature_slice),
             },
             ignore_index=True,
         )
+
+    if legend_labels is not None:
+        bi_summ_stats_df["class"] = legend_labels
+
+    elif is_numeric_dtype(bi_summ_stats_df["class"]):
+        bi_summ_stats_df["class"] = bi_summ_stats_df["class"].astype("int64")
+
 
     # display summary tables
     describe_df = pd.DataFrame(bi_df[feature].describe()).reset_index()
@@ -284,12 +287,12 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis"):
             ).round(4)
         self.df_side_by_side(
             dfs=(describe_df, bi_summ_stats_df, stat_test_df),
-            names=["univariate stats", "bivariate stats", "statistical test"],
+            names=["Feature summary", "Feature vs. target summary", "statistical test"],
         )
     else:
         self.df_side_by_side(
             dfs=(describe_df, bi_summ_stats_df),
-            names=["descriptive stats", "bivariate stats"],
+            names=["Feature summary", "Feature vs. target summary"],
         )
 
     # instantiate charting object
@@ -297,7 +300,9 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis"):
 
     # univariate plot
     ax = p.make_canvas(
-        title="dist/kde - univariate\n* {}".format(feature), position=151
+        title="Feature distribution\n* {}".format(feature),
+        title_scale=0.85,
+        position=141,
     )
     p.pretty_dist_plot(
         bi_df[(bi_df[feature].notnull())][feature].values,
@@ -307,54 +312,53 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis"):
     )
 
     # probability plot
-    ax = p.make_canvas(title="probability plot\n* {}".format(feature), position=152)
-    p.pretty_prob_plot(x=bi_df[(bi_df[feature].notnull())][feature].values, plot=ax)
-
-    # bivariate kernel density plot
     ax = p.make_canvas(
-        title="kde - faceted by target\n* {}".format(feature), position=153
+        title="Probability plot\n* {}".format(feature),
+        title_scale=0.85,
+        position=142,
     )
-
-    # generate color list
-    color_list = style.color_gen(name=color_map, num=len(np.unique(self.target)))
-
-    for ix, labl in enumerate(
-        np.unique(bi_df[(bi_df[feature].notnull())][self.target.name].values)
-    ):
-        p.pretty_kde_plot(
-            bi_df[(bi_df[feature].notnull()) & (bi_df[self.target.name] == labl)][
-                feature
-            ].values,
-            color=color_list[ix],
-            y_units="ffff",
-            ax=ax,
-        )
+    p.pretty_prob_plot(
+        x=bi_df[(bi_df[feature].notnull())][feature].values,
+        plot=ax
+    )
 
     # bivariate histogram
     ax = p.make_canvas(
-        title="hist - faceted by target\n* {}".format(feature), position=154
+        title="Distribution by class\n* {}".format(feature),
+        title_scale=0.85,
+        position=143,
     )
 
     # generate color list
     color_list = style.color_gen(name=color_map, num=len(np.unique(self.target)))
 
-    for ix, labl in enumerate(
-        np.unique(bi_df[(bi_df[feature].notnull())][self.target.name].values)
-    ):
-        p.pretty_hist(
-            bi_df[(bi_df[feature].notnull()) & (bi_df[self.target.name] == labl)][
-                feature
-            ].values,
+    for ix, labl in enumerate(np.unique(bi_df[(bi_df[feature].notnull())][self.target.name].values)):
+        p.pretty_dist_plot(
+            bi_df[(bi_df[feature].notnull()) & (bi_df[self.target.name] == labl)][feature].values,
             color=color_list[ix],
-            label=labl,
-            alpha=0.4,
+            y_units="ffff",
+            kde=True,
+            legend_labels=legend_labels,
+            alpha=0.7,
+            bbox=(1.1, 1.22),
+            ax=ax,
         )
 
     # boxplot histogram
     ax = p.make_canvas(
-        title="boxplot - faceted by target\n* {}".format(feature), position=155
+        title="Boxplot by class\n* {}".format(feature),
+        title_scale=0.85,
+        position=144,
     )
-    p.pretty_box_plot_h(x=feature, y=self.target.name, data=bi_df, ax=ax)
+    p.pretty_box_plot_h(
+        x=feature,
+        y=self.target.name,
+        data=bi_df,
+        alpha=0.7,
+        legend_labels=legend_labels,
+        bbox=(1.0, 1.22),
+        ax=ax
+        )
     plt.show()
 
 
