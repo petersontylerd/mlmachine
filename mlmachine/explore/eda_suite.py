@@ -357,6 +357,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
         alpha=0.7,
         legend_labels=legend_labels,
         bbox=(1.0, 1.22),
+        suppress_outliers=True,
         ax=ax
         )
     plt.show()
