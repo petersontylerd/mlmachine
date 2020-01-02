@@ -62,12 +62,12 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
         # select observations containing more than 'outlier_count' outliers
         outlier_indices = Counter(outlier_indices)
 
-        self.outliers_ = list(
+        self.outliers = list(
             k for k, v in outlier_indices.items() if v >= self.outlier_count
         )
 
         if self.drop_outliers:
-            X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
+            X = X.drop(self.outliers, axis=0).reset_index(drop=True)
 
         return X
 
@@ -181,3 +181,32 @@ def outlier_summary(self, iqr_outliers, if_outliers, eif_outliers):
 
     outlier_summary = outlier_summary.fillna("")
     return outlier_summary
+
+def outlier_IQR(self, data, iqr_step):
+    """
+    documentation:
+        description:
+            identifies outliers using inter_quartile range method.
+        parameters:
+            data : Pandas Series
+                input data array.
+            iqr_step : float
+                multiplier that controls level of sensitivity of outlier detection method.
+                higher values for iqr_step will cause OutlierIQR to only detect increasingly
+                extreme values.
+        returns:
+            outlier_index : array
+                index of outliers in original data array.
+    """
+    q1 = np.percentile(data, 25)
+    q3 = np.percentile(data, 75)
+    iqr = q3 - q1
+
+    # outlier step
+    outlier_step = iqr_step * iqr
+
+    # outlier index values
+    outlier_index = data[(data < q1 - outlier_step) | (data > q3 + outlier_step)].index
+
+    return outlier_index
+

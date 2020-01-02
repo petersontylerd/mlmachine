@@ -43,8 +43,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
     if (len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap):
 
         ### data summaries
-        # feature summary
-        uni_summ_df = pd.DataFrame(columns=[feature, "count", "proportion"])
+        ## feature summary
+        uni_summ_df = pd.DataFrame(columns=[feature, "Count", "Proportion"])
         unique_vals, unique_counts = np.unique(
             self.data[self.data[feature].notnull()][feature], return_counts=True
         )
@@ -52,18 +52,22 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             uni_summ_df = uni_summ_df.append(
                 {
                     feature: i,
-                    "count": j,
-                    "proportion": j / np.sum(unique_counts) * 100,
+                    "Count": j,
+                    "Proportion": j / np.sum(unique_counts) * 100,
                 },
                 ignore_index=True,
             )
-        uni_summ_df = uni_summ_df.sort_values(by=["proportion"], ascending=False)
+        uni_summ_df = uni_summ_df.sort_values(by=["Proportion"], ascending=False)
+
+        # set values to int dtype where applicable to optimize displayed DataFrame
+        uni_summ_df["Count"] = uni_summ_df["Count"].astype("int64")
 
         if is_numeric_dtype(uni_summ_df[feature]):
             uni_summ_df[feature] = uni_summ_df[feature].astype("int64")
 
-        # feature vs. target summary
+        ## feature vs. target summary
         bi_df = pd.concat([self.data[feature], self.target], axis=1)
+        bi_df = bi_df[bi_df[feature].notnull()]
 
         bi_summ_df = (
             bi_df.groupby([feature] + [self.target.name])
@@ -72,13 +76,25 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             .pivot(columns=self.target.name, index=feature, values=0)
         )
 
-        single_index = pd.Index(legend_labels) if legend_labels is not None else pd.Index([i for i in bi_summ_df.columns.tolist()])
-        bi_summ_df.columns = single_index
+        bi_summ_df.columns = pd.Index(legend_labels) if legend_labels is not None else pd.Index([i for i in bi_summ_df.columns.tolist()])
         bi_summ_df.reset_index(inplace=True)
 
+        # fill nan's with zero
+        bi_summ_df = bi_summ_df.fillna(0)
+
+        # set values to int dtype where applicable to optimize displayed DataFrame
+        for column in bi_summ_df.columns:
+            try:
+                bi_summ_df[column] = bi_summ_df[column].astype(np.int)
+            except ValueError:
+                bi_summ_df[column] = bi_summ_df[column]
+
+        ## proportion by category summary
         # calculate percent of 100 by class label
         prop_df = pd.concat([self.data[feature], self.target], axis=1)
-        prop_df = prop_df.groupby([feature, self.target.name]).agg({self.target.name : {"count": "count"}})
+        prop_df = prop_df[prop_df[feature].notnull()]
+
+        prop_df = prop_df.groupby([feature, self.target.name]).agg({self.target.name : {"Count": "count"}})
         prop_df = prop_df.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
         prop_df = prop_df.reset_index()
 
@@ -92,10 +108,22 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         prop_df = prop_df.reset_index(drop=True)
 
         multiIndex = prop_df.columns
-        singleIndex = [i[1] for i in multiIndex.tolist()]
+        singleIndex = []
+
+
+        for column in multiIndex.tolist():
+            try:
+                singleIndex.append(int(column[1]))
+            except ValueError:
+                singleIndex.append(column[1])
+
         prop_df.columns = singleIndex
         prop_df = prop_df.reset_index(drop=True)
-        prop_df.insert(loc=0, column='Class', value=legend_labels)
+        prop_df.insert(loc=0, column="Class", value=legend_labels)
+
+        # fill nan's with zero
+        prop_df = prop_df.fillna(0)
+
 
         # execute z_test
         if len(np.unique(bi_df[bi_df[feature].notnull()][feature])) == 2:
@@ -164,7 +192,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         # treemap plot
         ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=0.85)
         p.pretty_tree_map(
-            counts=uni_summ_df["count"].values,
+            counts=uni_summ_df["Count"].values,
             labels=uni_summ_df[feature].values,
             colors=style.color_gen(name=color_map, num=len(uni_summ_df[feature].values)),
             alpha=0.8,
@@ -173,6 +201,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         # bivariate plot
         ax = p.make_canvas(title="Category counts by target\n* {}".format(feature), position=132)
+
         p.pretty_facet_cat(
             df=bi_summ_df,
             feature=feature,
@@ -181,6 +210,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             bbox=(1.0, 1.22),
             alpha=0.8,
             legend_labels=legend_labels,
+            x_units=None,
             ax=ax,
         )
 
@@ -198,7 +228,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         plt.show()
 
 
-def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=None):
+def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=False, legend_labels=None):
     """
     documentation:
         description:
@@ -212,12 +242,21 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
             legend_labels : list, default=None
                 class labels to be displayed in plot legend(s).
     """
-    # bivariate roll_up table
+
+    ### data summaries
+    ## bivariate roll_up table
     bi_df = pd.concat([self.data[feature], self.target], axis=1)
+    bi_df = bi_df[bi_df[feature].notnull()]
+
+    if remove_outliers:
+        outliers = self.outlier_IQR(bi_df[feature], iqr_step=5)
+        bi_df = bi_df.drop(index=outliers)
+    else:
+        outliers = 0
 
     # bivariate summary statistics
     bi_summ_stats_df = pd.DataFrame(
-        columns=["class", "count", "proportion", "mean", "std"]
+        columns=["Class", "Count", "Proportion", "Mean", "StdDev"]
     )
 
     for labl in np.unique(self.target):
@@ -225,24 +264,35 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
 
         bi_summ_stats_df = bi_summ_stats_df.append(
             {
-                "class": labl,
-                "count": len(feature_slice),
-                "proportion": len(feature_slice) / len(bi_df[feature]) * 100,
-                "mean": np.mean(feature_slice),
-                "std": np.std(feature_slice),
+                "Class": labl,
+                "Count": len(feature_slice),
+                "Proportion": len(feature_slice) / len(bi_df[feature]) * 100,
+                "Mean": np.mean(feature_slice),
+                "StdDev": np.std(feature_slice),
             },
             ignore_index=True,
         )
 
+    # apply custom legend labels, or set dtype to int if column values are numeric
     if legend_labels is not None:
-        bi_summ_stats_df["class"] = legend_labels
+        bi_summ_stats_df["Class"] = legend_labels
+    elif is_numeric_dtype(bi_summ_stats_df["Class"]):
+        bi_summ_stats_df["Class"] = bi_summ_stats_df["Class"].astype(np.int)
 
-    elif is_numeric_dtype(bi_summ_stats_df["class"]):
-        bi_summ_stats_df["class"] = bi_summ_stats_df["class"].astype("int64")
 
-
-    # display summary tables
+    ## Feature summary
     describe_df = pd.DataFrame(bi_df[feature].describe()).reset_index()
+
+    # add skew
+    describe_df = describe_df.append(
+        {
+            "index": "missing",
+            feature: np.round(self.data.shape[0] - bi_df[feature].shape[0], 5),
+        },
+        ignore_index=True,
+    )
+
+    # add skew
     describe_df = describe_df.append(
         {
             "index": "skew",
@@ -250,6 +300,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
         },
         ignore_index=True,
     )
+    # add kurtosis
     describe_df = describe_df.append(
         {
             "index": "kurtosis",
@@ -263,11 +314,9 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
     if len(np.unique(self.target)) == 2:
         s1 = bi_df[
             (bi_df[self.target.name] == bi_df[self.target.name].unique()[0])
-            & (bi_df[feature].notnull())
         ][feature]
         s2 = bi_df[
             (bi_df[self.target.name] == bi_df[self.target.name].unique()[1])
-            & (bi_df[feature].notnull())
         ][feature]
         if len(s1) > 30 and len(s2) > 30:
             z, p_val = ztest(s1, s2)
@@ -287,7 +336,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
             ).round(4)
         self.df_side_by_side(
             dfs=(describe_df, bi_summ_stats_df, stat_test_df),
-            names=["Feature summary", "Feature vs. target summary", "statistical test"],
+            names=["Feature summary", "Feature vs. target summary", "Statistical test"],
         )
     else:
         self.df_side_by_side(
@@ -295,6 +344,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
             names=["Feature summary", "Feature vs. target summary"],
         )
 
+    ### visualizations
     # instantiate charting object
     p = PrettierPlot(chart_prop=15, plot_orientation="wide")
 
@@ -305,7 +355,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
         position=141,
     )
     p.pretty_dist_plot(
-        bi_df[(bi_df[feature].notnull())][feature].values,
+        bi_df[feature].values,
         color=style.style_grey,
         y_units="f",
         ax=ax,
@@ -318,7 +368,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
         position=142,
     )
     p.pretty_prob_plot(
-        x=bi_df[(bi_df[feature].notnull())][feature].values,
+        x=bi_df[feature].values,
         plot=ax
     )
 
@@ -332,9 +382,9 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", legend_labels=No
     # generate color list
     color_list = style.color_gen(name=color_map, num=len(np.unique(self.target)))
 
-    for ix, labl in enumerate(np.unique(bi_df[(bi_df[feature].notnull())][self.target.name].values)):
+    for ix, labl in enumerate(np.unique(bi_df[self.target.name].values)):
         p.pretty_dist_plot(
-            bi_df[(bi_df[feature].notnull()) & (bi_df[self.target.name] == labl)][feature].values,
+            bi_df[bi_df[self.target.name] == labl][feature].values,
             color=color_list[ix],
             y_units="ffff",
             kde=True,

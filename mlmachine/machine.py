@@ -50,6 +50,7 @@ class Machine:
         ExtendedIsoForest,
         OutlierIQR,
         outlier_summary,
+        outlier_IQR,
     )
     from .features.selection import FeatureSelector
     from .features.transform import (
