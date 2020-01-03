@@ -228,7 +228,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         plt.show()
 
 
-def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=False, legend_labels=None):
+def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None):
     """
     documentation:
         description:
@@ -239,6 +239,15 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=
                 feature to visualize.
             color_map : string specifying built_in matplotlib colormap, default = "viridis"
                 colormap from which to draw plot colors.
+            outliers_out_of_scope : boolean, float or int, default=None
+                truncates the x-axis upper limit so that outliers are out of scope of the visualization.
+                the x-axis upper limit is reset to the maximum non-outlier value.
+
+                to identify outliers, the IQR is calculated, and values that are below the first quartile
+                minus the IQR, or above the third quarterile plus the IQR are designated as outliers. if True
+                is passed as a value, the IQR that is subtracted/added is multiplied by 5. If a float or int is
+                passed, the IQR is multiplied by that value. Higher values increase how extremem values need
+                to be to be identified as outliers.
             legend_labels : list, default=None
                 class labels to be displayed in plot legend(s).
     """
@@ -247,12 +256,6 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=
     ## bivariate roll_up table
     bi_df = pd.concat([self.data[feature], self.target], axis=1)
     bi_df = bi_df[bi_df[feature].notnull()]
-
-    if remove_outliers:
-        outliers = self.outlier_IQR(bi_df[feature], iqr_step=5)
-        bi_df = bi_df.drop(index=outliers)
-    else:
-        outliers = 0
 
     # bivariate summary statistics
     bi_summ_stats_df = pd.DataFrame(
@@ -348,6 +351,17 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=
     # instantiate charting object
     p = PrettierPlot(chart_prop=15, plot_orientation="wide")
 
+    if isinstance(outliers_out_of_scope, bool):
+        if outliers_out_of_scope:
+            outliers = self.outlier_IQR(self.data[feature], iqr_step=5)
+            x_axis_min = self.data[feature].drop(index=outliers).min()
+            x_axis_max = self.data[feature].drop(index=outliers).max()
+    elif isinstance(outliers_out_of_scope, float) or isinstance(outliers_out_of_scope, int):
+        outliers = self.outlier_IQR(self.data[feature], iqr_step=outliers_out_of_scope)
+        x_axis_min = self.data[feature].drop(index=outliers).min()
+        x_axis_max = self.data[feature].drop(index=outliers).max()
+
+
     # univariate plot
     ax = p.make_canvas(
         title="Feature distribution\n* {}".format(feature),
@@ -360,6 +374,8 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=
         y_units="f",
         ax=ax,
     )
+    if outliers_out_of_scope is not None:
+        plt.xlim(x_axis_min, x_axis_max)
 
     # probability plot
     ax = p.make_canvas(
@@ -389,10 +405,12 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=
             y_units="ffff",
             kde=True,
             legend_labels=legend_labels,
-            alpha=0.7,
+            alpha=0.4,
             bbox=(1.1, 1.22),
             ax=ax,
         )
+    if outliers_out_of_scope is not None:
+        plt.xlim(x_axis_min, x_axis_max)
 
     # boxplot histogram
     ax = p.make_canvas(
@@ -410,6 +428,9 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", remove_outliers=
         suppress_outliers=True,
         ax=ax
         )
+    if outliers_out_of_scope is not None:
+        plt.xlim(x_axis_min-1, x_axis_max)
+
     plt.show()
 
 
