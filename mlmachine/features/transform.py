@@ -207,7 +207,7 @@ class custom_binner(base.TransformerMixin, base.BaseEstimator):
             X[bin_col] = np.nan
 
             # append feature_dtype dict
-            # self.feature_by_type['object'].append(bin_col)
+            # self.data.feature_by_mlm_dtype['object'].append(bin_col)
 
             # iterate through custom binning
             for ix, ceil in enumerate(self.custom_bin_dict[col]):

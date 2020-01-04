@@ -126,7 +126,7 @@ class Machine:
                     independent variables returned as a pandas DataFrame
                 target : Pandas Series
                     dependent variable returned as a Pandas Series
-                feature_by_type : dict
+                feature_by_mlm_dtype : dict
                     dictionary contains keys 'bool','continuous','count','date','nominal' and 'ordinal'. the corresponding values
                     are lists of column names that are of that feature type.
         """
@@ -137,7 +137,6 @@ class Machine:
             if target is not None
             else data.drop(self.remove_features, axis=1)
         )
-        self.identify_as_bool = identify_as_bool
         self.identify_as_category = identify_as_category
         self.identify_as_continuous = identify_as_continuous
         self.identify_as_count = identify_as_count
@@ -145,85 +144,72 @@ class Machine:
         self.target_type = target_type
 
         # execute method feature_by_type_capture
-        self.feature_type_capture()
+        self.data = PreserveMetaData(self.data)
+        self.capture_feature_by_mlm_dtype()
 
         # encode the target column if there is one
         if self.target is not None and self.target_type == "category":
             self.encode_target()
 
-    def feature_type_capture(self):
+    def capture_feature_by_mlm_dtype(self):
         """
         documentation:
             description:
                 determine feature type for each feature as being object, number
                 or bool.
         """
-        ### populate feature_by_type dictionary with feature type label for each feature
-        self.feature_by_type = {}
-
-        # bool feature identification
-        if self.identify_as_bool is None:
-            self.feature_by_type["bool"] = []
-        else:
-            self.feature_by_type["bool"] = self.identify_as_bool
+        ### populate feature_by_mlm_dtype dictionary with feature type label for each feature
+        self.data.feature_by_mlm_dtype = {}
 
         # category feature identification
         if self.identify_as_category is None:
-            self.feature_by_type["category"] = []
+            self.data.feature_by_mlm_dtype["category"] = []
         else:
-            self.feature_by_type["category"] = self.identify_as_category
+            self.data.feature_by_mlm_dtype["category"] = self.identify_as_category
 
         # continuous feature identification
         if self.identify_as_continuous is None:
-            self.feature_by_type["continuous"] = []
+            self.data.feature_by_mlm_dtype["continuous"] = []
         else:
-            self.feature_by_type["continuous"] = self.identify_as_continuous
+            self.data.feature_by_mlm_dtype["continuous"] = self.identify_as_continuous
 
         # discrete feature identification
         if self.identify_as_count is None:
-            self.feature_by_type["count"] = []
+            self.data.feature_by_mlm_dtype["count"] = []
         else:
-            self.feature_by_type["count"] = self.identify_as_count
+            self.data.feature_by_mlm_dtype["count"] = self.identify_as_count
 
         # discrete feature identification
         if self.identify_as_date is None:
-            self.feature_by_type["date"] = []
+            self.data.feature_by_mlm_dtype["date"] = []
         else:
-            self.feature_by_type["date"] = self.identify_as_date
+            self.data.feature_by_mlm_dtype["date"] = self.identify_as_date
 
         # compile single list of features that have already been categorized
-        tracked_columns = [i for i in sum(self.feature_by_type.values(), [])]
+        tracked_columns = [i for i in sum(self.data.feature_by_mlm_dtype.values(), [])]
 
         ### determine feature type for remaining columns
         for column in [i for i in self.data.columns if i not in tracked_columns]:
 
-            # boolean
-            zeros_and_ones = np.sum(self.data[self.data[column].notnull()][column].eq(0) | self.data[self.data[column].notnull()][column].eq(1))
-            if zeros_and_ones == self.data[self.data[column].notnull()][column].shape[0]:
-                self.feature_by_type["bool"].append(column)
-
             # numeric
-            elif is_numeric_dtype(self.data[column]):
+            if is_numeric_dtype(self.data[column]):
                 self.data[column] = self.data[column].astype("float64")
 
                 # integer
                 if self.data[column].apply(float.is_integer).all():
-                    self.feature_by_type["count"].append(column)
+                    self.data.feature_by_mlm_dtype["count"].append(column)
 
                 # float
                 else:
-                    self.feature_by_type["continuous"].append(column)
+                    self.data.feature_by_mlm_dtype["continuous"].append(column)
 
             # object
             else:
-                self.feature_by_type["category"].append(column)
+                self.data.feature_by_mlm_dtype["category"].append(column)
 
         ### set data types
-        for dtype, columns in self.feature_by_type.items():
-            if dtype == "bool":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("bool")
-            elif dtype == "category":
+        for dtype, columns in self.data.feature_by_mlm_dtype.items():
+            if dtype == "category":
                 for column in columns:
                     self.data[column] = self.data[column].astype("object")
             elif dtype == "continuous":
@@ -237,18 +223,18 @@ class Machine:
                     self.data[column] = self.data[column].astype("datetime64[ns]")
 
 
-    def feature_by_type_update(self, columns_to_drop=None):
+    def update_feature_by_mlm_dtype(self, columns_to_drop=None):
         """
         documentation:
             description:
-                update feature_by_type dictionary to include new columns. ensures new object columns
+                update feature_by_mlm_dtype dictionary to include new columns. ensures new object columns
                 in dataset have the dtype "category". optionally drops specific columns from the dataset
-                and feature_by_type.
+                and feature_by_mlm_dtype.
             parameters:
                 columns_to_drop : list, default=None
                     columns to drop from output dataset(s)/
         """
-        ### updates t0 feature_by_type with new columns and drop any specified removals
+        ### updates t0 feature_by_mlm_dtype with new columns and drop any specified removals
         # capture current columns
         current_columns = self.data.columns.tolist()
 
@@ -256,9 +242,9 @@ class Machine:
         if columns_to_drop is not None:
             current_columns = [x for x in current_columns if x not in columns_to_drop]
 
-        # update feature_by_type
-        for k in self.feature_by_type.keys():
-            self.feature_by_type[k] = [x for x in self.feature_by_type[k] if x in current_columns]
+        # update feature_by_mlm_dtype
+        for k in self.data.feature_by_mlm_dtype.keys():
+            self.data.feature_by_mlm_dtype[k] = [x for x in self.data.feature_by_mlm_dtype[k] if x in current_columns]
 
         # remove any columns listed in columns_to_drop from the main dataset
         if columns_to_drop is not None:
@@ -267,41 +253,32 @@ class Machine:
             except KeyError:
                 pass
 
-        ### add any currently untracked column to feature_by_type and set dtype in main dataset
+        ### add any currently untracked column to feature_by_mlm_dtype and set dtype in main dataset
         # compile single list of features that have already been categorized
-        tracked_columns = [i for i in sum(self.feature_by_type.values(), [])]
+        tracked_columns = [i for i in sum(self.data.feature_by_mlm_dtype.values(), [])]
         untracked_columns = list(set(current_columns).difference(tracked_columns))
 
         for column in untracked_columns:
 
-            # boolean
-            zeros_and_ones = np.sum(self.data[self.data[column].notnull()][column].eq(0) | self.data[self.data[column].notnull()][column].eq(1))
-
-            if zeros_and_ones == self.data[self.data[column].notnull()][column].shape[0]:
-                self.feature_by_type["bool"].append(column)
-
             # numeric
-            elif is_numeric_dtype(self.data[column]):
+            if is_numeric_dtype(self.data[column]):
                 self.data[column] = self.data[column].astype("float64")
 
                 # integer
                 if self.data[column].apply(float.is_integer).all():
-                    self.feature_by_type["count"].append(column)
+                    self.data.feature_by_mlm_dtype["count"].append(column)
 
                 # float
                 else:
-                    self.feature_by_type["continuous"].append(column)
+                    self.data.feature_by_mlm_dtype["continuous"].append(column)
 
             # category
             else:
-                self.feature_by_type["category"].append(column)
+                self.data.feature_by_mlm_dtype["category"].append(column)
 
         ### set data types
-        for dtype, columns in self.feature_by_type.items():
-            if dtype == "bool":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("bool")
-            elif dtype == "category":
+        for dtype, columns in self.data.feature_by_mlm_dtype.items():
+            if dtype == "category":
                 for column in columns:
                     self.data[column] = self.data[column].astype("object")
             elif dtype == "continuous":
@@ -341,7 +318,7 @@ class Machine:
         for orig_lbl, enc_lbl in zip(
             np.sort(self.le_.classes_), np.sort(np.unique(self.target))
         ):
-            print("{} __> {}".format(orig_lbl, enc_lbl))
+            print("{} --> {}".format(orig_lbl, enc_lbl))
 
         # reverse the label encoding and overwrite target variable with the original data
         if reverse:
@@ -372,6 +349,15 @@ class Machine:
 
         df = data.merge(target, left_index=True, right_index=True)
         return df
+
+
+class PreserveMetaData(pd.DataFrame):
+
+    _metadata = ["feature_by_mlm_dtype"]
+
+    @property
+    def _constructor(self):
+        return PreserveMetaData
 
 
 def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):

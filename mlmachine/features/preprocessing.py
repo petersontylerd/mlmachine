@@ -104,21 +104,27 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         parameters:
             include_columns : list
                 list of features to select from Pandas DataFrame.
-            include_dtypes : list
-                list of strings describing dtypes to select.
+            include_pd_dtypes : list
+                list of strings describing pandas dtypes to select.
+            include_mlm_dtypes : list
+                list of strings describing mlmachine dtypes to select.
             exclude_columns : list
                 list of features to deselect from Pandas DataFrame.
-            exclude_dtypes : list
-                list of strings describing dtypes to deselect.
+            exclude_pd_dtypes : list
+                list of strings describing pandas dtypes to deselect.
+            exclude_mlm_dtypes : list
+                list of strings describing mlmachine dtypes to select.
     """
 
-    def __init__(self, include_columns=None, include_dtypes=None, exclude_columns=None,
-                    exclude_dtypes=None):
-                    
+    def __init__(self, include_columns=None, include_pd_dtypes=None, include_mlm_dtypes=None,
+                    exclude_columns=None, exclude_pd_dtypes=None, exclude_mlm_dtypes=None):
+
         self.include_columns = include_columns
-        self.include_dtypes = include_dtypes
+        self.include_pd_dtypes = include_pd_dtypes
+        self.include_mlm_dtypes = include_mlm_dtypes
         self.exclude_columns = exclude_columns
-        self.exclude_dtypes = exclude_dtypes
+        self.exclude_pd_dtypes = exclude_pd_dtypes
+        self.exclude_mlm_dtypes = exclude_mlm_dtypes
 
     def fit(self, X, y=None):
 
@@ -132,8 +138,15 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
             self.selected_columns.extend(self.include_columns)
 
         # select columns by dtype
-        if self.include_dtypes is not None:
-            for dtype in self.include_dtypes:
+        if self.include_pd_dtypes is not None:
+            for dtype in self.include_pd_dtypes:
+                self.selected_columns.extend(
+                    X.select_dtypes(include=dtype).columns.tolist()
+                )
+
+        # select columns by dtype
+        if self.include_mlm_dtypes is not None:
+            for dtype in self.include_mlm_dtypes:
                 self.selected_columns.extend(
                     X.select_dtypes(include=dtype).columns.tolist()
                 )
@@ -147,8 +160,8 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
             self.remove_columns.extend(self.exclude_columns)
 
         # deselect columns by dtype
-        if self.exclude_dtypes is not None:
-            for dtype in self.exclude_dtypes:
+        if self.exclude_pd_dtypes is not None:
+            for dtype in self.exclude_pd_dtypes:
                 self.remove_columns.extend(
                     X.select_dtypes(include=dtype).columns.tolist()
                 )
@@ -170,9 +183,9 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         #
         elif (
             self.include_columns is not None
-            and self.include_dtypes is None
+            and self.include_pd_dtypes is None
             and self.exclude_columns is not None
-            and self.exclude_dtypes is None
+            and self.exclude_pd_dtypes is None
         ):
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
@@ -180,18 +193,18 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         #
         elif (
             self.include_columns is not None
-            and self.include_dtypes is None
+            and self.include_pd_dtypes is None
             and self.exclude_columns is None
-            and self.exclude_dtypes is not None
+            and self.exclude_pd_dtypes is not None
         ):
             self.final_columns = self.selected_columns
 
         #
         elif (
             self.include_columns is None
-            and self.include_dtypes is not None
+            and self.include_pd_dtypes is not None
             and self.exclude_columns is not None
-            and self.exclude_dtypes is None
+            and self.exclude_pd_dtypes is None
         ):
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
@@ -199,9 +212,9 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         #
         elif (
             self.include_columns is None
-            and self.include_dtypes is not None
+            and self.include_pd_dtypes is not None
             and self.exclude_columns is None
-            and self.exclude_dtypes is not None
+            and self.exclude_pd_dtypes is not None
         ):
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
@@ -209,9 +222,9 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         #
         elif (
             self.include_columns is not None
-            and self.include_dtypes is not None
+            and self.include_pd_dtypes is not None
             and self.exclude_columns is not None
-            and self.exclude_dtypes is None
+            and self.exclude_pd_dtypes is None
         ):
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
@@ -219,18 +232,18 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         #
         elif (
             self.include_columns is not None
-            and self.include_dtypes is not None
+            and self.include_pd_dtypes is not None
             and self.exclude_columns is None
-            and self.exclude_dtypes is not None
+            and self.exclude_pd_dtypes is not None
         ):
             self.final_columns = self.selected_columns
 
         #
         elif (
             self.include_columns is None
-            and self.include_dtypes is not None
+            and self.include_pd_dtypes is not None
             and self.exclude_columns is not None
-            and self.exclude_dtypes is not None
+            and self.exclude_pd_dtypes is not None
         ):
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
@@ -238,27 +251,27 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         #
         elif (
             self.include_columns is not None
-            and self.include_dtypes is None
+            and self.include_pd_dtypes is None
             and self.exclude_columns is not None
-            and self.exclude_dtypes is not None
+            and self.exclude_pd_dtypes is not None
         ):
             self.final_columns = self.selected_columns
 
         #
         elif (
             self.include_columns is not None
-            and self.include_dtypes is not None
+            and self.include_pd_dtypes is not None
             and self.exclude_columns is not None
-            and self.exclude_dtypes is not None
+            and self.exclude_pd_dtypes is not None
         ):
             self.final_columns = self.selected_columns
 
         #
         elif (
             self.include_columns is None
-            and self.include_dtypes is None
+            and self.include_pd_dtypes is None
             and self.exclude_columns is None
-            and self.exclude_dtypes is None
+            and self.exclude_pd_dtypes is None
         ):
             self.final_columns = self.all_columns
 
@@ -582,6 +595,8 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
     """
 
     def fit_transform(self, X, y=None, **fit_params):
+        print(X.feature_by_mlm_dtype)
+        X = X.copy(deep=True)
         self._validate_transformers()
         result = Parallel(n_jobs=self.n_jobs)(
             delayed(pipeline._fit_transform_one)(
@@ -716,13 +731,13 @@ def skew_summary(self, data=None, columns=None):
                 the feature dataset provided to machine during instantiation is used.
             columns : list of strings, default=None
                 list containing string names of columns. if left as none, the value associated
-                with sel.feature_by_type["number"] will be used as the column list.
+                with sel.feature_by_mlm_dtype["number"] will be used as the column list.
     """
-    # use data/feature_by_type["number"] columns provided during instantiation if left unspecified
+    # use data/feature_by_mlm_dtype["number"] columns provided during instantiation if left unspecified
     if data is None:
         data = self.data
     if columns is None:
-        columns = self.feature_by_type["number"]
+        columns = self.data.feature_by_mlm_dtype["number"]
 
     skewness = (
         data[columns]
