@@ -1,3 +1,4 @@
+import copy
 import os
 import sys
 import importlib
@@ -222,7 +223,6 @@ class Machine:
                 for column in columns:
                     self.data[column] = self.data[column].astype("datetime64[ns]")
 
-
     def update_feature_by_mlm_dtype(self, columns_to_drop=None):
         """
         documentation:
@@ -234,9 +234,12 @@ class Machine:
                 columns_to_drop : list, default=None
                     columns to drop from output dataset(s)/
         """
-        ### updates t0 feature_by_mlm_dtype with new columns and drop any specified removals
+        ### updates to feature_by_mlm_dtype with new columns and drop any specified removals
         # capture current columns
         current_columns = self.data.columns.tolist()
+
+        # capture current state of feature_by_mlm_dtype
+        old_feature_by_mlm_dtype = copy.deepcopy(self.data.feature_by_mlm_dtype)
 
         # remove any columns listed in columns_to_drop
         if columns_to_drop is not None:
@@ -249,7 +252,12 @@ class Machine:
         # remove any columns listed in columns_to_drop from the main dataset
         if columns_to_drop is not None:
             try:
+                # preserve feature_by_mlm_dtype
+                self.meta = self.data.feature_by_mlm_dtype
                 self.data = self.data.drop(columns_to_drop, axis=1)
+
+                # add back feature_by_mlm_dtype
+                self.data.feature_by_mlm_dtype = self.meta
             except KeyError:
                 pass
 
@@ -264,8 +272,17 @@ class Machine:
             if is_numeric_dtype(self.data[column]):
                 self.data[column] = self.data[column].astype("float64")
 
+                #
+                # for category_column in self.identify_as_category:
+                #     if category_column + "_" in column # and its binary:
+                #         self.data.feature_by_mlm_dtype["category"].append(column)
+
+                # check if first part of untracked column name is in the current
+                if len(column.split("_")) > 1 and column.split("_")[0] in old_feature_by_mlm_dtype["category"]:
+                    self.data.feature_by_mlm_dtype["category"].append(column)
+
                 # integer
-                if self.data[column].apply(float.is_integer).all():
+                elif self.data[column].apply(float.is_integer).all():
                     self.data.feature_by_mlm_dtype["count"].append(column)
 
                 # float
@@ -291,8 +308,14 @@ class Machine:
                 for column in columns:
                     self.data[column] = self.data[column].astype("datetime64[ns]")
 
-        # sort columns alphabeticalls by name
+        # preserve feature_by_mlm_dtype
+        self.meta = self.data.feature_by_mlm_dtype
+
+        # sort columns alphabetically by name
         self.data = self.data.sort_index(axis=1)
+
+        # add back feature_by_mlm_dtype
+        self.data.feature_by_mlm_dtype = self.meta
 
     def encode_target(self, reverse=False):
         """

@@ -23,7 +23,7 @@ from prettierplot import style
 
 
 
-def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None):
+def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None, chart_prop=15):
     """
     documentation:
         description:
@@ -39,6 +39,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 colormap from which to draw plot colors.
             legend_labels : list, default=None
                 class labels to be displayed in plot legend(s).
+            chart_prop : int or float, default=15
+                controls chart size and proportions. higher value create large plots grid.
     """
     if (len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap):
 
@@ -187,10 +189,10 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             rotation = 90
 
         # instantiate charting object
-        p = PrettierPlot(chart_prop=15, plot_orientation="wide")
+        p = PrettierPlot(chart_prop=chart_prop, plot_orientation="wide_narrow")
 
         # treemap plot
-        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=0.85)
+        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=0.82)
         p.pretty_tree_map(
             counts=uni_summ_df["Count"].values,
             labels=uni_summ_df[feature].values,
@@ -207,7 +209,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             feature=feature,
             label_rotate=rotation,
             color_map=color_map,
-            bbox=(1.0, 1.22),
+            bbox=(1.0, 1.15),
             alpha=0.8,
             legend_labels=legend_labels,
             x_units=None,
@@ -218,7 +220,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         ax = p.make_canvas(title="Target proportion by category\n* {}".format(feature), position=133)
         p.pretty_stacked_bar_h(
             df=prop_df.drop("Class", axis=1),
-            bbox=(1.0, 1.22),
+            bbox=(1.0, 1.15),
             legend_labels=legend_labels,
             color_map=color_map,
             alpha=0.8,
@@ -228,7 +230,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         plt.show()
 
 
-def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None):
+def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None, chart_prop=15):
     """
     documentation:
         description:
@@ -248,8 +250,8 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
                 is passed as a value, the IQR that is subtracted/added is multiplied by 5. If a float or int is
                 passed, the IQR is multiplied by that value. Higher values increase how extremem values need
                 to be to be identified as outliers.
-            legend_labels : list, default=None
-                class labels to be displayed in plot legend(s).
+            chart_prop : int or float, default=15
+                controls chart size and proportions. higher value create large plots grid.
     """
 
     ### data summaries
@@ -349,7 +351,8 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
 
     ### visualizations
     # instantiate charting object
-    p = PrettierPlot(chart_prop=15, plot_orientation="wide")
+    # p = PrettierPlot(chart_prop=15)
+    p = PrettierPlot(chart_prop=chart_prop, plot_orientation="wide_standard")
 
     if isinstance(outliers_out_of_scope, bool):
         if outliers_out_of_scope:
@@ -366,7 +369,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     ax = p.make_canvas(
         title="Feature distribution\n* {}".format(feature),
         title_scale=0.85,
-        position=141,
+        position=221,
     )
     p.pretty_dist_plot(
         bi_df[feature].values,
@@ -381,18 +384,18 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     ax = p.make_canvas(
         title="Probability plot\n* {}".format(feature),
         title_scale=0.85,
-        position=142,
+        position=222,
     )
     p.pretty_prob_plot(
         x=bi_df[feature].values,
-        plot=ax
+        plot=ax,
     )
 
     # bivariate histogram
     ax = p.make_canvas(
         title="Distribution by class\n* {}".format(feature),
         title_scale=0.85,
-        position=143,
+        position=223,
     )
 
     # generate color list
@@ -402,11 +405,11 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         p.pretty_dist_plot(
             bi_df[bi_df[self.target.name] == labl][feature].values,
             color=color_list[ix],
-            y_units="ffff",
-            kde=True,
+            y_units="f",
+            # kde=True,
             legend_labels=legend_labels,
             alpha=0.4,
-            bbox=(1.1, 1.22),
+            bbox=(1.0, 1.0),
             ax=ax,
         )
     if outliers_out_of_scope is not None:
@@ -416,7 +419,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     ax = p.make_canvas(
         title="Boxplot by class\n* {}".format(feature),
         title_scale=0.85,
-        position=144,
+        position=224,
     )
     p.pretty_box_plot_h(
         x=feature,
@@ -424,12 +427,14 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         data=bi_df,
         alpha=0.7,
         legend_labels=legend_labels,
-        bbox=(1.0, 1.22),
+        bbox=(1.2, 1.0),
         suppress_outliers=True,
         ax=ax
         )
     if outliers_out_of_scope is not None:
-        plt.xlim(x_axis_min-1, x_axis_max)
+        plt.xlim(x_axis_min-2, x_axis_max)
+
+    plt.subplots_adjust(bottom=-0.1)
 
     plt.show()
 
@@ -456,7 +461,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
     describe_df = pd.DataFrame(bi_df[feature].describe()).reset_index()
 
     # instantiate charting object
-    p = PrettierPlot(chart_prop=15, plot_orientation="wide")
+    p = PrettierPlot(chart_prop=15, plot_orientation="wide_narrow")
 
     # if number variable has fewer than a set number of unique variables, represent variable
     # as a object variable vs. a number target variable
@@ -661,7 +666,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         ### plots
         # instantiate charting object
-        p = PrettierPlot(chart_prop=15, plot_orientation="wide")
+        p = PrettierPlot(chart_prop=15, plot_orientation="wide_narrow")
 
         # univariate plot
         ax = p.make_canvas(title="univariate\n* {}".format(feature), position=121)
