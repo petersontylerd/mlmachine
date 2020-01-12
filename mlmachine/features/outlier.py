@@ -131,14 +131,14 @@ class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
             anomaly_scores, index=X.index, columns=["anomaly score"]
         ).sort_values(["anomaly score"], ascending=False)
 
-        self.outliers_ = np.array(
+        self.outliers = np.array(
             anomaly_scores_sorted[
                 : int(np.ceil(self.anomalies_ratio * X.shape[0]))
             ].index
         )
 
         if self.drop_outliers:
-            X = X.drop(self.outliers_, axis=0).reset_index(drop=True)
+            X = X.drop(self.outliers, axis=0).reset_index(drop=True)
 
         return X
 

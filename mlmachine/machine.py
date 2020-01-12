@@ -38,7 +38,7 @@ class Machine:
         ContextImputer,
         DataFrameSelector,
         DualTransformer,
-        KFoldTargetEncoder,
+        KFoldSelectEncoder,
         PandasFeatureUnion,
         PandasPipeline,
         skew_summary,
@@ -194,7 +194,7 @@ class Machine:
 
             # numeric
             if is_numeric_dtype(self.data[column]):
-                self.data[column] = self.data[column].astype("float64")
+                # self.data[column] = self.data[column].astype("float64")
 
                 # integer
                 if self.data[column].apply(float.is_integer).all():
@@ -212,7 +212,10 @@ class Machine:
         for dtype, columns in self.data.feature_by_mlm_dtype.items():
             if dtype == "category":
                 for column in columns:
-                    self.data[column] = self.data[column].astype("object")
+                    if is_numeric_dtype(self.data[column]):
+                        self.data[column] = self.data[column].astype("float64")
+                    else:
+                        self.data[column] = self.data[column].astype("object")
             elif dtype == "continuous":
                 for column in columns:
                     self.data[column] = self.data[column].astype("float64")
@@ -222,6 +225,9 @@ class Machine:
             elif dtype == "date":
                 for column in columns:
                     self.data[column] = self.data[column].astype("datetime64[ns]")
+
+        ### sort lists within dictionary
+        self.data.feature_by_mlm_dtype = {x:sorted(self.data.feature_by_mlm_dtype[x]) for x in self.data.feature_by_mlm_dtype.keys()}
 
     def update_feature_by_mlm_dtype(self, columns_to_drop=None):
         """
@@ -270,19 +276,22 @@ class Machine:
 
             # numeric
             if is_numeric_dtype(self.data[column]):
-                self.data[column] = self.data[column].astype("float64")
-
-                #
-                # for category_column in self.identify_as_category:
-                #     if category_column + "_" in column # and its binary:
-                #         self.data.feature_by_mlm_dtype["category"].append(column)
+                # self.data[column] = self.data[column].astype("float64")
 
                 # check if first part of untracked column name is in the current
                 if len(column.split("_")) > 1 and column.split("_")[0] in old_feature_by_mlm_dtype["category"]:
                     self.data.feature_by_mlm_dtype["category"].append(column)
 
-                # integer
-                elif self.data[column].apply(float.is_integer).all():
+                # various encoding types
+                elif column.endswith(("_bins","_count","_target_encoder","_woe","binarized")):
+                    self.data.feature_by_mlm_dtype["category"].append(column)
+
+                # skew correction
+                elif column.endswith(("_BoxCox","_YeoJohnson")):
+                    self.data.feature_by_mlm_dtype["continuous"].append(column)
+
+                # all values are integer
+                elif self.data[column].astype("float").apply(float.is_integer).all():
                     self.data.feature_by_mlm_dtype["count"].append(column)
 
                 # float
@@ -292,12 +301,16 @@ class Machine:
             # category
             else:
                 self.data.feature_by_mlm_dtype["category"].append(column)
+                self.data[column] = self.data[column].astype("object")
 
         ### set data types
         for dtype, columns in self.data.feature_by_mlm_dtype.items():
             if dtype == "category":
                 for column in columns:
-                    self.data[column] = self.data[column].astype("object")
+                    if is_numeric_dtype(self.data[column]):
+                        self.data[column] = self.data[column].astype("float64")
+                    else:
+                        self.data[column] = self.data[column].astype("object")
             elif dtype == "continuous":
                 for column in columns:
                     self.data[column] = self.data[column].astype("float64")
@@ -316,6 +329,8 @@ class Machine:
 
         # add back feature_by_mlm_dtype
         self.data.feature_by_mlm_dtype = self.meta
+
+        self.data.feature_by_mlm_dtype = {x:sorted(self.data.feature_by_mlm_dtype[x]) for x in self.data.feature_by_mlm_dtype.keys()}
 
     def encode_target(self, reverse=False):
         """

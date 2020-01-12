@@ -370,7 +370,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             names = []
             bins = self.est.n_bins
             for col in self.original_columns:
-                names.append(col + "_" + str(bins) + "_Bins")
+                names.append(col + "_" + str(bins) + "_bins")
 
             self.original_columns = names
 
@@ -378,7 +378,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
         elif isinstance(self.est, preprocessing._encoders.OrdinalEncoder):
             names = []
             for col in self.original_columns:
-                names.append(col + "_Encoded")
+                names.append(col + "_encoded")
 
             self.original_columns = names
 
@@ -387,7 +387,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             names = []
 
             for col in self.original_columns:
-                names.append(col + "_Count")
+                names.append(col + "_count_encoded")
 
             self.original_columns = names
 
@@ -397,7 +397,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = self.est.get_feature_names()
 
             for col in self.original_columns:
-                names.append(col + "_Binarized")
+                names.append(col + "_binarized")
 
             self.original_columns = names
 
@@ -406,7 +406,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             names = []
 
             for col in self.original_columns:
-                names.append(col + "_Quantile_" + self.est.output_distribution)
+                names.append(col + "_quantile_" + self.est.output_distribution)
 
             self.original_columns = names
         return self
@@ -422,178 +422,6 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
         X = pd.DataFrame(X, columns=self.original_columns, index=self.index)
 
         return X
-
-
-class KFoldTargetEncoder(base.BaseEstimator, base.TransformerMixin):
-    def __init__(self, target, cv, n_bins=5, drop_bin_columns=True, drop_original_columns=False):
-        self.target = target
-        self.cv = cv
-        self.transform_train = False
-        self.n_bins = n_bins
-        self.drop_bin_columns = drop_bin_columns
-        self.drop_original_columns = drop_original_columns
-
-    def fit(self, X, y=None):
-        self.columns = X.columns
-        self.stats = {}
-        self.binners = {}
-
-        # indentify any number columns in input dataset
-        self.number_columns = X.select_dtypes("number").columns.tolist()
-        return self
-
-    def transform(self, X, y=None):
-        if not self.transform_train:
-            # combine input columns and target
-            X = X.merge(self.target, left_index=True, right_index=True)
-
-            # add empty columns to input dataset and set as number
-            for col in self.columns:
-                X[col + "_" + "target_encoded"] = np.nan
-                X[col + "_" + "target_encoded"] = pd.to_numeric(
-                    X[col + "_" + "target_encoded"]
-                )
-
-            # if column is number, then bin column prior to target encoding
-            for col in self.number_columns:
-                if isinstance(self.n_bins, dict):
-                    binner = preprocessing.KBinsDiscretizer(
-                        n_bins=self.n_bins[col], encode="ordinal"
-                    )
-                    # X[col] = binner.fit_transform(X[[col]])
-                    X[
-                        "{}_{}_bins".format(col, self.n_bins[col])
-                    ] = binner.fit_transform(X[[col]])
-
-                    # store binner transformer for each column
-                    self.binners[col] = binner
-
-                else:
-                    binner = preprocessing.KBinsDiscretizer(
-                        n_bins=self.n_bins, encode="ordinal"
-                    )
-                    # X[col] = binner.fit_transform(X[[col]])
-                    X["{}_{}_bins".format(col, self.n_bins)] = binner.fit_transform(
-                        X[[col]]
-                    )
-
-                    # store binner transformer for each column
-                    self.binners[col] = binner
-
-            # iterate through cv indices
-            for train_ix, valid_ix in self.cv.split(X):
-                x_train, x_valid = X.iloc[train_ix], X.iloc[valid_ix]
-
-                # update rows with out of fold averages
-                for col in self.columns:
-                    if col in self.number_columns:
-                        if isinstance(self.n_bins, dict):
-                            X.loc[
-                                X.index[valid_ix], col + "_" + "target_encoded"
-                            ] = x_valid["{}_{}_bins".format(col, self.n_bins[col])].map(
-                                x_train.groupby(
-                                    "{}_{}_bins".format(col, self.n_bins[col])
-                                )[self.target.name].mean()
-                            )
-                        else:
-                            X.loc[
-                                X.index[valid_ix], col + "_" + "target_encoded"
-                            ] = x_valid["{}_{}_bins".format(col, self.n_bins)].map(
-                                x_train.groupby("{}_{}_bins".format(col, self.n_bins))[
-                                    self.target.name
-                                ].mean()
-                            )
-                    else:
-                        X.loc[
-                            X.index[valid_ix], col + "_" + "target_encoded"
-                        ] = x_valid[col].map(
-                            x_train.groupby(col)[self.target.name].mean()
-                        )
-
-            # ensure number data type
-            for col in self.columns:
-                X[col + "_" + "target_encoded"] = pd.to_numeric(
-                    X[col + "_" + "target_encoded"]
-                )
-
-            # collect average values for transformation of unseen data
-            for col in self.columns:
-                if col in self.number_columns:
-                    if isinstance(self.n_bins, dict):
-                        self.stats[col] = X.groupby(
-                            "{}_{}_bins".format(col, self.n_bins[col])
-                        )["{}_target_encoded".format(col)].mean()
-                    else:
-                        self.stats[col] = X.groupby(
-                            "{}_{}_bins".format(col, self.n_bins)
-                        )["{}_target_encoded".format(col)].mean()
-                else:
-                    self.stats[col] = X.groupby(col)[
-                        "{}_target_encoded".format(col)
-                    ].mean()
-
-            # flip transform_train switch to indicate that fitting has occurred
-            # ensure future transform calls will go to the else branch of the conditional
-            self.transform_train = True
-
-            # drop target column
-            X = X.drop(self.target.name, axis=1)
-
-            # conditionally drop original and/or binned columns
-            if self.drop_original_columns:
-                X = X.drop(self.columns, axis=1)
-            if self.drop_bin_columns:
-                X = X.drop(X.columns[X.columns.str.contains("_bins")], axis=1)
-        else:
-            # ieterate through all columns in the summary stats dict
-            for col in self.stats.keys():
-
-                # add shell column and update by mapping encodings to object values or bins
-                X["{}_target_encoded".format(col)] = np.nan
-
-                # perform binning on number columns
-                if col in self.number_columns:
-                    binner = self.binners[col]
-
-                    if isinstance(self.n_bins, dict):
-
-                        X[
-                            col + "_" + str(self.n_bins[col]) + "_bins"
-                        ] = binner.transform(X[[col]])
-
-                        X["{}_target_encoded".format(col)] = np.where(
-                            X["{}_target_encoded".format(col)].isnull(),
-                            X["{}_{}_bins".format(col, self.n_bins[col])].map(
-                                self.stats[col]
-                            ),
-                            X["{}_target_encoded".format(col)],
-                        )
-                    else:
-                        X[col + "_" + str(self.n_bins) + "_bins"] = binner.transform(
-                            X[[col]]
-                        )
-
-                        X["{}_target_encoded".format(col)] = np.where(
-                            X["{}_target_encoded".format(col)].isnull(),
-                            X["{}_{}_bins".format(col, self.n_bins)].map(
-                                self.stats[col]
-                            ),
-                            X["{}_target_encoded".format(col)],
-                        )
-                else:
-                    X["{}_target_encoded".format(col)] = np.where(
-                        X["{}_target_encoded".format(col)].isnull(),
-                        X[col].map(self.stats[col]),
-                        X["{}_target_encoded".format(col)],
-                    )
-
-            # conditionally drop original and/or binned columns
-            if self.drop_original_columns:
-                X = X.drop(self.columns, axis=1)
-            if self.drop_bin_columns:
-                X = X.drop(X.columns[X.columns.str.contains("_bins")], axis=1)
-        return X
-
 
 class PandasFeatureUnion(pipeline.FeatureUnion):
     """
@@ -637,6 +465,7 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
             Xs = self.merge_dataframes_by_column(Xs)
 
         if not self.no_meta:
+            Xs = Xs.loc[:, ~Xs.columns.duplicated()]
             Xs = PreserveMetaData(Xs)
             Xs.feature_by_mlm_dtype = self.meta
 
@@ -662,11 +491,78 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
             Xs = self.merge_dataframes_by_column(Xs)
 
         if not self.no_meta:
+            Xs = Xs.loc[:, ~Xs.columns.duplicated()]
             Xs = PreserveMetaData(Xs)
             Xs.feature_by_mlm_dtype = self.meta
 
         return Xs
 
+class KFoldSelectEncoder(base.BaseEstimator, base.TransformerMixin):
+    def __init__(self, target, cv, encoder):
+        self.target = target
+        self.cv = cv
+        self.encoder = encoder
+        self.transform_train = False
+
+    def fit(self, X, y=None):
+        self.columns = X.columns
+        self.stats = {}
+
+        # capture name of encoder for column name
+        encoder_name = self.encoder.__module__.split(".")
+        if encoder_name[0] == "category_encoders":
+            self.column_suffix = "_" + encoder_name[1]
+
+        return self
+
+    def transform(self, X, y=None):
+        if not self.transform_train:
+            # combine input columns and target
+            X = X.merge(self.target, left_index=True, right_index=True)
+
+            # add empty columns to input dataset and set as number
+            for column in self.columns:
+                X[column + self.column_suffix] = np.nan
+                X[column + self.column_suffix] = pd.to_numeric(X[column + self.column_suffix])
+
+            # iterate through cv indices
+            for train_ix, valid_ix in self.cv.split(X):
+                x_train, x_valid = X.iloc[train_ix], X.iloc[valid_ix]
+
+                for column in self.columns:
+                    enc = self.encoder(cols=[column])
+
+                    # fit on train
+                    x_train[column + self.column_suffix] = enc.fit_transform(x_train[column], x_train[self.target.name])
+                    x_valid[column + self.column_suffix] = enc.transform(x_valid[column])
+                    X.loc[X.index[valid_ix], column + self.column_suffix] = x_valid[column + self.column_suffix].map(x_valid[column + self.column_suffix]).fillna(x_valid[column + self.column_suffix])
+
+            # collect average values for transformation of unseen data
+            for column in self.columns:
+                self.stats[column] = X.groupby(column)[column + self.column_suffix].mean()
+
+            # flip transform_train switch to indicate that fitting has occurred
+            # ensure future transform calls will go to the else branch of the conditional
+            self.transform_train = True
+
+            # drop target column
+            X = X.drop(self.target.name, axis=1)
+
+        else:
+            # iterate through all columns in the summary stats dict
+            for column in self.stats.keys():
+
+                # create empty colunn
+                X[column + self.column_suffix] = np.nan
+                X[column + self.column_suffix] = pd.to_numeric(X[column + self.column_suffix])
+
+                # fill in empty column with mean values grouped by target
+                X[column + self.column_suffix] = np.where(
+                    X[column + self.column_suffix].isnull(),
+                    X[column].map(self.stats[column]),
+                    X[column + self.column_suffix],
+                )
+        return X
 
 class DualTransformer(base.TransformerMixin, base.BaseEstimator):
     """
@@ -729,24 +625,23 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
         # yeo-johnson
         if self.yeojohnson:
             for col in self.yj_lambdas_dict_.keys():
-                X[col + "_yeojohnson"] = stats.yeojohnson(
+                X[col + "YeoJohnson"] = stats.yeojohnson(
                     X[col].values, lmbda=self.yj_lambdas_dict_[col]
                 )
 
         # box_cox
         if self.boxcox:
             for col in self.bc_p1_lambdas_dict_.keys():
-                X[col + "_boxcox"] = stats.boxcox(
+                X[col + "BoxCox"] = stats.boxcox(
                     X[col].values + 1, lmbda=self.bc_p1_lambdas_dict_[col]
                 )
 
             for col in self.bc_lambdas_dict_.keys():
-                X[col + "_boxcox"] = stats.boxcox(
+                X[col + "BoxCox"] = stats.boxcox(
                     X[col].values, lmbda=self.bc_lambdas_dict_[col]
                 )
         return X
         # return X.drop(self.original_columns, axis=1)
-
 
 def skew_summary(self, data=None, columns=None):
     """
@@ -766,7 +661,7 @@ def skew_summary(self, data=None, columns=None):
     if data is None:
         data = self.data
     if columns is None:
-        columns = self.data.feature_by_mlm_dtype["number"]
+        columns = self.data.feature_by_mlm_dtype["continuous"]
 
     skewness = (
         data[columns]

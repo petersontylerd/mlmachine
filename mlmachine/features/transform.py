@@ -69,11 +69,11 @@ class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
             # todo - does not currently apply bin label. just the interval index range. not usable.
             # iterate through columns and stored bins that were learned from training data
             for col, bins in self.train_value.items():
-                train_bins = pd.interval_index.from_breaks(bins)
+                train_Bins = pd.interval_index.from_breaks(bins)
                 print(bins)
-                print(train_bins)
-                print(type(train_bins))
-                X["{}{}".format(col, "equal_bin")] = pd.cut(X[col], bins=train_bins)
+                print(train_Bins)
+                print(type(train_Bins))
+                X["{}{}".format(col, "equal_bin")] = pd.cut(X[col], bins=train_Bins)
         return X
 
 
