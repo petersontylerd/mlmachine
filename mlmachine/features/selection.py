@@ -45,40 +45,46 @@ class FeatureSelector:
                 the target dataset provided to machine during instantiation is used.
             estimators : list of strings or sklearn api objects.
                     list of estimators to be used.
-            rank : bool, default=True
-                conditional controlling whether to overwrite values with rank of values.
             classification : bool, default=True
                 conditional controlling whether object is informed that the supervised learning
                 task is a classification task.
     """
 
-    def __init__(self, data, target, estimators, rank=True, classification=True):
+    def __init__(self, data, target, estimators, classification=True):
         self.data = data
         self.target = target
         self.estimators = estimators
-        self.rank = rank
         self.classification = classification
 
-    def feature_selector_suite(self, save_to_csv=True):
+    def feature_selector_suite(self, rank=False, add_stats=False, save_to_csv=False):
         """
         documentation:
             description:
                 run all feature selections processes and aggregate results. calculate summary
                 statistics on results.
             parameters:
+                rank : bool, default=False
+                    conditional controlling whether to overwrite values with rank of values.
+                add_stats : bool, default=True
+                    add row-wise summary statistics for feature importance ranking columns.
+                    requires columns to be ranked in ascending or descending order, which
+                    enforces consistent directionality in assigning importance, and normalize
+                    the scale of the feature importance values. Ignored if one feature
+                    importance column is provided. If raw feature importance values are provided
+                    values are converted to ranks.
                 save_to_csv : bool, default=True
                     conditional controlling whethor or not the feature selection summary results
                     are saved to a csv file.
         """
         # run individual top feature processes
-        self.results_variance = self.feature_selector_variance()
-        self.results_importance = self.feature_selector_importance()
+        self.results_variance = self.feature_selector_variance(rank=rank)
+        self.results_importance = self.feature_selector_importance(rank=rank)
         self.results_rfe = self.feature_selector_rfe()
-        self.results_corr = self.feature_selector_corr()
+        self.results_corr = self.feature_selector_corr(rank=rank)
         if self.classification:
-            self.results_f_score = self.feature_selector_f_score_class()
+            self.results_f_score = self.feature_selector_f_score_class(rank=rank)
         else:
-            self.results_f_score = self.feature_selector_f_score_reg()
+            self.results_f_score = self.feature_selector_f_score_reg(rank=rank)
 
         # combine results into single summary table
         results = [
@@ -90,29 +96,8 @@ class FeatureSelector:
         ]
         self.feature_selector_summary = pd.concat(results, join="inner", axis=1)
 
-        # add summary stats
-        self.feature_selector_summary.insert(
-            loc=0, column="rank average", value=self.feature_selector_summary.mean(axis=1)
-        )
-        self.feature_selector_summary.insert(
-            loc=1,
-            column="rank stdev",
-            value=self.feature_selector_summary.iloc[:, 1:].std(axis=1),
-        )
-        self.feature_selector_summary.insert(
-            loc=2,
-            column="rank low",
-            value=self.feature_selector_summary.iloc[:, 2:].min(axis=1),
-        )
-        self.feature_selector_summary.insert(
-            loc=3,
-            column="rank high",
-            value=self.feature_selector_summary.iloc[:, 3:].max(axis=1),
-        )
-
-        self.feature_selector_summary = self.feature_selector_summary.sort_values(
-            "rank average"
-        )
+        if add_stats:
+            self.feature_selector_summary = self.feature_selector_stats(self.feature_selector_summary)
 
         if save_to_csv:
             self.feature_selector_summary.to_csv(
@@ -120,16 +105,18 @@ class FeatureSelector:
                     strftime("%y%m%d%H%M", gmtime())
                 ),
                 columns=self.feature_selector_summary.columns,
-                # index_label="index"
             )
         return self.feature_selector_summary
 
-    def feature_selector_f_score_class(self):
+    def feature_selector_f_score_class(self, rank=False):
         """
         documentation:
             description:
                 for each feature, calculate f_values and p_values in the context of a
                 classification problem.
+            parameters
+                rank : bool, default=False
+                    conditional controlling whether to overwrite values with rank of values.
         """
         # calculate f_values and p_values
         univariate = feature_selection.f_classif(self.data, self.target)
@@ -142,23 +129,20 @@ class FeatureSelector:
         # load dictionary into pandas DataFrame and rank values
         feature_df = pd.DataFrame(data=feature_dict, index=self.data.columns)
 
-        # overwrite values with rank where lower ranks convey higher importance
-        if self.rank:
-            feature_df["f_value"] = feature_df["f_value"].rank(
-                ascending=False, method="max"
-            )
-            feature_df["p_value"] = feature_df["p_value"].rank(
-                ascending=True, method="max"
-            )
-
+        # overwrite values with rank
+        if rank:
+            feature_df = self.apply_ranks(feature_df)
         return feature_df
 
-    def feature_selector_f_score_reg(self):
+    def feature_selector_f_score_reg(self, rank=False):
         """
         documentation:
             description:
                 for each feature, calculate f_values and p_values in the context of a
-                regression probelm.
+                regression problem.
+            parameters
+                rank : bool, default=False
+                    conditional controlling whether to overwrite values with rank of values.
         """
         # calculate f_values and p_values
         univariate = feature_selection.f_regression(self.data, self.target)
@@ -171,45 +155,52 @@ class FeatureSelector:
         # load dictionary into pandas DataFrame and rank values
         feature_df = pd.DataFrame(data=feature_dict, index=self.data.columns)
 
-        # overwrite values with rank where lower ranks convey higher importance
-        if self.rank:
-            feature_df["f_value"] = feature_df["f_value"].rank(
-                ascending=False, method="max"
-            )
-            feature_df["p_value"] = feature_df["p_value"].rank(
-                ascending=True, method="max"
-            )
-
+        # overwrite values with rank
+        if rank:
+            feature_df = self.apply_ranks(feature_df)
         return feature_df
 
-    def feature_selector_variance(self):
+    def feature_selector_variance(self, rank=False):
         """
         documentation:
             description:
                 for each feature, calculate variance.
+            parameters
+                rank : bool, default=False
+                    conditional controlling whether to overwrite values with rank of values.
         """
         # calculate variance
         var_importance = feature_selection.VarianceThreshold()
         var_importance.fit(self.data)
 
+        variance = "variance{}".format("_rank" if rank else "")
+
         # load data into pandas DataFrame and rank values
         feature_df = pd.DataFrame(
-            var_importance.variances_, index=self.data.columns, columns=["variance"]
+            var_importance.variances_, index=self.data.columns, columns=[variance]
         )
 
-        # overwrite values with rank where lower ranks convey higher importance
-        if self.rank:
-            feature_df["variance"] = feature_df["variance"].rank(
-                ascending=False, method="max"
-            )
+        # overwrite values with rank
+        if rank:
+            feature_df = self.apply_ranks(feature_df)
 
         return feature_df
 
-    def feature_selector_importance(self):
+    def feature_selector_importance(self, rank=False, add_stats=False):
         """
         documentation:
             description:
                 for each estimator, for each feature, calculate feature importance.
+            parameters
+                rank : bool, default=False
+                    conditional controlling whether to overwrite values with rank of values.
+                add_stats : bool, default=True
+                    add row-wise summary statistics for feature importance ranking columns.
+                    requires columns to be ranked in ascending or descending order, which
+                    enforces consistent directionality in assigning importance, and normalize
+                    the scale of the feature importance values. Ignored if one feature
+                    importance column is provided. If raw feature importance values are provided
+                    values are converted to ranks.
         """
         #
         feature_dict = {}
@@ -222,29 +213,36 @@ class FeatureSelector:
             else:
                 estimator_module = model.estimator.__module__.split(".")[1]
 
-            estimator_class = model.estimator.__name__
-            estimator_name = estimator_module + "." + estimator_class
+            estimator_name =  model.estimator.__name__ + "_feature_importance"
 
             # build dict
-            feature_dict[
-                estimator_name
-                + "_feature_importance"
-            ] = model.feature_importances(self.data.values, self.target)
+            feature_dict[estimator_name] = model.feature_importances(self.data.values, self.target)
 
         feature_df = pd.DataFrame(feature_dict, index=self.data.columns)
 
-        # overwrite values with rank where lower ranks convey higher importance
-        if self.rank:
-            feature_df = feature_df.rank(ascending=False, method="max")
+        # overwrite values with rank
+        if rank:
+            feature_df = self.apply_ranks(feature_df)
+
+        # add summary statistics columns
+        if add_stats:
+            feature_df = self.feature_selector_stats(feature_df)
 
         return feature_df
 
-    def feature_selector_rfe(self):
+    def feature_selector_rfe(self, add_stats=False):
         """
         documentation:
             description:
                 for each estimator, recursively remove features one at a time, capturing
                 the step in which each feature is removed.
+            parameters:
+                add_stats : bool, default=True
+                    add row-wise summary statistics for feature importance ranking columns.
+                    requires columns to be ranked in ascending or descending order, which
+                    enforces consistent directionality in assigning importance, and normalize
+                    the scale of the feature importance values. Ignored if one RFE rank
+                    column is provided.
         """
         #
         feature_dict = {}
@@ -257,48 +255,127 @@ class FeatureSelector:
             else:
                 estimator_module = model.estimator.__module__.split(".")[1]
 
-            estimator_class = model.estimator.__name__
-            estimator_name = estimator_module + "." + estimator_class
+            estimator_name =  model.estimator.__name__ + "_rfe_rank"
 
             # recursive feature selection
             rfe = feature_selection.RFE(
                 estimator=model.model, n_features_to_select=1, step=1, verbose=0
             )
             rfe.fit(self.data, self.target)
-            feature_dict[estimator_name + "_RFE"] = rfe.ranking_
-            
+            feature_dict[estimator_name] = rfe.ranking_
+
         feature_df = pd.DataFrame(feature_dict, index=self.data.columns)
 
-        # overwrite values with rank where lower ranks convey higher importance
-        if self.rank:
-            feature_df = feature_df.rank(ascending=True, method="max")
+        # add summary statistics columns
+        if add_stats:
+            feature_df = self.feature_selector_stats(feature_df)
 
         return feature_df
 
-    def feature_selector_corr(self):
+    def feature_selector_corr(self, rank=False):
         """
         documentation:
             description:
                 for each feature, calculate absolute correlation coefficient relative to
                 target dataset.
+            parameters:
+                rank : bool, default=False
+                    conditional controlling whether to overwrite values with rank of values.
         """
         # calculate absolute correlation coefficients relative to target
         feature_df = self.data.merge(self.target, left_index=True, right_index=True)
 
-        feature_df = pd.DataFrame(feature_df.corr().abs()[self.target.name])
-        feature_df = feature_df.rename(columns={self.target.name: "correlation_to_target"})
+        correlation_to_target = "correlation_to_target"
 
-        feature_df = feature_df.sort_values("correlation_to_target", ascending=False)
+        feature_df = pd.DataFrame(feature_df.corr().abs()[self.target.name])
+        feature_df = feature_df.rename(columns={self.target.name: correlation_to_target})
+
+        feature_df = feature_df.sort_values(correlation_to_target, ascending=False)
         feature_df = feature_df.drop(self.target.name, axis=0)
 
-        # overwrite values with rank where lower ranks convey higher importance
-        if self.rank:
-            feature_df = feature_df.rank(ascending=False, method="max")
+        # overwrite values with rank
+        # higher values are better and are given lower number values for ranks
+        if rank:
+            feature_df = self.apply_ranks(feature_df)
 
         return feature_df
 
+    def apply_ranks(self, feature_df):
+        """
+        documentation:
+            description:
+                apply ascending or descending ranking on feature importance values.
+            parameters:
+                feature_df : Pandas DataFrame
+                    Pandas DataFrame with an index corresponding to feature names and columns
+                    corresponding to feature importance values.
+        """
+        ascending_rank = ["p_value","rfe"]
+        descending_rank = ["feature_importance","f_value","variance","correlation_to_target"]
+
+        # capture column to rank in ascending order
+        apply_ascending_rank = []
+        for column in ascending_rank:
+            apply_ascending_rank.extend([s for s in feature_df.columns if column in s])
+
+        # overwrite values with ascending rank
+        for column in apply_ascending_rank:
+            feature_df[column] = feature_df[column].rank(ascending=True, method="max")
+            feature_df[column] = feature_df[column].astype("int")
+            feature_df = feature_df.rename({column: column + "_rank"}, axis=1)
+
+        # capture column to rank in descending order
+        apply_descending_rank = []
+        for column in descending_rank:
+            apply_descending_rank.extend([s for s in feature_df.columns if column in s])
+
+        # overwrite values with descending rank
+        for column in apply_descending_rank:
+            feature_df[column] = feature_df[column].rank(ascending=False, method="max")
+            feature_df[column] = feature_df[column].astype("int")
+            feature_df = feature_df.rename({column: column + "_rank"}, axis=1)
+        return feature_df
+
+    def feature_selector_stats(self, feature_df):
+        """
+        documentation:
+            description:
+                add row-wise summary statistics for feature importance ranking columns. if data
+                provided includes raw feature importance values, ranking will be applied
+                automatically.
+            parameters:
+                feature_df : Pandas DataFrame
+                    Pandas DataFrame with an index corresponding to feature names and columns
+                    corresponding to feature importance values or feature importance rankings.
+        """
+        # apply ranking if needed
+        if not feature_df.columns.str.endswith("_rank").sum() == feature_df.shape[1]:
+            feature_df = self.apply_ranks(feature_df)
+
+        # add summary stats
+        feature_df.insert(
+            loc=0, column="average", value=feature_df.mean(axis=1)
+        )
+        feature_df.insert(
+            loc=1,
+            column="stdev",
+            value=feature_df.iloc[:, 1:].std(axis=1),
+        )
+        feature_df.insert(
+            loc=2,
+            column="best",
+            value=feature_df.iloc[:, 2:].min(axis=1),
+        )
+        feature_df.insert(
+            loc=3,
+            column="worst",
+            value=feature_df.iloc[:, 3:].max(axis=1),
+        )
+        feature_df = feature_df.sort_values("average")
+        return feature_df
+
     def feature_selector_cross_val(self, scoring, feature_selector_summary=None, estimators=None,
-                                    n_folds=3, step=1, n_jobs=4, verbose=True, save_to_csv=True,):
+                                    n_folds=3, step=1, n_jobs=4, verbose=True, save_to_csv=False,):
         """
         documentation:
             description:
@@ -383,7 +460,8 @@ class FeatureSelector:
                 estimator_module = model.estimator.__module__.split(".")[1]
 
             estimator_class = model.estimator.__name__
-            estimator_name = estimator_module + "." + estimator_class
+            estimator_name = estimator_class
+            # estimator_name = estimator_module + "." + estimator_class
 
             # iterate through scoring metrics
             for metric in scoring:
@@ -393,9 +471,9 @@ class FeatureSelector:
                 for i in np.arange(0, feature_selector_summary.shape[0], step):
                     # collect names of top columns
                     if i == 0:
-                        top = feature_selector_summary.sort_values("rank average").index
+                        top = feature_selector_summary.sort_values("average").index
                     else:
-                        top = feature_selector_summary.sort_values("rank average").index[:-i]
+                        top = feature_selector_summary.sort_values("average").index[:-i]
 
                     # custom metric handling
                     if metric == "root_mean_squared_error":
@@ -554,13 +632,13 @@ class FeatureSelector:
                 if num_dropped > 0:
                     features = feature_selector_summary.shape[0] - num_dropped
                     features_used = (
-                        feature_selector_summary.sort_values("rank average")
+                        feature_selector_summary.sort_values("average")
                         .index[:features]
                         .values
                     )
                 else:
                     features_used = feature_selector_summary.sort_values(
-                        "rank average"
+                        "average"
                     ).index.values
                 print(features_used)
 
@@ -655,13 +733,13 @@ class FeatureSelector:
             if num_dropped > 0:
                 features = feature_selector_summary.shape[0] - num_dropped
                 features_used = (
-                    feature_selector_summary.sort_values("rank average")
+                    feature_selector_summary.sort_values("average")
                     .index[:features]
                     .values
                 )
             else:
                 features_used = feature_selector_summary.sort_values(
-                    "rank average"
+                    "average"
                 ).index.values
 
             # create column for estimator and populate with marker
