@@ -274,34 +274,77 @@ class Machine:
 
         for column in untracked_columns:
 
-            # numeric
-            if is_numeric_dtype(self.data[column]):
-                # self.data[column] = self.data[column].astype("float64")
+            # capture count of 0's and 1's in the column
+            zeros_and_ones = (self.data[column].eq(0) | self.data[column].eq(1)).sum()
 
-                # check if first part of untracked column name is in the current
-                if len(column.split("_")) > 1 and column.split("_")[0] in old_feature_by_mlm_dtype["category"]:
-                    self.data.feature_by_mlm_dtype["category"].append(column)
+            try:
+                self.data[column].astype("float").apply(float.is_integer).all()
+            except ValueError:
+                self.data.feature_by_mlm_dtype["category"].append(column)
+                continue
 
-                # various encoding types
-                elif column.endswith(("_bins","_count","_target_encoder","_woe","binarized")):
-                    self.data.feature_by_mlm_dtype["category"].append(column)
+            # various encoding types
+            if column.endswith(("_bins","_count","_target_encoder","_woe","_binarized")):
+                self.data.feature_by_mlm_dtype["category"].append(column)
 
-                # skew correction
-                elif column.endswith(("_BoxCox","_YeoJohnson")):
-                    self.data.feature_by_mlm_dtype["continuous"].append(column)
+            # skew correction
+            elif column.endswith(("_BoxCox","_YeoJohnson")):
+                self.data.feature_by_mlm_dtype["continuous"].append(column)
 
-                # all values are integer
-                elif self.data[column].astype("float").apply(float.is_integer).all():
-                    self.data.feature_by_mlm_dtype["count"].append(column)
+            # check if untracked column name, split at "_", contains more than one part, suggesting a value
+            # in the original column has been appended to the end of the column name. further, the first part
+            # of the untracked column name is not part of a column name previously recognized as a count column.
+            # check if column contains only integer values and only 0's and 1's, suggesting a boolean value.
+            elif len(column.split("_")) > 1 \
+                and column.split("_")[0] not in old_feature_by_mlm_dtype["count"] \
+                and self.data[column].astype("float").apply(float.is_integer).all() \
+                and zeros_and_ones == self.data.shape[0]:
 
-                # float
-                else:
-                    self.data.feature_by_mlm_dtype["continuous"].append(column)
+                self.data.feature_by_mlm_dtype["category"].append(column)
 
-            # category
+            # check if untracked column name, split at "_", contains more than one part, suggesting a value
+            # in the original column has been appended to the end of the column name. further, the first part
+            # of the untracked column name is part of a column name previously recognized as a category column
+            elif len(column.split("_")) > 1 \
+                and column.split("_")[0] in old_feature_by_mlm_dtype["category"]:
+
+                self.data.feature_by_mlm_dtype["category"].append(column)
+
+            # check if column containers only integer values and more than just 0's and 1's, suggesting
+            # the column contains counts. also check to see if first part of column name, split at "_", is
+            # part of a column name previously recognized as a category column
+            elif self.data[column].astype("float").apply(float.is_integer).all() \
+                and zeros_and_ones != self.data.shape[0] \
+                and column.split("_")[0] in old_feature_by_mlm_dtype["continuous"]:
+
+                self.data.feature_by_mlm_dtype["count"].append(column)
+
+            # check if column containers only integer values and more than just 0's and 1's, suggesting
+            # the column contains counts. also check to see if first part of column name, split at "_", is
+            # part of a column name previously recognized as a category column
+            elif self.data[column].astype("float").apply(float.is_integer).all() \
+                and zeros_and_ones == self.data.shape[0]:
+
+                self.data.feature_by_mlm_dtype["category"].append(column)
+
+            # check if column containers only integer values and more than just 0's and 1's, suggesting
+            # the column contains counts. also check to see if first part of column name, split at "_", is
+            # part of a column name previously recognized as a category column
+            elif self.data[column].astype("float").apply(float.is_integer).all() \
+                and zeros_and_ones != self.data.shape[0]:
+
+                self.data.feature_by_mlm_dtype["count"].append(column)
+
+            # numeric columns set as continuous
+            elif is_numeric_dtype(self.data[column]):
+                self.data.feature_by_mlm_dtype["continuous"].append(column)
+                print()
+                print(column)
+                print("here")
+
+            # all else are category
             else:
                 self.data.feature_by_mlm_dtype["category"].append(column)
-                self.data[column] = self.data[column].astype("object")
 
         ### set data types
         for dtype, columns in self.data.feature_by_mlm_dtype.items():
