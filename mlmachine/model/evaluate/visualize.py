@@ -83,7 +83,7 @@ def classification_panel(
                 y_valid, y_pred, labels=np.unique(y_train.values)
             )
         )
-        p.pretty_confusion_matrix(
+        p.confusion_matrix(
             y_True=y_valid,
             y_pred=y_pred,
             labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
@@ -96,7 +96,7 @@ def classification_panel(
                 y_train, y_pred, labels=np.unique(y_train.values)
             )
         )
-        p.pretty_confusion_matrix(
+        p.confusion_matrix(
             y_True=y_train,
             y_pred=y_pred,
             labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
@@ -119,7 +119,7 @@ def classification_panel(
         position=111 if x_valid is not None else 121,
         title_scale=title_scale,
     )
-    p.pretty_roc_curve(
+    p.roc_curve(
         model=model,
         x_train=x_train,
         y_train=y_train,
@@ -159,7 +159,7 @@ def classification_panel(
             x_valid_cv = x_train.iloc[valid_ix]
             y_valid_cv = y_train.iloc[valid_ix]
 
-            p.pretty_roc_curve(
+            p.roc_curve(
                 model=model,
                 x_train=x_train_cv,
                 y_train=y_train_cv,
@@ -239,7 +239,7 @@ def regression_panel(
         title_scale=title_scale,
     )
 
-    p.pretty_2d_scatter(
+    p.scatter_2d(
         x=y_pred, y=y_pred - y_train.values, size=7, color=style.style_grey, ax=ax,
     )
     plt.hlines(
@@ -280,7 +280,7 @@ def regression_panel(
             title_scale=title_scale,
         )
 
-        p.pretty_2d_scatter(
+        p.scatter_2d(
             x=y_pred, y=y_pred - y_valid.values, size=7, color=style.style_grey, ax=ax,
         )
         plt.hlines(
@@ -358,7 +358,7 @@ def regression_panel(
                 title_scale=title_scale,
             )
 
-            p.pretty_2d_scatter(
+            p.scatter_2d(
                 x=y_pred,
                 y=y_pred - y_valid_cv.values,
                 size=7,

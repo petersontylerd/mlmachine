@@ -41,7 +41,7 @@ def eda_missing_summary(self, data=None, color=style.style_grey):
         ax = p.make_canvas(
             title="percent missing by feature", y_shift=0.8, position=221
         )
-        p.pretty_bar_v(
+        p.bar_v(
             x=percent_missing.index,
             counts=percent_missing["percent missing"],
             label_rotate=-90,

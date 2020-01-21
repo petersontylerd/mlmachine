@@ -12,6 +12,7 @@ from sklearn.externals.joblib import Parallel, delayed
 import category_encoders as ce
 
 import itertools
+import collections
 import copy
 
 
@@ -133,8 +134,8 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
             self.meta = X.feature_by_mlm_dtype
             self.no_meta = False
         except AttributeError:
-            if include_mlm_dtypes is not None or exclude_mlm_dtypes is not None:
-                raise AttributeError ("problem")
+            if self.include_mlm_dtypes is not None or self.exclude_mlm_dtypes is not None:
+                raise AttributeError ("Attempting to filter using mlm dtypes, but feature_by_mlm_dtype object is not associated with the input Pandas DataFrame.")
             else:
                 pass
 
@@ -160,7 +161,8 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
                 self.selected_columns.extend(X.feature_by_mlm_dtype[dtype])
 
         # flatten list and remove duplicates
-        self.selected_columns = list(set(self.selected_columns))
+        self.selected_columns = collections.OrderedDict.fromkeys(self.selected_columns)
+        self.selected_columns = list(self.selected_columns.keys())
 
         ## deselection
         # deselect columns by name

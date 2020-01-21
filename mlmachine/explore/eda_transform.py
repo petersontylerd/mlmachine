@@ -31,7 +31,7 @@ def eda_transform_initial(self, data, name):
         y_shift=0.8,
         position=221,
     )
-    p.pretty_dist_plot(
+    p.dist_plot(
         data, color=style.style_grey, fit=stats.norm, x_rotate=True, ax=ax
     )
     plt.xticks([])
@@ -45,7 +45,7 @@ def eda_transform_initial(self, data, name):
         y_shift=0.8,
         position=222,
     )
-    p.pretty_prob_plot(data, plot=ax)
+    p.prob_plot(data, plot=ax)
     plt.xticks([])
     plt.yticks([])
 
@@ -73,7 +73,7 @@ def eda_transform_log1(self, data, name):
         y_shift=0.8,
         position=223,
     )
-    p.pretty_dist_plot(
+    p.dist_plot(
         np.log1p(data), color=style.style_grey, fit=stats.norm, x_rotate=True, ax=ax
     )
     plt.xticks([])
@@ -87,7 +87,7 @@ def eda_transform_log1(self, data, name):
         y_shift=0.8,
         position=224,
     )
-    p.pretty_prob_plot(np.log1p(data), plot=ax)
+    p.prob_plot(np.log1p(data), plot=ax)
     plt.xticks([])
     plt.yticks([])
 
@@ -117,7 +117,7 @@ def eda_transform_box_cox(self, data, name, lmbda):
         y_shift=0.8,
         position=223,
     )
-    p.pretty_dist_plot(
+    p.dist_plot(
         special.boxcox1p(data, lmbda),
         color=style.style_grey,
         fit=stats.norm,
@@ -135,7 +135,7 @@ def eda_transform_box_cox(self, data, name, lmbda):
         y_shift=0.8,
         position=224,
     )
-    p.pretty_prob_plot(special.boxcox1p(data, lmbda), plot=ax)
+    p.prob_plot(special.boxcox1p(data, lmbda), plot=ax)
     plt.xticks([])
     plt.yticks([])
 

@@ -539,7 +539,7 @@ def model_loss_plot(
         position=111,
         title_scale=title_scale,
     )
-    p.pretty_reg_plot(
+    p.reg_plot(
         x="iteration", y="iter_loss", data=estimator_summary, y_units="ffff", ax=ax
     )
     plt.show()
@@ -624,7 +624,7 @@ def model_param_plot(
                 position=121,
                 title_scale=title_scale,
             )
-            p.pretty_bar_v(
+            p.bar_v(
                 x=unique_vals,
                 counts=unique_counts,
                 label_rotate=90 if len(unique_vals) >= 4 else 0,
@@ -645,7 +645,7 @@ def model_param_plot(
                 position=122,
                 title_scale=title_scale,
             )
-            p.pretty_bar_v(
+            p.bar_v(
                 x=unique_vals,
                 counts=unique_counts,
                 label_rotate=90 if len(unique_vals) >= 4 else 0,
@@ -671,14 +671,14 @@ def model_param_plot(
                 position=121,
                 title_scale=title_scale,
             )
-            p.pretty_kde_plot(
+            p.kde_plot(
                 theoretical_dist,
                 color=style.style_grey,
                 y_units="ppp",
                 x_units="fff" if np.max(theoretical_dist) <= 5.0 else "ff",
                 ax=ax,
             )
-            p.pretty_kde_plot(
+            p.kde_plot(
                 actual_dist,
                 color=style.style_blue,
                 y_units="ppp",
@@ -717,7 +717,7 @@ def model_param_plot(
                 position=122,
                 title_scale=title_scale,
             )
-            p.pretty_reg_plot(
+            p.reg_plot(
                 x="iteration", y=param, data=actual_iter_df, y_units="fff", ax=ax
             )
             plt.show()
@@ -754,7 +754,7 @@ def sample_plot(self, sample_space, n_iter, chart_prop=15):
             y_shift=0.8,
             position=111,
         )
-        p.pretty_kde_plot(
+        p.kde_plot(
             theoretical_dist,
             color=style.style_grey,
             y_units="p",

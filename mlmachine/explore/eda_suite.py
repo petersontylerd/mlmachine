@@ -193,7 +193,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         # treemap plot
         ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=0.82)
-        p.pretty_tree_map(
+        p.tree_map(
             counts=uni_summ_df["Count"].values,
             labels=uni_summ_df[feature].values,
             colors=style.color_gen(name=color_map, num=len(uni_summ_df[feature].values)),
@@ -204,7 +204,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         # bivariate plot
         ax = p.make_canvas(title="Category counts by target\n* {}".format(feature), position=132)
 
-        p.pretty_facet_cat(
+        p.facet_cat(
             df=bi_summ_df,
             feature=feature,
             label_rotate=rotation,
@@ -218,7 +218,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         # percent of total
         ax = p.make_canvas(title="Target proportion by category\n* {}".format(feature), position=133)
-        p.pretty_stacked_bar_h(
+        p.stacked_bar_h(
             df=prop_df.drop("Class", axis=1),
             bbox=(1.0, 1.15),
             legend_labels=legend_labels,
@@ -365,47 +365,80 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         x_axis_max = self.data[feature].drop(index=outliers).max()
 
 
-    # univariate plot
+    ## univariate plot
     ax = p.make_canvas(
         title="Feature distribution\n* {}".format(feature),
         title_scale=0.85,
         position=221,
     )
-    p.pretty_dist_plot(
+
+    # dynamically determine x-units
+    dist_min = bi_df[feature].values.min()
+    dist_max = bi_df[feature].values.max()
+
+    if -3 < dist_min < 3 and -3 < dist_max < 3 and dist_max/dist_min < 10:
+        x_units = "fff"
+    elif -30 < dist_min < 30 and -30 < dist_max < 30 and dist_max/dist_min < 3:
+        x_units = "fff"
+    elif -5 < dist_min < 5 and -5 < dist_max < 5 and dist_max/dist_min < 10:
+        x_units = "ff"
+    elif -90 < dist_min < 90 and -90 < dist_max < 90 and dist_max/dist_min < 5:
+        x_units = "ff"
+    else:
+        x_units = "f"
+
+    p.dist_plot(
         bi_df[feature].values,
         color=style.style_grey,
         y_units="f",
+        x_units=x_units,
         ax=ax,
     )
     if outliers_out_of_scope is not None:
         plt.xlim(x_axis_min, x_axis_max)
 
-    # probability plot
+    ## probability plot
     ax = p.make_canvas(
         title="Probability plot\n* {}".format(feature),
         title_scale=0.85,
         position=222,
     )
-    p.pretty_prob_plot(
+    p.prob_plot(
         x=bi_df[feature].values,
         plot=ax,
     )
 
-    # bivariate histogram
+    ## bivariate histogram
     ax = p.make_canvas(
         title="Distribution by class\n* {}".format(feature),
         title_scale=0.85,
         position=223,
     )
 
+    # dynamically determine x-units
+    dist_min = bi_df[feature].values.min()
+    dist_max = bi_df[feature].values.max()
+
+    if -3 < dist_min < 3 and -3 < dist_max < 3 and dist_max/dist_min < 10:
+        x_units = "fff"
+    elif -30 < dist_min < 30 and -30 < dist_max < 30 and dist_max/dist_min < 3:
+        x_units = "fff"
+    elif -5 < dist_min < 5 and -5 < dist_max < 5 and dist_max/dist_min < 10:
+        x_units = "ff"
+    elif -90 < dist_min < 90 and -90 < dist_max < 90 and dist_max/dist_min < 5:
+        x_units = "ff"
+    else:
+        x_units = "f"
+
     # generate color list
     color_list = style.color_gen(name=color_map, num=len(np.unique(self.target)))
 
     for ix, labl in enumerate(np.unique(bi_df[self.target.name].values)):
-        p.pretty_dist_plot(
+        p.dist_plot(
             bi_df[bi_df[self.target.name] == labl][feature].values,
             color=color_list[ix],
             y_units="f",
+            x_units=x_units,
             # kde=True,
             legend_labels=legend_labels,
             alpha=0.4,
@@ -415,17 +448,34 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     if outliers_out_of_scope is not None:
         plt.xlim(x_axis_min, x_axis_max)
 
-    # boxplot histogram
+    ## boxplot histogram
     ax = p.make_canvas(
         title="Boxplot by class\n* {}".format(feature),
         title_scale=0.85,
         position=224,
     )
-    p.pretty_box_plot_h(
+
+    # dynamically determine x-units
+    dist_min = bi_df[feature].values.min()
+    dist_max = bi_df[feature].values.max()
+
+    if -3 < dist_min < 3 and -3 < dist_max < 3 and dist_max/dist_min < 10:
+        x_units = "fff"
+    elif -30 < dist_min < 30 and -30 < dist_max < 30 and dist_max/dist_min < 3:
+        x_units = "fff"
+    elif -5 < dist_min < 5 and -5 < dist_max < 5 and dist_max/dist_min < 10:
+        x_units = "ff"
+    elif -90 < dist_min < 90 and -90 < dist_max < 90 and dist_max/dist_min < 5:
+        x_units = "ff"
+    else:
+        x_units = "f"
+
+    p.box_plot_h(
         x=feature,
         y=self.target.name,
         data=bi_df,
         alpha=0.7,
+        x_units=x_units,
         legend_labels=legend_labels,
         bbox=(1.2, 1.0),
         suppress_outliers=True,
@@ -512,7 +562,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
 
         # univariate plot
         ax = p.make_canvas(title="univariate\n* {}".format(feature), position=131)
-        p.pretty_bar_v(
+        p.bar_v(
             x=list(map(str, unique_vals.tolist())),
             counts=unique_counts,
             label_rotate=rotation,
@@ -523,7 +573,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
 
         # regression plot
         ax = p.make_canvas(title="regression plot\n* {}".format(feature), position=132)
-        p.pretty_reg_plot(
+        p.reg_plot(
             x=feature,
             y=self.target.name,
             data=bi_df[bi_df[feature].notnull()],
@@ -540,7 +590,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
         ax = p.make_canvas(
             title="box plot - faceted by\n* {}".format(feature), position=133
         )
-        p.pretty_box_plot_v(
+        p.box_plot_v(
             x=feature,
             y=self.target.name,
             data=bi_df[bi_df[feature].notnull()],
@@ -581,7 +631,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
         ax = p.make_canvas(
             title="dist/kde - univariate\n* {}".format(feature), position=131
         )
-        p.pretty_dist_plot(
+        p.dist_plot(
             bi_df[(bi_df[feature].notnull())][feature].values,
             color=style.style_grey,
             y_units="fffff",
@@ -592,11 +642,11 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
 
         # probability plot
         ax = p.make_canvas(title="probability plot\n* {}".format(feature), position=132)
-        p.pretty_prob_plot(x=bi_df[(bi_df[feature].notnull())][feature].values, plot=ax)
+        p.prob_plot(x=bi_df[(bi_df[feature].notnull())][feature].values, plot=ax)
 
         # regression plot
         ax = p.make_canvas(title="regression plot\n* {}".format(feature), position=133)
-        p.pretty_reg_plot(
+        p.reg_plot(
             x=feature,
             y=self.target.name,
             data=bi_df[bi_df[feature].notnull()],
@@ -699,7 +749,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         else:
             rotation = 30
 
-        p.pretty_bar_v(
+        p.bar_v(
             x=list(map(str, unique_vals.tolist())),
             counts=unique_counts,
             label_rotate=rotation,
@@ -721,7 +771,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         ax = p.make_canvas(
             title="faceted by target\n* {}".format(feature), position=122
         )
-        p.pretty_box_plot_v(
+        p.box_plot_v(
             x=feature,
             y=self.target.name,
             data=bi_df[bi_df[feature].notnull()].sort_values([feature]),
