@@ -21,7 +21,7 @@ def eda_transform_initial(self, data, name):
             name : string
                 name of target variable.
     """
-    p = PrettierPlot(chart_prop=15)
+    p = PrettierPlot(chart_scale=15)
 
     # distribution / kernel density plot
     ax = p.make_canvas(
@@ -63,7 +63,7 @@ def eda_transform_log1(self, data, name):
             name : string
                 name of target variable.
     """
-    p = PrettierPlot(chart_prop=15)
+    p = PrettierPlot(chart_scale=15)
 
     # distribution / kernel density plot
     ax = p.make_canvas(
@@ -107,7 +107,7 @@ def eda_transform_box_cox(self, data, name, lmbda):
             lmbda : float
                 box-cox transformation parameter.
     """
-    p = PrettierPlot(chart_prop=15)
+    p = PrettierPlot(chart_scale=15)
 
     # distribution / kernel density plot
     ax = p.make_canvas(

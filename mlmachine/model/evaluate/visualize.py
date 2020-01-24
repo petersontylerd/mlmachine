@@ -62,7 +62,7 @@ def classification_panel(
     print("*" * 55)
 
     # visualize results with confusion matrix
-    p = PrettierPlot(chart_prop=18)
+    p = PrettierPlot(chart_scale=18)
     ax = p.make_canvas(
         title="model: {}\n_parameter set: {}".format(
             model.estimator.__name__, model.model_iter
@@ -106,7 +106,7 @@ def classification_panel(
 
     # standard roc curve for full training dataset or validation dataset
     # if x_valid is passed in as none, generate roc curve for training data
-    p = PrettierPlot(chart_prop=15)
+    p = PrettierPlot(chart_scale=15)
     ax = p.make_canvas(
         title="roc curve - {} data\n_model: {}\n_parameter set: {}".format(
             "training" if x_valid is None else "validation",

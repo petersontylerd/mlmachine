@@ -485,7 +485,7 @@ def model_loss_plot(
     self,
     bayes_optim_summary,
     estimator,
-    chart_prop=15,
+    chart_scale=15,
     trim_outliers=True,
     outlier_control=1.5,
     title_scale=0.7,
@@ -504,7 +504,7 @@ def model_loss_plot(
                 execution.
             estimator : string
                 name of estimator to build. needs the format of [submodule].[estimator].
-            chart_prop : float, default = 15
+            chart_scale : float, default = 15
                 control chart proportions. higher values scale up size of chart objects, lower
                 values scale down size of chart objects.
             trim_outliers : bool, default=True
@@ -532,7 +532,7 @@ def model_loss_plot(
         ]
 
     # create regression plot
-    p = PrettierPlot(chart_prop=chart_prop)
+    p = PrettierPlot(chart_scale=chart_scale)
     ax = p.make_canvas(
         title="regression plot\n* {}".format(estimator),
         y_shift=0.8,
@@ -551,7 +551,7 @@ def model_param_plot(
     estimator,
     all_space,
     n_iter,
-    chart_prop=17,
+    chart_scale=17,
     title_scale=0.7,
 ):
     """
@@ -576,7 +576,7 @@ def model_param_plot(
                 number of iterations to draw from theoretical distribution in order to visualize the
                 theoretical distribution. higher number leader to more robust distribution but can take
                 considerably longer to create.
-            chart_prop : float, default = 10
+            chart_scale : float, default = 10
                 controls proportions of visualizations. larger values scale visual up in size, smaller values
                 scale visual down in size.
             title_scale : float, default = 0.7
@@ -615,7 +615,7 @@ def model_param_plot(
         # plot distributions for object params
         if any(isinstance(d, str) for d in theoretical_dist):
 
-            p = PrettierPlot(chart_prop=chart_prop)
+            p = PrettierPlot(chart_scale=chart_scale)
             # theoretical plot
             unique_vals, unique_counts = np.unique(theoretical_dist, return_counts=True)
             ax = p.make_canvas(
@@ -663,8 +663,8 @@ def model_param_plot(
 
             actual_iter_df = actual_iter_df.astype(convert_dict)
 
-            p = PrettierPlot(chart_prop=chart_prop)
-            # p = PrettierPlot(chart_prop=8, plot_orientation="square")
+            p = PrettierPlot(chart_scale=chart_scale)
+            # p = PrettierPlot(chart_scale=8, plot_orientation="square")
             ax = p.make_canvas(
                 title="actual vs. theoretical plot\n* {}".format(param),
                 y_shift=0.8,
@@ -700,9 +700,9 @@ def model_param_plot(
             # draw legend
             leg = plt.legend(
                 handles=Patches,
-                fontsize=0.8 * chart_prop,
+                fontsize=0.8 * chart_scale,
                 loc="upper right",
-                markerscale=0.3 * chart_prop,
+                markerscale=0.3 * chart_scale,
                 ncol=1,
                 bbox_to_anchor=(1.05, 1.1),
             )
@@ -723,7 +723,7 @@ def model_param_plot(
             plt.show()
 
 
-def sample_plot(self, sample_space, n_iter, chart_prop=15):
+def sample_plot(self, sample_space, n_iter, chart_scale=15):
     """
     documentation:
         definition:
@@ -748,7 +748,7 @@ def sample_plot(self, sample_space, n_iter, chart_prop=15):
             theoretical_dist.append(sample(sample_space)[param])
         theoretical_dist = np.array(theoretical_dist)
 
-        p = PrettierPlot(chart_prop=chart_prop)
+        p = PrettierPlot(chart_scale=chart_scale)
         ax = p.make_canvas(
             title="actual vs. theoretical plot\n* {}".format(param),
             y_shift=0.8,

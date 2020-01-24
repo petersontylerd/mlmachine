@@ -7,7 +7,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def eda_missing_summary(self, data=None, color=style.style_grey):
+def eda_missing_summary(self, data=None, color=style.style_grey, chart_scale=25):
     """
     documentation:
         description:
@@ -18,6 +18,9 @@ def eda_missing_summary(self, data=None, color=style.style_grey):
                 the feature dataset provided to machine during instantiation is used.
             color : string, color code, default = style.style_grey
                 bar color.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases
+                visual elements proportionally.
     """
     # use data/target provided during instantiation if left unspecified
     if data is None:
@@ -37,7 +40,7 @@ def eda_missing_summary(self, data=None, color=style.style_grey):
     if not percent_missing.empty:
         display(percent_missing)
 
-        p = PrettierPlot(chart_prop=15)
+        p = PrettierPlot(chart_scale=chart_scale)
         ax = p.make_canvas(
             title="percent missing by feature", y_shift=0.8, position=221
         )

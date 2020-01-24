@@ -56,7 +56,7 @@ class FeatureSelector:
         self.estimators = estimators
         self.classification = classification
 
-    def feature_selector_suite(self, rank=False, add_stats=False, save_to_csv=False):
+    def feature_selector_suite(self, rank=False, add_stats=False, n_jobs=1, save_to_csv=False):
         """
         documentation:
             description:
@@ -72,14 +72,17 @@ class FeatureSelector:
                     the scale of the feature importance values. Ignored if one feature
                     importance column is provided. If raw feature importance values are provided
                     values are converted to ranks.
+                n_jobs : int, default=1
+                    number of works to deploy upon execution, if applicable. if estimator does not
+                    have an n_jobs parameter, this is ignored.
                 save_to_csv : bool, default=True
                     conditional controlling whethor or not the feature selection summary results
                     are saved to a csv file.
         """
         # run individual top feature processes
         self.results_variance = self.feature_selector_variance(rank=rank)
-        self.results_importance = self.feature_selector_importance(rank=rank)
-        self.results_rfe = self.feature_selector_rfe()
+        self.results_importance = self.feature_selector_importance(rank=rank, n_jobs=n_jobs)
+        self.results_rfe = self.feature_selector_rfe(n_jobs=n_jobs)
         self.results_corr = self.feature_selector_corr(rank=rank)
         if self.classification:
             self.results_f_score = self.feature_selector_f_score_class(rank=rank)
@@ -94,19 +97,19 @@ class FeatureSelector:
             self.results_rfe,
             self.results_importance,
         ]
-        self.feature_selector_summary = pd.concat(results, join="inner", axis=1)
+        feature_selector_summary = pd.concat(results, join="inner", axis=1)
 
         if add_stats:
-            self.feature_selector_summary = self.feature_selector_stats(self.feature_selector_summary)
+            feature_selector_summary = self.feature_selector_stats(feature_selector_summary)
 
         if save_to_csv:
-            self.feature_selector_summary.to_csv(
+            feature_selector_summary.to_csv(
                 "feature_selection_summary_{}.csv".format(
                     strftime("%y%m%d%H%M", gmtime())
                 ),
-                columns=self.feature_selector_summary.columns,
+                columns=feature_selector_summary.columns,
             )
-        return self.feature_selector_summary
+        return feature_selector_summary
 
     def feature_selector_f_score_class(self, rank=False):
         """
@@ -127,12 +130,12 @@ class FeatureSelector:
         feature_dict["p_value"] = univariate[1]
 
         # load dictionary into pandas DataFrame and rank values
-        self.feature_selector_summary = pd.DataFrame(data=feature_dict, index=self.data.columns)
+        feature_selector_summary = pd.DataFrame(data=feature_dict, index=self.data.columns)
 
         # overwrite values with rank
         if rank:
-            self.feature_selector_summary = self.apply_ranks(self.feature_selector_summary)
-        return self.feature_selector_summary
+            feature_selector_summary = self.apply_ranks(feature_selector_summary)
+        return feature_selector_summary
 
     def feature_selector_f_score_reg(self, rank=False):
         """
@@ -153,12 +156,12 @@ class FeatureSelector:
         feature_dict["p_value"] = univariate[1]
 
         # load dictionary into pandas DataFrame and rank values
-        self.feature_selector_summary = pd.DataFrame(data=feature_dict, index=self.data.columns)
+        feature_selector_summary = pd.DataFrame(data=feature_dict, index=self.data.columns)
 
         # overwrite values with rank
         if rank:
-            self.feature_selector_summary = self.apply_ranks(self.feature_selector_summary)
-        return self.feature_selector_summary
+            feature_selector_summary = self.apply_ranks(feature_selector_summary)
+        return feature_selector_summary
 
     def feature_selector_variance(self, rank=False):
         """
@@ -176,17 +179,17 @@ class FeatureSelector:
         variance = "variance{}".format("_rank" if rank else "")
 
         # load data into pandas DataFrame and rank values
-        self.feature_selector_summary = pd.DataFrame(
+        feature_selector_summary = pd.DataFrame(
             var_importance.variances_, index=self.data.columns, columns=[variance]
         )
 
         # overwrite values with rank
         if rank:
-            self.feature_selector_summary = self.apply_ranks(self.feature_selector_summary)
+            feature_selector_summary = self.apply_ranks(feature_selector_summary)
 
-        return self.feature_selector_summary
+        return feature_selector_summary
 
-    def feature_selector_importance(self, rank=False, add_stats=False):
+    def feature_selector_importance(self, rank=False, add_stats=False, n_jobs=1):
         """
         documentation:
             description:
@@ -201,11 +204,14 @@ class FeatureSelector:
                     the scale of the feature importance values. Ignored if one feature
                     importance column is provided. If raw feature importance values are provided
                     values are converted to ranks.
+                n_jobs : int, default=1
+                    number of works to deploy upon execution, if applicable. if estimator does not
+                    have an n_jobs parameter, this is ignored.
         """
         #
         feature_dict = {}
         for estimator in self.estimators:
-            model = BasicModelBuilder(estimator=estimator)
+            model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
 
             # estimator name
             if model.estimator.__module__.split(".")[1] == "sklearn":
@@ -218,19 +224,19 @@ class FeatureSelector:
             # build dict
             feature_dict[estimator_name] = model.feature_importances(self.data.values, self.target)
 
-        self.feature_selector_summary = pd.DataFrame(feature_dict, index=self.data.columns)
+        feature_selector_summary = pd.DataFrame(feature_dict, index=self.data.columns)
 
         # overwrite values with rank
         if rank:
-            self.feature_selector_summary = self.apply_ranks(self.feature_selector_summary)
+            feature_selector_summary = self.apply_ranks(feature_selector_summary)
 
         # add summary statistics columns
         if add_stats:
-            self.feature_selector_summary = self.feature_selector_stats(self.feature_selector_summary)
+            feature_selector_summary = self.feature_selector_stats(feature_selector_summary)
 
-        return self.feature_selector_summary
+        return feature_selector_summary
 
-    def feature_selector_rfe(self, add_stats=False):
+    def feature_selector_rfe(self, add_stats=False, n_jobs=1):
         """
         documentation:
             description:
@@ -243,11 +249,14 @@ class FeatureSelector:
                     enforces consistent directionality in assigning importance, and normalize
                     the scale of the feature importance values. Ignored if one RFE rank
                     column is provided.
+                n_jobs : int, default=1
+                    number of works to deploy upon execution, if applicable. if estimator does not
+                    have an n_jobs parameter, this is ignored.
         """
         #
         feature_dict = {}
         for estimator in self.estimators:
-            model = BasicModelBuilder(estimator=estimator)
+            model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
 
             # estimator name
             if model.estimator.__module__.split(".")[1] == "sklearn":
@@ -264,13 +273,13 @@ class FeatureSelector:
             rfe.fit(self.data, self.target)
             feature_dict[estimator_name] = rfe.ranking_
 
-        self.feature_selector_summary = pd.DataFrame(feature_dict, index=self.data.columns)
+        feature_selector_summary = pd.DataFrame(feature_dict, index=self.data.columns)
 
         # add summary statistics columns
         if add_stats:
-            self.feature_selector_summary = self.feature_selector_stats(self.feature_selector_summary)
+            feature_selector_summary = self.feature_selector_stats(feature_selector_summary)
 
-        return self.feature_selector_summary
+        return feature_selector_summary
 
     def feature_selector_corr(self, rank=False):
         """
@@ -283,22 +292,22 @@ class FeatureSelector:
                     conditional controlling whether to overwrite values with rank of values.
         """
         # calculate absolute correlation coefficients relative to target
-        self.feature_selector_summary = self.data.merge(self.target, left_index=True, right_index=True)
+        feature_selector_summary = self.data.merge(self.target, left_index=True, right_index=True)
 
         correlation_to_target = "correlation_to_target"
 
-        self.feature_selector_summary = pd.DataFrame(self.feature_selector_summary.corr().abs()[self.target.name])
-        self.feature_selector_summary = self.feature_selector_summary.rename(columns={self.target.name: correlation_to_target})
+        feature_selector_summary = pd.DataFrame(feature_selector_summary.corr().abs()[self.target.name])
+        feature_selector_summary = feature_selector_summary.rename(columns={self.target.name: correlation_to_target})
 
-        self.feature_selector_summary = self.feature_selector_summary.sort_values(correlation_to_target, ascending=False)
-        self.feature_selector_summary = self.feature_selector_summary.drop(self.target.name, axis=0)
+        feature_selector_summary = feature_selector_summary.sort_values(correlation_to_target, ascending=False)
+        feature_selector_summary = feature_selector_summary.drop(self.target.name, axis=0)
 
         # overwrite values with rank
         # higher values are better and are given lower number values for ranks
         if rank:
-            self.feature_selector_summary = self.apply_ranks(self.feature_selector_summary)
+            feature_selector_summary = self.apply_ranks(feature_selector_summary)
 
-        return self.feature_selector_summary
+        return feature_selector_summary
 
     def apply_ranks(self, feature_selector_summary):
         """
@@ -306,7 +315,7 @@ class FeatureSelector:
             description:
                 apply ascending or descending ranking on feature importance values.
             parameters:
-                self.feature_selector_summary : Pandas DataFrame
+                feature_selector_summary : Pandas DataFrame
                     Pandas DataFrame with an index corresponding to feature names and columns
                     corresponding to feature importance values.
         """
@@ -316,25 +325,25 @@ class FeatureSelector:
         # capture column to rank in ascending order
         apply_ascending_rank = []
         for column in ascending_rank:
-            apply_ascending_rank.extend([s for s in self.feature_selector_summary.columns if column in s])
+            apply_ascending_rank.extend([s for s in feature_selector_summary.columns if column in s])
 
         # overwrite values with ascending rank
         for column in apply_ascending_rank:
-            self.feature_selector_summary[column] = self.feature_selector_summary[column].rank(ascending=True, method="max")
-            self.feature_selector_summary[column] = self.feature_selector_summary[column].astype("int")
-            self.feature_selector_summary = self.feature_selector_summary.rename({column: column + "_rank"}, axis=1)
+            feature_selector_summary[column] = feature_selector_summary[column].rank(ascending=True, method="max")
+            # feature_selector_summary[column] = feature_selector_summary[column].astype("int")
+            feature_selector_summary = feature_selector_summary.rename({column: column + "_rank"}, axis=1)
 
         # capture column to rank in descending order
         apply_descending_rank = []
         for column in descending_rank:
-            apply_descending_rank.extend([s for s in self.feature_selector_summary.columns if column in s])
+            apply_descending_rank.extend([s for s in feature_selector_summary.columns if column in s])
 
         # overwrite values with descending rank
         for column in apply_descending_rank:
-            self.feature_selector_summary[column] = self.feature_selector_summary[column].rank(ascending=False, method="max")
-            self.feature_selector_summary[column] = self.feature_selector_summary[column].astype("int")
-            self.feature_selector_summary = self.feature_selector_summary.rename({column: column + "_rank"}, axis=1)
-        return self.feature_selector_summary
+            feature_selector_summary[column] = feature_selector_summary[column].rank(ascending=False, method="max")
+            # feature_selector_summary[column] = feature_selector_summary[column].astype("int")
+            feature_selector_summary = feature_selector_summary.rename({column: column + "_rank"}, axis=1)
+        return feature_selector_summary
 
     def feature_selector_stats(self, feature_selector_summary):
         """
@@ -344,38 +353,38 @@ class FeatureSelector:
                 provided includes raw feature importance values, ranking will be applied
                 automatically.
             parameters:
-                self.feature_selector_summary : Pandas DataFrame
+                feature_selector_summary : Pandas DataFrame
                     Pandas DataFrame with an index corresponding to feature names and columns
                     corresponding to feature importance values or feature importance rankings.
         """
         # apply ranking if needed
-        if not self.feature_selector_summary.columns.str.endswith("_rank").sum() == self.feature_selector_summary.shape[1]:
-            self.feature_selector_summary = self.apply_ranks(self.feature_selector_summary)
+        if not feature_selector_summary.columns.str.endswith("_rank").sum() == feature_selector_summary.shape[1]:
+            feature_selector_summary = self.apply_ranks(feature_selector_summary)
 
         # add summary stats
-        self.feature_selector_summary.insert(
-            loc=0, column="average", value=self.feature_selector_summary.mean(axis=1)
+        feature_selector_summary.insert(
+            loc=0, column="average", value=feature_selector_summary.mean(axis=1)
         )
-        self.feature_selector_summary.insert(
+        feature_selector_summary.insert(
             loc=1,
             column="stdev",
-            value=self.feature_selector_summary.iloc[:, 1:].std(axis=1),
+            value=feature_selector_summary.iloc[:, 1:].std(axis=1),
         )
-        self.feature_selector_summary.insert(
+        feature_selector_summary.insert(
             loc=2,
             column="best",
-            value=self.feature_selector_summary.iloc[:, 2:].min(axis=1),
+            value=feature_selector_summary.iloc[:, 2:].min(axis=1),
         )
-        self.feature_selector_summary.insert(
+        feature_selector_summary.insert(
             loc=3,
             column="worst",
-            value=self.feature_selector_summary.iloc[:, 3:].max(axis=1),
+            value=feature_selector_summary.iloc[:, 3:].max(axis=1),
         )
-        self.feature_selector_summary = self.feature_selector_summary.sort_values("average")
-        return self.feature_selector_summary
+        feature_selector_summary = feature_selector_summary.sort_values("average")
+        return feature_selector_summary
 
     def feature_selector_cross_val(self, scoring, feature_selector_summary=None, estimators=None,
-                                    n_folds=3, step=1, n_jobs=4, verbose=True, save_to_csv=False,):
+                                    n_folds=3, step=1, n_jobs=4, verbose=False, save_to_csv=False):
         """
         documentation:
             description:
@@ -397,7 +406,7 @@ class FeatureSelector:
                 n_jobs : int, default = 4
                     number of works to use when training the model. this parameter will be
                     ignored if the model does not have this parameter.
-                verbose : bool, default=True
+                verbose : bool, default=False
                     conditional controlling whether each estimator name is printed prior to cross_validation.
                 save_to_csv : bool, default=True
                     conditional controlling whethor or not the feature selection summary results
@@ -411,12 +420,9 @@ class FeatureSelector:
         elif isinstance(feature_selector_summary, pd.core.frame.DataFrame):
             feature_selector_summary = feature_selector_summary
         elif feature_selector_summary is None:
-            try:
-                feature_selector_summary = self.feature_selector_summary
-            except AttributeError:
-                raise AttributeError(
-                    "no feature_selector_summary detected. either execute one of the feature selector methods or load from .csv"
-                )
+            raise AttributeError(
+                "no feature_selector_summary detected. execute one of the feature selector methods or load from .csv"
+            )
 
         # add summary stats if needed
         if not "average" in feature_selector_summary.columns:
@@ -465,14 +471,15 @@ class FeatureSelector:
 
             estimator_class = model.estimator.__name__
             estimator_name = estimator_class
-            # estimator_name = estimator_module + "." + estimator_class
 
             # iterate through scoring metrics
             for metric in scoring:
 
                 step_increment = 0
+
                 # iterate through each set of features
                 for i in np.arange(0, feature_selector_summary.shape[0], step):
+
                     # collect names of top columns
                     if i == 0:
                         top = feature_selector_summary.sort_values("average").index
@@ -534,7 +541,7 @@ class FeatureSelector:
 
         return self.cv_summary
 
-    def feature_selector_results_plot(self, metric, cv_summary=None, feature_selector_summary=None, top_sets=0,
+    def feature_selector_results_plot(self, scoring, cv_summary=None, feature_selector_summary=None, top_sets=0,
                                     show_features=False, show_scores=None, marker_on=True, title_scale=0.7,):
         """
         documentation:
@@ -542,8 +549,8 @@ class FeatureSelector:
                 for each estimator, visualize the training and validation performance
                 for each feature set.
             parameters:
-                metric : string
-                    metric to visualize.
+                scoring : string
+                    scoring metric to visualize.
                 cv_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing cross_validation results.
                     if none, use object's internal attribute specified during instantiation.
@@ -572,12 +579,9 @@ class FeatureSelector:
         elif isinstance(feature_selector_summary, pd.core.frame.DataFrame):
             feature_selector_summary = feature_selector_summary
         elif feature_selector_summary is None:
-            try:
-                feature_selector_summary = self.feature_selector_summary
-            except AttributeError:
-                raise AttributeError(
-                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
-                )
+            raise AttributeError(
+                "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
+            )
 
         # load cv summary if needed
         if isinstance(cv_summary, str):
@@ -585,16 +589,13 @@ class FeatureSelector:
         elif isinstance(cv_summary, pd.core.frame.DataFrame):
             cv_summary = cv_summary
         elif cv_summary is None:
-            try:
-                cv_summary = self.cv_summary
-            except AttributeError:
-                raise AttributeError(
-                    "no cv_summary detected. either execute method feature_selector_cross_val or load from .csv"
-                )
+            raise AttributeError(
+                "no cv_summary detected. either execute method feature_selector_cross_val or load from .csv"
+            )
 
         for estimator in cv_summary["estimator"].unique():
             cv = cv_summary[
-                (cv_summary["scoring"] == metric)
+                (cv_summary["scoring"] == scoring)
                 & (cv_summary["estimator"] == estimator)
             ]
 
@@ -610,7 +611,7 @@ class FeatureSelector:
                 display(cv[:show_scores])
 
             # capture best iteration's feature drop count and performance score
-            if metric in ["root_mean_squared_error", "root_mean_squared_log_error"]:
+            if scoring in ["root_mean_squared_error", "root_mean_squared_log_error"]:
                 sort_order = True
             else:
                 sort_order = False
@@ -650,11 +651,11 @@ class FeatureSelector:
             p = PrettierPlot()
             ax = p.make_canvas(
                 title="{}\nBest validation {} = {}\nFeatures dropped = {}".format(
-                    estimator, metric, score, num_dropped
+                    estimator, scoring, score, num_dropped
                 ),
                 x_label="features removed",
-                y_label=metric,
-                y_shift=0.4 if len(metric) > 18 else 0.57,
+                y_label=scoring,
+                y_shift=0.4 if len(scoring) > 18 else 0.57,
                 title_scale=title_scale,
             )
 
@@ -670,15 +671,15 @@ class FeatureSelector:
             )
             plt.show()
 
-    def create_cross_val_features_df(self, metric, cv_summary=None, feature_selector_summary=None):
+    def create_cross_val_features_df(self, scoring, cv_summary=None, feature_selector_summary=None):
         """
         documentation:
             description:
                 for each estimator, visualize the training and validation performance
                 for each feature set.
             parameters:
-                metric : string
-                    metric to visualize.
+                scoring : string
+                    scoring metric to visualize.
                 cv_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing cross_validation results.
                     if none, use object's internal attribute specified during instantiation.
@@ -694,12 +695,9 @@ class FeatureSelector:
         elif isinstance(feature_selector_summary, pd.core.frame.DataFrame):
             feature_selector_summary = feature_selector_summary
         elif feature_selector_summary is None:
-            try:
-                feature_selector_summary = self.feature_selector_summary
-            except AttributeError:
-                raise AttributeError(
-                    "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
-                )
+            raise AttributeError(
+                "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
+            )
 
         # load cv summary if needed
         if isinstance(cv_summary, str):
@@ -707,12 +705,9 @@ class FeatureSelector:
         elif isinstance(cv_summary, pd.core.frame.DataFrame):
             cv_summary = cv_summary
         elif cv_summary is None:
-            try:
-                cv_summary = self.cv_summary
-            except AttributeError:
-                raise AttributeError(
-                    "no cv_summary detected. either execute method feature_selector_suite or load from .csv"
-                )
+            raise AttributeError(
+                "no cv_summary detected. either execute method feature_selector_suite or load from .csv"
+            )
 
         # create empty DataFrame with feature names as index
         self.cross_val_features_df = pd.DataFrame(index=feature_selector_summary.index)
@@ -720,13 +715,13 @@ class FeatureSelector:
         # iterate through estimators
         for estimator in cv_summary["estimator"].unique():
             cv = cv_summary[
-                (cv_summary["scoring"] == metric)
+                (cv_summary["scoring"] == scoring)
                 & (cv_summary["estimator"] == estimator)
             ]
             cv = cv.reset_index(drop=True)
 
             # capture best iteration's feature drop count
-            if metric in ["root_mean_squared_error", "root_mean_squared_log_error"]:
+            if scoring in ["root_mean_squared_error", "root_mean_squared_log_error"]:
                 sort_order = True
             else:
                 sort_order = False
@@ -782,12 +777,9 @@ class FeatureSelector:
         elif isinstance(cross_val_features_df, pd.core.frame.DataFrame):
             cross_val_features_df = cross_val_features_df
         elif cross_val_features_df is None:
-            try:
-                cross_val_features_df = self.cross_val_features_df
-            except AttributeError:
-                raise AttributeError(
-                    "no cross_val_features_df detected. either execute method create_cross_val_features_df or load from .csv"
-                )
+            raise AttributeError(
+                "no cross_val_features_df detected. either execute method create_cross_val_features_df or load from .csv"
+            )
 
         # create empty dict with feature names as index
         self.cross_val_features_dict = {}

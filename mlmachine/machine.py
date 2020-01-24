@@ -190,17 +190,33 @@ class Machine:
         ### determine feature type for remaining columns
         for column in [i for i in self.data.columns if i not in tracked_columns]:
 
-            # capture count of 0's and 1's in the column
+            # capture column statistics
             zeros_and_ones = (self.data[column].eq(0) | self.data[column].eq(1)).sum()
+            unique_values = len(np.unique(self.data[column].dropna()))
+
+            try:
+                value_mean = np.mean(self.data[column].dropna())
+                value_std = np.std(self.data[column].dropna())
+            except TypeError:
+                pass
 
             # column dtype is object
             if is_object_dtype(self.data[column]):
                 self.data.feature_by_mlm_dtype["category"].append(column)
 
+            #
             elif is_numeric_dtype(self.data[column]):
 
+                #
+                if unique_values > 50:
+                    self.data.feature_by_mlm_dtype["continuous"].append(column)
+
+                #
+                elif value_std/value_mean > 2 and value_std > 5:
+                    self.data.feature_by_mlm_dtype["continuous"].append(column)
+
                 # if column contains only 0's and 1's
-                if self.data[column].astype("float").apply(float.is_integer).all() \
+                elif self.data[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones == self.data.shape[0]:
 
                     self.data.feature_by_mlm_dtype["category"].append(column)
@@ -223,10 +239,10 @@ class Machine:
         for dtype, columns in self.data.feature_by_mlm_dtype.items():
             if dtype == "category":
                 for column in columns:
-                    if is_numeric_dtype(self.data[column]):
-                        self.data[column] = self.data[column].astype("float64")
-                    else:
-                        self.data[column] = self.data[column].astype("object")
+                    # if is_numeric_dtype(self.data[column]):
+                    #     self.data[column] = self.data[column].astype("float64")
+                    # else:
+                    self.data[column] = self.data[column].astype("object")
             elif dtype == "continuous":
                 for column in columns:
                     self.data[column] = self.data[column].astype("float64")
@@ -285,8 +301,15 @@ class Machine:
 
         for column in untracked_columns:
 
-            # capture count of 0's and 1's in the column
+            # capture column statistics
             zeros_and_ones = (self.data[column].eq(0) | self.data[column].eq(1)).sum()
+            unique_values = len(np.unique(self.data[column].dropna()))
+
+            try:
+                value_mean = np.mean(self.data[column].dropna())
+                value_std = np.std(self.data[column].dropna())
+            except TypeError:
+                pass
 
             # if column contains non-numeric values
             try:
@@ -317,6 +340,14 @@ class Machine:
             elif "^2" in column \
                 and (column.split("^")[0] in old_feature_by_mlm_dtype["continuous"] or column.split("^")[0] in old_feature_by_mlm_dtype["count"]):
 
+                self.data.feature_by_mlm_dtype["continuous"].append(column)
+
+            #
+            elif unique_values > 50:
+                self.data.feature_by_mlm_dtype["continuous"].append(column)
+
+            #
+            elif value_std/value_mean > 2 and value_std > 5:
                 self.data.feature_by_mlm_dtype["continuous"].append(column)
 
             # column dtype is object
@@ -355,10 +386,10 @@ class Machine:
         for dtype, columns in self.data.feature_by_mlm_dtype.items():
             if dtype == "category":
                 for column in columns:
-                    if is_numeric_dtype(self.data[column]):
-                        self.data[column] = self.data[column].astype("float64")
-                    else:
-                        self.data[column] = self.data[column].astype("object")
+                    # if is_numeric_dtype(self.data[column]):
+                    #     self.data[column] = self.data[column].astype("float64")
+                    # else:
+                    self.data[column] = self.data[column].astype("object")
             elif dtype == "continuous":
                 for column in columns:
                     self.data[column] = self.data[column].astype("float64")

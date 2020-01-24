@@ -422,7 +422,6 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
 
         # create new Pandas DataFrame
         X = pd.DataFrame(X, columns=self.original_columns, index=self.index)
-
         return X
 
 class PandasFeatureUnion(pipeline.FeatureUnion):

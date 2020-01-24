@@ -23,7 +23,7 @@ from prettierplot import style
 
 
 
-def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None, chart_prop=15):
+def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15):
     """
     documentation:
         description:
@@ -39,8 +39,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 colormap from which to draw plot colors.
             legend_labels : list, default=None
                 class labels to be displayed in plot legend(s).
-            chart_prop : int or float, default=15
-                controls chart size and proportions. higher value create large plots grid.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
     """
     if (len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap):
 
@@ -121,11 +121,10 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         prop_df.columns = singleIndex
         prop_df = prop_df.reset_index(drop=True)
-        prop_df.insert(loc=0, column="Class", value=legend_labels)
+        prop_df.insert(loc=0, column="Class", value=legend_labels if legend_labels is not None else np.unique(self.target))
 
         # fill nan's with zero
         prop_df = prop_df.fillna(0)
-
 
         # execute z_test
         if len(np.unique(bi_df[bi_df[feature].notnull()][feature])) == 2:
@@ -189,7 +188,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             rotation = 90
 
         # instantiate charting object
-        p = PrettierPlot(chart_prop=chart_prop, plot_orientation="wide_narrow")
+        p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
         # treemap plot
         ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=0.82)
@@ -230,7 +229,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         plt.show()
 
 
-def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None, chart_prop=15):
+def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None, chart_scale=15):
     """
     documentation:
         description:
@@ -250,8 +249,8 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
                 is passed as a value, the IQR that is subtracted/added is multiplied by 5. If a float or int is
                 passed, the IQR is multiplied by that value. Higher values increase how extremem values need
                 to be to be identified as outliers.
-            chart_prop : int or float, default=15
-                controls chart size and proportions. higher value create large plots grid.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
     """
 
     ### data summaries
@@ -351,8 +350,8 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
 
     ### visualizations
     # instantiate charting object
-    # p = PrettierPlot(chart_prop=15)
-    p = PrettierPlot(chart_prop=chart_prop, plot_orientation="wide_standard")
+    # p = PrettierPlot(chart_scale=15)
+    p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_standard")
 
     if isinstance(outliers_out_of_scope, bool):
         if outliers_out_of_scope:
@@ -439,8 +438,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
             color=color_list[ix],
             y_units="f",
             x_units=x_units,
-            # kde=True,
-            legend_labels=legend_labels,
+            legend_labels=legend_labels if legend_labels is not None else np.arange(len(np.unique(self.target))),
             alpha=0.4,
             bbox=(1.0, 1.0),
             ax=ax,
@@ -489,7 +487,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     plt.show()
 
 
-def eda_num_target_num_feat(self, feature, color_map="viridis"):
+def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
     """
     documentation:
         description:
@@ -500,164 +498,73 @@ def eda_num_target_num_feat(self, feature, color_map="viridis"):
                 feature to visualize.
             color_map : string specifying built_in matplotlib colormap, default = "viridis"
                 colormap from which to draw plot colors.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
     """
-    ### summary tables
-    # define bivariate dataframe
+    ### data summaries
+    ## feature summary
     bi_df = pd.concat([self.data[feature], self.target], axis=1)
+    bi_df = bi_df[bi_df[feature].notnull()]
 
     bi_df[self.target.name] = bi_df[self.target.name].astype(float)
 
     # define summary tables
     describe_df = pd.DataFrame(bi_df[feature].describe()).reset_index()
 
+    # add skew and curtosis to describe_df
+    describe_df = describe_df.append(
+        {
+            "index": "skew",
+            feature: stats.skew(bi_df[feature].values, nan_policy="omit"),
+        },
+        ignore_index=True,
+    )
+    describe_df = describe_df.append(
+        {
+            "index": "kurtosis",
+            feature: stats.kurtosis(bi_df[feature].values, nan_policy="omit"),
+        },
+        ignore_index=True,
+    )
+    describe_df = describe_df.rename(columns={"index": ""})
+
+    # display summary dataframes
+    display(describe_df)
+
+    ### visualizations
     # instantiate charting object
-    p = PrettierPlot(chart_prop=15, plot_orientation="wide_narrow")
+    p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
-    # if number variable has fewer than a set number of unique variables, represent variable
-    # as a object variable vs. a number target variable
-    if len(np.unique(bi_df[feature].values)) <= 20:
+    # univariate plot
+    ax = p.make_canvas(
+        title="Feature distribution\n* {}".format(feature), position=131, title_scale=1.2
+    )
+    p.dist_plot(
+        bi_df[feature].values,
+        color=style.style_grey,
+        y_units="ff",
+        x_rotate=45,
+        ax=ax,
+    )
 
-        describe_df = describe_df.rename(columns={"index": ""})
+    # probability plot
+    ax = p.make_canvas(title="Probability plot\n* {}".format(feature), position=132)
+    p.prob_plot(x=bi_df[feature].values, plot=ax)
 
-        # bivariate summary statistics
-        bi_summ_stats_df = pd.DataFrame(
-            columns=[feature, "count", "proportion", "mean", "std_dv"]
-        )
-        unique_vals, unique_counts = np.unique(
-            self.data[self.data[feature].notnull()][feature], return_counts=True
-        )
-        for feature_val in np.unique(bi_df[feature].values):
-            feature_slice = bi_df[
-                (bi_df[feature] == feature_val) & (bi_df[feature].notnull())
-            ][feature]
-
-            bi_summ_stats_df = bi_summ_stats_df.append(
-                {
-                    feature: feature_val,
-                    "count": len(feature_slice),
-                    "proportion": len(feature_slice) / len(bi_df[feature]) * 100,
-                    "mean": np.mean(feature_slice),
-                    "std_dv": np.std(feature_slice),
-                },
-                ignore_index=True,
-            )
-
-        # display summary dataframes
-        self.df_side_by_side(
-            dfs=(describe_df, bi_summ_stats_df),
-            names=["univariate stats", "bivariate stats"],
-        )
-
-        # set rotation angle
-        len_unique_val = len(unique_vals)
-        avg_len_unique_val = sum(map(len, str(unique_vals))) / len(unique_vals)
-        if len_unique_val <= 4 and avg_len_unique_val <= 12:
-            rotation = 0
-        elif len_unique_val >= 5 and len_unique_val <= 8 and avg_len_unique_val <= 8:
-            rotation = 0
-        elif len_unique_val >= 9 and len_unique_val <= 14 and avg_len_unique_val <= 4:
-            rotation = 0
-        else:
-            rotation = 90
-
-        # univariate plot
-        ax = p.make_canvas(title="univariate\n* {}".format(feature), position=131)
-        p.bar_v(
-            x=list(map(str, unique_vals.tolist())),
-            counts=unique_counts,
-            label_rotate=rotation,
-            color=style.style_grey,
-            y_units="f",
-            ax=ax,
-        )
-
-        # regression plot
-        ax = p.make_canvas(title="regression plot\n* {}".format(feature), position=132)
-        p.reg_plot(
-            x=feature,
-            y=self.target.name,
-            data=bi_df[bi_df[feature].notnull()],
-            x_jitter=0.2,
-            ax=ax,
-        )
-
-        # hide every other label if total number of levels is less than 5
-        if len_unique_val <= 4:
-            xmin, xmax = ax.get_xlim()
-            ax.set_xticks(np.round(np.linspace(xmin, xmax, len_unique_val), 2))
-
-        # bivariate box plot
-        ax = p.make_canvas(
-            title="box plot - faceted by\n* {}".format(feature), position=133
-        )
-        p.box_plot_v(
-            x=feature,
-            y=self.target.name,
-            data=bi_df[bi_df[feature].notnull()],
-            color=matplotlib.cm.get_cmap(name=color_map),
-            # color=style.gen_cmap(
-            #     len(unique_vals),
-            #     [style.style_hex_mid[0], style.style_hex_mid[1], style.style_hex_mid[2]],
-            # ),
-            label_rotate=rotation,
-            ax=ax,
-        )
-
-    # if number variable has greater than a set number of unique variables, represent variable
-    # as a number variable vs. a number target variable
-    else:
-
-        # add skew and curtosis to describe_df
-        describe_df = describe_df.append(
-            {
-                "index": "skew",
-                feature: stats.skew(bi_df[feature].values, nan_policy="omit"),
-            },
-            ignore_index=True,
-        )
-        describe_df = describe_df.append(
-            {
-                "index": "kurtosis",
-                feature: stats.kurtosis(bi_df[feature].values, nan_policy="omit"),
-            },
-            ignore_index=True,
-        )
-        describe_df = describe_df.rename(columns={"index": ""})
-
-        # display summary dataframes
-        display(describe_df)
-
-        # univariate plot
-        ax = p.make_canvas(
-            title="dist/kde - univariate\n* {}".format(feature), position=131
-        )
-        p.dist_plot(
-            bi_df[(bi_df[feature].notnull())][feature].values,
-            color=style.style_grey,
-            y_units="fffff",
-            fit=stats.norm,
-            x_rotate=45,
-            ax=ax,
-        )
-
-        # probability plot
-        ax = p.make_canvas(title="probability plot\n* {}".format(feature), position=132)
-        p.prob_plot(x=bi_df[(bi_df[feature].notnull())][feature].values, plot=ax)
-
-        # regression plot
-        ax = p.make_canvas(title="regression plot\n* {}".format(feature), position=133)
-        p.reg_plot(
-            x=feature,
-            y=self.target.name,
-            data=bi_df[bi_df[feature].notnull()],
-            x_jitter=0.1,
-            x_rotate=45,
-            ax=ax,
-        )
+    # regression plot
+    ax = p.make_canvas(title="Regression plot - feature vs. target\n* {}".format(feature), position=133, title_scale=1.5)
+    p.reg_plot(
+        x=feature,
+        y=self.target.name,
+        data=bi_df,
+        x_jitter=0.1,
+        x_rotate=45,
+        ax=ax,
+    )
     plt.show()
 
 
-def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis"):
+def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", chart_scale=15):
     """
     documentation:
         description:
@@ -671,35 +578,42 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 cap then the feature is skipped.
             color_map : string specifying built_in matplotlib colormap, default = "viridis"
                 colormap from which to draw plot colors.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
     """
-    if (
-        len(np.unique(self.data[self.data[feature].notnull()][feature].values))
-        < level_count_cap
-    ):
+    if (len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap):
 
-        ### summary tables
-        # univariate summary
-        uni_summ_df = pd.DataFrame(columns=[feature, "count", "proportion"])
+        ### data summaries
+        ## feature summary
+        uni_summ_df = pd.DataFrame(columns=[feature, "Count", "Proportion"])
         unique_vals, unique_counts = np.unique(
             self.data[self.data[feature].notnull()][feature], return_counts=True
         )
         for i, j in zip(unique_vals, unique_counts):
             uni_summ_df = uni_summ_df.append(
-                {feature: i, "count": j, "proportion": j / np.sum(unique_counts) * 100},
+                {feature: i, "Count": j, "Proportion": j / np.sum(unique_counts) * 100},
                 ignore_index=True,
             )
-        uni_summ_df = uni_summ_df.sort_values(by=["proportion"], ascending=False)
+        uni_summ_df = uni_summ_df.sort_values(by=["Proportion"], ascending=False)
 
-        # bivariate summary
+        #
+        if is_numeric_dtype(uni_summ_df[feature]):
+            uni_summ_df[feature] = uni_summ_df[feature].astype("int64")
+
+        uni_summ_df["Count"] = uni_summ_df["Count"].astype("int64")
+
+        # feature vs. target summary
         bi_df = pd.concat([self.data[feature], self.target], axis=1)
+        bi_df = bi_df[bi_df[feature].notnull()]
 
         bi_df[self.target.name] = bi_df[self.target.name].astype(float)
         stats_dict = {
-            "n": len,
-            "median": np.nanmedian,
-            "mean": np.nanmean,
-            "std_dev": np.nanstd,
+            "N": len,
+            "Median": np.nanmedian,
+            "Mean": np.nanmean,
+            "StdDev": np.nanstd,
         }
+
         bi_summ_piv_df = pd.pivot_table(
             bi_df, index=feature, aggfunc={self.target.name: stats_dict}
         )
@@ -708,20 +622,40 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         bi_summ_piv_df.columns = single_index
         bi_summ_piv_df.reset_index(inplace=True)
 
+        # fill nan's with zero
+        bi_summ_piv_df = bi_summ_piv_df.fillna(0)
+
+        #
+        if is_numeric_dtype(bi_summ_piv_df[feature]):
+            bi_summ_piv_df[feature] = bi_summ_piv_df[feature].astype("int64")
+
+        # convert count and N to int
+        bi_summ_piv_df["N"] = bi_summ_piv_df["N"].astype("int64")
+
         # display summary tables
         self.df_side_by_side(
             dfs=(uni_summ_df, bi_summ_piv_df),
-            names=["univariate summary", "bivariate summary"],
+            names=["Feature summary", "Feature vs. target summary"],
         )
 
-        ### plots
+        ### visualizations
         # instantiate charting object
-        p = PrettierPlot(chart_prop=15, plot_orientation="wide_narrow")
+        p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
+
+        # treemap plot
+        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=1.0)
+        p.tree_map(
+            counts=uni_summ_df["Count"].values,
+            labels=uni_summ_df[feature].values,
+            colors=style.color_gen(name=color_map, num=len(uni_summ_df[feature].values)),
+            alpha=0.8,
+            ax=ax,
+        )
 
         # univariate plot
-        ax = p.make_canvas(title="univariate\n* {}".format(feature), position=121)
+        ax = p.make_canvas(title="Feature distribution\n* {}".format(feature), position=132)
 
-        # select error catching block for resorting labels
+        # error catching block for resorting labels
         try:
             sorted(unique_vals, key=int)
         except ValueError:
@@ -749,8 +683,15 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         else:
             rotation = 30
 
+        x_values = list(map(str, unique_vals.tolist()))
+
+        try:
+            x_values = [int(float(x)) for x in x_values]
+        except ValueError:
+            pass
+
         p.bar_v(
-            x=list(map(str, unique_vals.tolist())),
+            x=x_values,
             counts=unique_counts,
             label_rotate=rotation,
             color=style.style_grey,
@@ -769,14 +710,31 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         # bivariate box plot
         ax = p.make_canvas(
-            title="faceted by target\n* {}".format(feature), position=122
+            title="Boxplot by category\n* {}".format(feature), position=133
         )
+
+        # dynamically determine x-units
+        dist_min = bi_df[self.target.name].values.min()
+        dist_max = bi_df[self.target.name].values.max()
+
+        if -3 < dist_min < 3 and -3 < dist_max < 3 and dist_max/dist_min < 10:
+            y_units = "fff"
+        elif -30 < dist_min < 30 and -30 < dist_max < 30 and dist_max/dist_min < 3:
+            y_units = "fff"
+        elif -5 < dist_min < 5 and -5 < dist_max < 5 and dist_max/dist_min < 10:
+            y_units = "ff"
+        elif -90 < dist_min < 90 and -90 < dist_max < 90 and dist_max/dist_min < 5:
+            y_units = "ff"
+        else:
+            y_units = "f"
+
         p.box_plot_v(
             x=feature,
             y=self.target.name,
-            data=bi_df[bi_df[feature].notnull()].sort_values([feature]),
+            data=bi_df.sort_values([feature]),
             color=matplotlib.cm.get_cmap(name=color_map),
             label_rotate=rotation,
+            y_units=y_units,
             ax=ax,
         )
 
