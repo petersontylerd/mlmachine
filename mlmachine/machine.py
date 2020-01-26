@@ -95,7 +95,7 @@ class Machine:
         oof_generator,
     )
 
-    def __init__(self, data, remove_features=[], identify_as_category=None, identify_as_continuous=None,
+    def __init__(self, data, remove_features=[], identify_as_nominal=None, identify_as_ordinal=None, identify_as_continuous=None,
                 identify_as_count=None, identify_as_date=None, target=None, target_type=None):
         """
         documentation:
@@ -108,8 +108,10 @@ class Machine:
                     input data provided as a pandas DataFrame.
                 remove_features : list, default = []
                     features to be completely removed from dataset.
-                identify_as_category : list, default=None
-                    preidentified category features. columns given float64 dtype.
+                identify_as_nominal : list, default=None
+                    preidentified nominal category features. columns given float64 dtype.
+                identify_as_ordinal : list, default=None
+                    preidentified ordinal category features. columns given float64 dtype.
                 identify_as_count : list, default=None
                     preidentified count features. columns given float64 dtype.
                 identify_as_continuous : list, default=None
@@ -136,7 +138,8 @@ class Machine:
             if target is not None
             else data.drop(self.remove_features, axis=1)
         )
-        self.identify_as_category = identify_as_category
+        self.identify_as_nominal = identify_as_nominal
+        self.identify_as_ordinal = identify_as_ordinal
         self.identify_as_continuous = identify_as_continuous
         self.identify_as_count = identify_as_count
         self.identify_as_date = identify_as_date
@@ -160,11 +163,17 @@ class Machine:
         ### populate feature_by_mlm_dtype dictionary with feature type label for each feature
         self.data.feature_by_mlm_dtype = {}
 
-        # category feature identification
-        if self.identify_as_category is None:
-            self.data.feature_by_mlm_dtype["category"] = []
+        # nominal category feature identification
+        if self.identify_as_nominal is None:
+            self.data.feature_by_mlm_dtype["nominal"] = []
         else:
-            self.data.feature_by_mlm_dtype["category"] = self.identify_as_category
+            self.data.feature_by_mlm_dtype["nominal"] = self.identify_as_nominal
+
+        # ordinal category feature identification
+        if self.identify_as_nominal is None:
+            self.data.feature_by_mlm_dtype["ordinal"] = []
+        else:
+            self.data.feature_by_mlm_dtype["ordinal"] = self.identify_as_nominal
 
         # continuous feature identification
         if self.identify_as_continuous is None:
@@ -202,7 +211,7 @@ class Machine:
 
             # column dtype is object
             if is_object_dtype(self.data[column]):
-                self.data.feature_by_mlm_dtype["category"].append(column)
+                self.data.feature_by_mlm_dtype["nominal"].append(column)
 
             #
             elif is_numeric_dtype(self.data[column]):
@@ -219,7 +228,7 @@ class Machine:
                 elif self.data[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones == self.data.shape[0]:
 
-                    self.data.feature_by_mlm_dtype["category"].append(column)
+                    self.data.feature_by_mlm_dtype["nominal"].append(column)
 
                 #
                 elif self.data[column].astype("float").apply(float.is_integer).all() \
