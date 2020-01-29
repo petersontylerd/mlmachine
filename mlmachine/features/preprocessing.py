@@ -1,6 +1,16 @@
 import numpy as np
 import pandas as pd
 
+from pandas.api.types import (
+    is_bool_dtype,
+    is_categorical_dtype,
+    is_datetime64_any_dtype,
+    is_numeric_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    CategoricalDtype,
+)
+
 from scipy import sparse, stats, special
 
 import sklearn.base as base
@@ -87,7 +97,6 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
             )
         return X[self.null_col]
 
-
 class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
     """
     documentation:
@@ -129,13 +138,13 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
 
     def fit(self, X, y=None):
 
-        # preserve feature_by_mlm_dtype if it exists
+        # preserve mlm_dtypes if it exists
         try:
-            self.meta = X.feature_by_mlm_dtype
-            self.no_meta = False
+            self.meta_mlm_dtypes = X.mlm_dtypes
+            self.no_meta_mlm_dtypes = False
         except AttributeError:
             if self.include_mlm_dtypes is not None or self.exclude_mlm_dtypes is not None:
-                raise AttributeError ("Attempting to filter using mlm dtypes, but feature_by_mlm_dtype object is not associated with the input Pandas DataFrame.")
+                raise AttributeError ("Attempting to filter using mlm dtypes, but mlm_dtypes object is not associated with the input Pandas DataFrame.")
             else:
                 pass
 
@@ -158,7 +167,7 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         # select columns by mlmachine dtype
         if self.include_mlm_dtypes is not None:
             for dtype in self.include_mlm_dtypes:
-                self.selected_columns.extend(X.feature_by_mlm_dtype[dtype])
+                self.selected_columns.extend(X.mlm_dtypes[dtype])
 
         # flatten list and remove duplicates
         self.selected_columns = collections.OrderedDict.fromkeys(self.selected_columns)
@@ -179,7 +188,7 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
         # deselect columns by pandas dtype
         if self.exclude_mlm_dtypes is not None:
             for dtype in self.exclude_mlm_dtypes:
-                self.remove_columns.extend(X.feature_by_mlm_dtype[dtype])
+                self.remove_columns.extend(X.mlm_dtypes[dtype])
 
         # flatten list and remove duplicates
         self.remove_columns = list(set(self.remove_columns))
@@ -297,7 +306,6 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
     def transform(self, X):
         return X[self.final_columns]
 
-
 class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
     """
     Documentation:
@@ -372,7 +380,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             names = []
             bins = self.est.n_bins
             for col in self.original_columns:
-                names.append(col + "_" + str(bins) + "_bins")
+                names.append(col + "_binned_" + str(bins))
 
             self.original_columns = names
 
@@ -380,7 +388,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
         elif isinstance(self.est, preprocessing._encoders.OrdinalEncoder):
             names = []
             for col in self.original_columns:
-                names.append(col + "_encoded")
+                names.append(col + "_ordinal_encoded")
 
             self.original_columns = names
 
@@ -399,7 +407,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = self.est.get_feature_names()
 
             for col in self.original_columns:
-                names.append(col + "_binarized")
+                names.append(col + "_binary_encoded")
 
             self.original_columns = names
 
@@ -437,12 +445,12 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
 
     def fit_transform(self, X, y=None, **fit_params):
 
-        # preserve feature_by_mlm_dtype if it exists
+        # preserve mlm_dtypes if it exists
         try:
-            self.meta = X.feature_by_mlm_dtype
-            self.no_meta = False
+            self.meta_mlm_dtypes = X.mlm_dtypes
+            self.no_meta_mlm_dtypes = False
         except AttributeError:
-            self.no_meta = True
+            self.no_meta_mlm_dtypes = True
             pass
 
         self._validate_transformers()
@@ -465,10 +473,32 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
         else:
             Xs = self.merge_dataframes_by_column(Xs)
 
-        if not self.no_meta:
+        if not self.no_meta_mlm_dtypes:
             Xs = Xs.loc[:, ~Xs.columns.duplicated()]
             Xs = PreserveMetaData(Xs)
-            Xs.feature_by_mlm_dtype = self.meta
+            Xs.mlm_dtypes = self.meta_mlm_dtypes
+
+            # reset dtype for any columns that were turned into object columns
+            for mlm_dtype in Xs.mlm_dtypes.keys():
+                for column in Xs.mlm_dtypes[mlm_dtype]:
+                    try:
+                        if is_object_dtype(Xs[column]):
+                            if mlm_dtype == "boolean":
+                                Xs[column] = Xs[column].astype("boolean")
+                            elif mlm_dtype == "continuous":
+                                Xs[column] = Xs[column].astype("float64")
+                            elif mlm_dtype == "category":
+                                Xs[column] = Xs[column].astype("category")
+                            elif mlm_dtype == "count":
+                                Xs[column] = Xs[column].astype("int64")
+                            elif mlm_dtype == "date":
+                                Xs[column] = Xs[column].astype("datetime64[ns]")
+                            elif mlm_dtype == "nominal":
+                                Xs[column] = Xs[column].astype("category")
+                            elif mlm_dtype == "ordinal":
+                                Xs[column] = Xs[column].astype("category")
+                    except KeyError:
+                        continue
 
         return Xs
 
@@ -491,10 +521,33 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
         else:
             Xs = self.merge_dataframes_by_column(Xs)
 
-        if not self.no_meta:
+        # metadata attributes
+        if not self.no_meta_mlm_dtypes:
             Xs = Xs.loc[:, ~Xs.columns.duplicated()]
             Xs = PreserveMetaData(Xs)
-            Xs.feature_by_mlm_dtype = self.meta
+            Xs.mlm_dtypes = self.meta_mlm_dtypes
+
+            # reset dtype for any columns that were turned into object columns
+            for mlm_dtype in Xs.mlm_dtypes.keys():
+                for column in Xs.mlm_dtypes[mlm_dtype]:
+                    try:
+                        if is_object_dtype(Xs[column]):
+                            if mlm_dtype == "boolean":
+                                Xs[column] = Xs[column].astype("boolean")
+                            elif mlm_dtype == "continuous":
+                                Xs[column] = Xs[column].astype("float64")
+                            elif mlm_dtype == "category":
+                                Xs[column] = Xs[column].astype("category")
+                            elif mlm_dtype == "count":
+                                Xs[column] = Xs[column].astype("int64")
+                            elif mlm_dtype == "date":
+                                Xs[column] = Xs[column].astype("datetime64[ns]")
+                            elif mlm_dtype == "nominal":
+                                Xs[column] = Xs[column].astype("category")
+                            elif mlm_dtype == "ordinal":
+                                Xs[column] = Xs[column].astype("category")
+                    except KeyError:
+                        continue
 
         return Xs
 
@@ -513,6 +566,14 @@ class KFoldSelectEncoder(base.BaseEstimator, base.TransformerMixin):
         encoder_name = self.encoder.__module__.split(".")
         if encoder_name[0] == "category_encoders":
             self.column_suffix = "_" + encoder_name[1]
+
+        # map column suffix to desired name
+        if self.column_suffix == "_woe":
+            self.column_suffix = "_woe_encoded"
+        if self.column_suffix == "_cat_boost":
+            self.column_suffix = "_catboost_encoded"
+        elif self.column_suffix == "_target_encoder":
+            self.column_suffix = "_target_encoded"
 
         return self
 
@@ -537,6 +598,11 @@ class KFoldSelectEncoder(base.BaseEstimator, base.TransformerMixin):
                     x_train[column + self.column_suffix] = enc.fit_transform(x_train[column], x_train[self.target.name])
                     x_valid[column + self.column_suffix] = enc.transform(x_valid[column])
                     X.loc[X.index[valid_ix], column + self.column_suffix] = x_valid[column + self.column_suffix].map(x_valid[column + self.column_suffix]).fillna(x_valid[column + self.column_suffix])
+
+            # fill nan's with column mean. rarely needed - only when column is severely imbalanced
+            for column in X.columns:
+                if X[column].isnull().sum() > 0:
+                    X[column] = X[column].fillna(X[column].mean())
 
             # collect average values for transformation of unseen data
             for column in self.columns:
@@ -656,13 +722,13 @@ def skew_summary(self, data=None, columns=None):
                 the feature dataset provided to machine during instantiation is used.
             columns : list of strings, default=None
                 list containing string names of columns. if left as none, the value associated
-                with sel.feature_by_mlm_dtype["number"] will be used as the column list.
+                with sel.mlm_dtypes["number"] will be used as the column list.
     """
-    # use data/feature_by_mlm_dtype["number"] columns provided during instantiation if left unspecified
+    # use data/mlm_dtypes["number"] columns provided during instantiation if left unspecified
     if data is None:
         data = self.data
     if columns is None:
-        columns = self.data.feature_by_mlm_dtype["continuous"]
+        columns = self.data.mlm_dtypes["continuous"]
 
     skewness = (
         data[columns]
@@ -686,7 +752,7 @@ def skew_summary(self, data=None, columns=None):
 
 class PreserveMetaData(pd.DataFrame):
 
-    _metadata = ["feature_by_mlm_dtype"]
+    _metadata = ["mlm_dtypes"]
 
     @property
     def _constructor(self):

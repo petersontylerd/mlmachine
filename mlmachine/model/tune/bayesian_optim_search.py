@@ -78,8 +78,8 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
                 dictionary containing details for each individual trial. details include model type,
                 iteration, parameter values, run time, and cross_validation summary statistics.
     """
-    global iteration
-    iteration += 1
+    global ITERATION
+    ITERATION += 1
     start = timer()
 
     # convert select float params to int
@@ -149,7 +149,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
         writer = csv.writer(file)
         writer.writerow(
             [
-                iteration,
+                ITERATION,
                 model,
                 scoring,
                 loss,
@@ -164,7 +164,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
         )
 
     return {
-        "iteration": iteration,
+        "iteration": ITERATION,
         "estimator": model,
         "scoring": scoring,
         "loss": loss,
@@ -243,8 +243,8 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
 
     # iterate through each model
     for estimator in all_space.keys():
-        global iteration
-        iteration = 0
+        global ITERATION
+        ITERATION = 0
 
         # establish feature space for hyper_parameter search
         space = all_space[estimator]

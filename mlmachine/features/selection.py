@@ -593,6 +593,10 @@ class FeatureSelector:
                 "no cv_summary detected. either execute method feature_selector_cross_val or load from .csv"
             )
 
+        # add summary stats if needed
+        if not "average" in feature_selector_summary.columns:
+            feature_selector_summary = self.feature_selector_stats(feature_selector_summary)
+
         for estimator in cv_summary["estimator"].unique():
             cv = cv_summary[
                 (cv_summary["scoring"] == scoring)
@@ -708,6 +712,10 @@ class FeatureSelector:
             raise AttributeError(
                 "no cv_summary detected. either execute method feature_selector_suite or load from .csv"
             )
+
+        # add summary stats if needed
+        if not "average" in feature_selector_summary.columns:
+            feature_selector_summary = self.feature_selector_stats(feature_selector_summary)
 
         # create empty DataFrame with feature names as index
         self.cross_val_features_df = pd.DataFrame(index=feature_selector_summary.index)

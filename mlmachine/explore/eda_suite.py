@@ -82,7 +82,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         bi_summ_df.reset_index(inplace=True)
 
         # fill nan's with zero
-        bi_summ_df = bi_summ_df.fillna(0)
+        fill_columns = bi_summ_df.iloc[:,2:].columns
+        bi_summ_df[fill_columns] = bi_summ_df[fill_columns].fillna(0)
 
         # set values to int dtype where applicable to optimize displayed DataFrame
         for column in bi_summ_df.columns:
@@ -96,7 +97,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         prop_df = pd.concat([self.data[feature], self.target], axis=1)
         prop_df = prop_df[prop_df[feature].notnull()]
 
-        prop_df = prop_df.groupby([feature, self.target.name]).agg({self.target.name : {"Count": "count"}})
+        prop_df = prop_df.groupby([feature, self.target.name]).agg({self.target.name : {"count"}})
         prop_df = prop_df.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
         prop_df = prop_df.reset_index()
 
@@ -124,7 +125,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         prop_df.insert(loc=0, column="Class", value=legend_labels if legend_labels is not None else np.unique(self.target))
 
         # fill nan's with zero
-        prop_df = prop_df.fillna(0)
+        fill_columns = prop_df.iloc[:,:].columns
+        prop_df[fill_columns] = prop_df[fill_columns].fillna(0)
 
         # execute z_test
         if len(np.unique(bi_df[bi_df[feature].notnull()][feature])) == 2:
@@ -480,7 +482,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         ax=ax
         )
     if outliers_out_of_scope is not None:
-        plt.xlim(x_axis_min-2, x_axis_max)
+        plt.xlim(x_axis_min-(x_axis_min * 0.1), x_axis_max)
 
     plt.subplots_adjust(bottom=-0.1)
 
@@ -623,7 +625,8 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         bi_summ_piv_df.reset_index(inplace=True)
 
         # fill nan's with zero
-        bi_summ_piv_df = bi_summ_piv_df.fillna(0)
+        fill_columns = bi_summ_piv_df.iloc[:,1:].columns
+        bi_summ_piv_df[fill_columns] = bi_summ_piv_df[fill_columns].fillna(0)
 
         #
         if is_numeric_dtype(bi_summ_piv_df[feature]):

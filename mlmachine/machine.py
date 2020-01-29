@@ -3,9 +3,19 @@ import os
 import sys
 import importlib
 import itertools
+import warnings
+
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_numeric_dtype, is_object_dtype
+from pandas.api.types import (
+    is_bool_dtype,
+    is_categorical_dtype,
+    is_datetime64_any_dtype,
+    is_numeric_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    CategoricalDtype,
+)
 
 import sklearn.model_selection as model_selection
 import sklearn.preprocessing as preprocessing
@@ -95,8 +105,9 @@ class Machine:
         oof_generator,
     )
 
-    def __init__(self, data, remove_features=[], identify_as_nominal=None, identify_as_ordinal=None, identify_as_continuous=None,
-                identify_as_count=None, identify_as_date=None, target=None, target_type=None):
+    def __init__(self, data, remove_features=[], identify_as_boolean=None, identify_as_continuous=None,identify_as_count=None,
+                identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None,
+                identify_as_string=None, target=None, target_type=None):
         """
         documentation:
             description:
@@ -108,16 +119,26 @@ class Machine:
                     input data provided as a pandas DataFrame.
                 remove_features : list, default = []
                     features to be completely removed from dataset.
-                identify_as_nominal : list, default=None
-                    preidentified nominal category features. columns given float64 dtype.
-                identify_as_ordinal : list, default=None
-                    preidentified ordinal category features. columns given float64 dtype.
-                identify_as_count : list, default=None
-                    preidentified count features. columns given float64 dtype.
+                identify_as_boolean : list, default=None
+                    preidentified boolean features. columns given boolean dtype.
                 identify_as_continuous : list, default=None
                     preidentified continuous features. columns given float64 dtype.
+                identify_as_count : list, default=None
+                    preidentified count features. columns given int64 dtype.
                 identify_as_date : list, default=None
-                    preidentified date features. columns given datetime64 dtype.
+                    preidentified date features. columns given datetime64[ns] dtype.
+                identify_as_nominal : list, default=None
+                    preidentified nominal category features. columns given category dtype.
+                identify_as_ordinal : list, default=None
+                    preidentified ordinal category features. columns given category dtype. if
+                    an ordinal_encodings dict is passed, the category column will be given the
+                    specified order.
+                ordinal_encodings : dict, default=None
+                    dictionary where the key is the ordinal column name provided as a
+                    string, and the associated value is a list containing the preferred
+                    order of the values.
+                identify_as_string : list, default=None
+                    preidentified string features. columns given string dtype.
                 target : list, default=None
                     name of column containing dependent variable.
                 target_type : list, default=None
@@ -127,9 +148,6 @@ class Machine:
                     independent variables returned as a pandas DataFrame
                 target : Pandas Series
                     dependent variable returned as a Pandas Series
-                feature_by_mlm_dtype : dict
-                    dictionary contains keys 'bool','continuous','count','date','nominal' and 'ordinal'. the corresponding values
-                    are lists of column names that are of that feature type.
         """
         self.remove_features = remove_features
         self.target = data[target].squeeze() if target is not None else None
@@ -138,174 +156,263 @@ class Machine:
             if target is not None
             else data.drop(self.remove_features, axis=1)
         )
-        self.identify_as_nominal = identify_as_nominal
-        self.identify_as_ordinal = identify_as_ordinal
         self.identify_as_continuous = identify_as_continuous
+        self.identify_as_boolean = identify_as_boolean
         self.identify_as_count = identify_as_count
         self.identify_as_date = identify_as_date
+        self.identify_as_nominal = identify_as_nominal
+        self.identify_as_ordinal = identify_as_ordinal
+        self.ordinal_encodings = ordinal_encodings
+        self.identify_as_string = identify_as_string
         self.target_type = target_type
+
+        if self.identify_as_ordinal is not None and self.ordinal_encodings is None:
+            warnings.warn("Recommendation - Ordinal column names passed to 'identify_as_ordinal' variable but, no ordinal encoding instructions pass to 'ordinal_encodings' variable. It is recommended to pass a dictionary containing ordinal column names as keys and lists containing the preferred order of encoding as values", UserWarning)
 
         # execute method feature_by_type_capture
         self.data = PreserveMetaData(self.data)
-        self.capture_feature_by_mlm_dtype()
+        self.capture_mlm_dtypes()
 
         # encode the target column if there is one
         if self.target is not None and self.target_type == "category":
             self.encode_target()
 
-    def capture_feature_by_mlm_dtype(self):
+    def capture_mlm_dtypes(self):
         """
         documentation:
             description:
                 determine feature type for each feature as being object, number
                 or bool.
         """
-        ### populate feature_by_mlm_dtype dictionary with feature type label for each feature
-        self.data.feature_by_mlm_dtype = {}
+        ### populate mlm_dtypes dictionary with feature type label for each feature
+        self.data.mlm_dtypes = {}
 
-        # nominal category feature identification
-        if self.identify_as_nominal is None:
-            self.data.feature_by_mlm_dtype["nominal"] = []
-        else:
-            self.data.feature_by_mlm_dtype["nominal"] = self.identify_as_nominal
+        ### boolean
+        # mlmachine dtype capture
+        if isinstance(self.identify_as_boolean, list):
+            self.data.mlm_dtypes["lean"] = self.identify_as_boolean
+        elif not isinstance(self.identify_as_boolean, list) and self.identify_as_boolean is not None:
+            raise AttributeError ("Variable passed to identify_as_boolean is not a list. Provide a list of column names, provide None or allow identify_as_boolean to default to None.")
+        elif self.identify_as_boolean is None:
+            self.data.mlm_dtypes["boolean"] = []
 
-        # ordinal category feature identification
-        if self.identify_as_nominal is None:
-            self.data.feature_by_mlm_dtype["ordinal"] = []
-        else:
-            self.data.feature_by_mlm_dtype["ordinal"] = self.identify_as_nominal
+        # Pandas dtype
+        for column in self.data.mlm_dtypes["boolean"]:
+            self.data[column] = self.data[column].astype("boolean")
 
-        # continuous feature identification
-        if self.identify_as_continuous is None:
-            self.data.feature_by_mlm_dtype["continuous"] = []
-        else:
-            self.data.feature_by_mlm_dtype["continuous"] = self.identify_as_continuous
+        ### nominal category
+        # mlmachine dtype capture
+        if isinstance(self.identify_as_nominal, list):
+            self.data.mlm_dtypes["nominal"] = self.identify_as_nominal
+        elif not isinstance(self.identify_as_nominal, list) and self.identify_as_nominal is not None:
+            raise AttributeError ("Variable passed to identify_as_nominal is not a list. Provide a list of column names, provide None or allow identify_as_nominal to default to None.")
+        elif self.identify_as_nominal is None:
+            self.data.mlm_dtypes["nominal"] = []
 
-        # discrete feature identification
-        if self.identify_as_count is None:
-            self.data.feature_by_mlm_dtype["count"] = []
-        else:
-            self.data.feature_by_mlm_dtype["count"] = self.identify_as_count
+        # Pandas dtype
+        for column in self.data.mlm_dtypes["nominal"]:
+            self.data[column] = self.data[column].astype("category")
 
-        # discrete feature identification
-        if self.identify_as_date is None:
-            self.data.feature_by_mlm_dtype["date"] = []
-        else:
-            self.data.feature_by_mlm_dtype["date"] = self.identify_as_date
+        ### ordinal category
+        # mlmachine dtype capture
+        if isinstance(self.identify_as_ordinal, list):
+            self.data.mlm_dtypes["ordinal"] = self.identify_as_ordinal
+        elif not isinstance(self.identify_as_ordinal, list) and self.identify_as_ordinal is not None:
+            raise AttributeError ("Variable passed to identify_as_ordinal is not a list. Provide a list of column names, provide None or allow identify_as_ordinal to default to None.")
+        elif isinstance(self.ordinal_encodings, dict):
+            self.data.mlm_dtypes["ordinal"] = list(self.ordinal_encodings.keys())
+        elif self.identify_as_ordinal is None and self.ordinal_encodings is None:
+            self.data.mlm_dtypes["ordinal"] = []
 
+        # Pandas dtype
+        if isinstance(self.ordinal_encodings, dict):
+            for column, order in self.ordinal_encodings.items():
+                category_type = CategoricalDtype(categories=order, ordered=True)
+                self.data[column] = self.data[column].astype(category_type)
+
+        for column in self.data.mlm_dtypes["ordinal"]:
+            self.data[column] = self.data[column].astype("category")
+
+        ### continuous
+        # mlmachine dtype capture
+        if isinstance(self.identify_as_continuous, list):
+            self.data.mlm_dtypes["continuous"] = self.identify_as_continuous
+        elif not isinstance(self.identify_as_continuous, list) and self.identify_as_continuous is not None:
+            raise AttributeError ("Variable passed to identify_as_continuous is not a list. Either provider a list of column names, provide None or allow identify_as_continuous to default to None.")
+        elif self.identify_as_continuous is None:
+            self.data.mlm_dtypes["continuous"] = []
+
+        # Pandas dtype
+        for column in self.data.mlm_dtypes["continuous"]:
+            self.data[column] = self.data[column].astype("float64")
+
+        ### count
+        # mlmachine dtype capture
+        if isinstance(self.identify_as_count, list):
+            self.data.mlm_dtypes["count"] = self.identify_as_count
+        elif not isinstance(self.identify_as_count, list) and self.identify_as_count is not None:
+            raise AttributeError ("Variable passed to identify_as_count is not a list. Provide a list of column names, provide None or allow identify_as_count to default to None.")
+        elif self.identify_as_count is None:
+            self.data.mlm_dtypes["count"] = []
+
+        # Pandas dtype
+        for column in self.data.mlm_dtypes["count"]:
+            self.data[column] = self.data[column].astype("int64")
+
+        ### count
+        # mlmachine dtype capture
+        if isinstance(self.identify_as_string, list):
+            self.data.mlm_dtypes["string"] = self.identify_as_string
+        elif not isinstance(self.identify_as_string, list) and self.identify_as_string is not None:
+            raise AttributeError ("Variable passed to identify_as_string is not a list. Provide a list of column names, provide None or allow identify_as_string to default to None.")
+        elif self.identify_as_string is None:
+            self.data.mlm_dtypes["string"] = []
+
+        # Pandas dtype
+        for column in self.data.mlm_dtypes["count"]:
+            self.data[column] = self.data[column].astype("int64")
+
+        ### date
+        # mlmachine dtype capture
+        if isinstance(self.identify_as_date, list):
+            self.data.mlm_dtypes["date"] = self.identify_as_date
+        elif not isinstance(self.identify_as_date, list) and self.identify_as_date is not None:
+            raise AttributeError ("Variable passed to identify_as_date is not a list. Provide a list of column names, provide None or allow identify_as_date to default to None.")
+        elif self.identify_as_date is None:
+            self.data.mlm_dtypes["date"] = []
+
+        # Pandas dtype
+        for column in self.data.mlm_dtypes["date"]:
+            self.data[column] = self.data[column].astype("datetime64[ns]")
+
+        ### untracked columns
         # compile single list of features that have already been categorized
-        tracked_columns = [i for i in sum(self.data.feature_by_mlm_dtype.values(), [])]
+        tracked_columns = [i for i in sum(self.data.mlm_dtypes.values(), [])]
 
-        ### determine feature type for remaining columns
+        # iterate through untracked columns and attempt mlmachine dtype identification
         for column in [i for i in self.data.columns if i not in tracked_columns]:
 
-            # capture column statistics
-            zeros_and_ones = (self.data[column].eq(0) | self.data[column].eq(1)).sum()
-            unique_values = len(np.unique(self.data[column].dropna()))
-
+            # capture column statistics and characteristics
             try:
                 value_mean = np.mean(self.data[column].dropna())
                 value_std = np.std(self.data[column].dropna())
             except TypeError:
                 pass
 
-            # column dtype is object
-            if is_object_dtype(self.data[column]):
-                self.data.feature_by_mlm_dtype["nominal"].append(column)
+            zeros_and_ones = (self.data[column].eq(0) | self.data[column].eq(1)).sum()
+            unique_values = len(np.unique(self.data[column].dropna()))
+
+            #
+            if is_object_dtype(self.data[column]) \
+                or is_string_dtype(self.data[column]) \
+                or is_categorical_dtype(self.data[column]):
+
+                self.data.mlm_dtypes["nominal"].append(column)
+                self.data[column] = self.data[column].astype("category")
+
+            #
+            elif is_datetime64_any_dtype(self.data[column]):
+
+                self.data.mlm_dtypes["date"].append(column)
+                self.data[column] = self.data[column].astype("datetime64[ns]")
+
+            #
+            elif is_bool_dtype(self.data[column]):
+
+                self.data.mlm_dtypes["boolean"].append(column)
+                self.data[column] = self.data[column].astype("boolean")
+
+            #
+            elif is_string_dtype(self.data[column]):
+
+                self.data.mlm_dtypes["string"].append(column)
+                self.data[column] = self.data[column].astype("string")
 
             #
             elif is_numeric_dtype(self.data[column]):
 
                 #
-                if unique_values > 50:
-                    self.data.feature_by_mlm_dtype["continuous"].append(column)
+                if value_std/value_mean > 2 and value_std > 5:
+                    self.data.mlm_dtypes["continuous"].append(column)
+                    self.data[column] = self.data[column].astype("float64")
 
-                #
-                elif value_std/value_mean > 2 and value_std > 5:
-                    self.data.feature_by_mlm_dtype["continuous"].append(column)
-
-                # if column contains only 0's and 1's
+                # if column contains only 0's and 1's, then boolean
                 elif self.data[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones == self.data.shape[0]:
 
-                    self.data.feature_by_mlm_dtype["nominal"].append(column)
+                    self.data.mlm_dtypes["boolean"].append(column)
+                    self.data[column] = self.data[column].astype("boolean")
 
                 #
                 elif self.data[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones != self.data.shape[0]:
 
-                    self.data.feature_by_mlm_dtype["count"].append(column)
+                    self.data.mlm_dtypes["count"].append(column)
+                    self.data[column] = self.data[column].astype("int64")
 
                 #
                 else:
-                    self.data.feature_by_mlm_dtype["continuous"].append(column)
+                    self.data.mlm_dtypes["continuous"].append(column)
+                    self.data[column] = self.data[column].astype("float64")
+
 
             # all else are category
             else:
-                self.data.feature_by_mlm_dtype["category"].append(column)
-
-        ### set data types
-        for dtype, columns in self.data.feature_by_mlm_dtype.items():
-            if dtype == "category":
-                for column in columns:
-                    # if is_numeric_dtype(self.data[column]):
-                    #     self.data[column] = self.data[column].astype("float64")
-                    # else:
-                    self.data[column] = self.data[column].astype("object")
-            elif dtype == "continuous":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("float64")
-            elif dtype == "count":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("float64")
-            elif dtype == "date":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("datetime64[ns]")
+                self.data.mlm_dtypes["nominal"].append(column)
+                self.data[column] = self.data[column].astype("category")
 
         ### sort lists within dictionary
-        self.data.feature_by_mlm_dtype = {x:sorted(self.data.feature_by_mlm_dtype[x]) for x in self.data.feature_by_mlm_dtype.keys()}
+        self.data.mlm_dtypes = {x: sorted(self.data.mlm_dtypes[x]) for x in self.data.mlm_dtypes.keys()}
 
-    def update_feature_by_mlm_dtype(self, columns_to_drop=None):
+        ###
+        self.data.mlm_dtypes["category"] = self.data.mlm_dtypes["boolean"] + self.data.mlm_dtypes["nominal"] + self.data.mlm_dtypes["ordinal"]
+
+    def update_dtypes(self, columns_to_drop=None):
         """
         documentation:
             description:
-                update feature_by_mlm_dtype dictionary to include new columns. ensures new object columns
+                update mlm_dtypes dictionary to include new columns. ensures new object columns
                 in dataset have the dtype "category". optionally drops specific columns from the dataset
-                and feature_by_mlm_dtype.
+                and mlm_dtypes.
             parameters:
                 columns_to_drop : list, default=None
                     columns to drop from output dataset(s)/
         """
-        ### updates to feature_by_mlm_dtype with new columns and drop any specified removals
+        ### updates to mlm_dtypes with new columns and drop any specified removals
         # capture current columns
         current_columns = self.data.columns.tolist()
 
-        # capture current state of feature_by_mlm_dtype
-        old_feature_by_mlm_dtype = copy.deepcopy(self.data.feature_by_mlm_dtype)
+        # capture current state of mlm_dtypes
+        old_mlm_dtypes = copy.deepcopy(self.data.mlm_dtypes)
 
         # remove any columns listed in columns_to_drop
         if columns_to_drop is not None:
             current_columns = [x for x in current_columns if x not in columns_to_drop]
 
-        # update feature_by_mlm_dtype
-        for k in self.data.feature_by_mlm_dtype.keys():
-            self.data.feature_by_mlm_dtype[k] = [x for x in self.data.feature_by_mlm_dtype[k] if x in current_columns]
+        # remove any columns_to_drop from mlm_dtypes
+        for k in self.data.mlm_dtypes.keys():
+            self.data.mlm_dtypes[k] = [x for x in self.data.mlm_dtypes[k] if x in current_columns]
 
         # remove any columns listed in columns_to_drop from the main dataset
         if columns_to_drop is not None:
             try:
-                # preserve feature_by_mlm_dtype
-                self.meta = self.data.feature_by_mlm_dtype
+                # preserve mlm_dtypes
+                self.meta_mlm_dtypes = self.data.mlm_dtypes
                 self.data = self.data.drop(columns_to_drop, axis=1)
 
-                # add back feature_by_mlm_dtype
-                self.data.feature_by_mlm_dtype = self.meta
+                # add back mlm_dtypes
+                self.data.mlm_dtypes = self.meta_mlm_dtypes
             except KeyError:
                 pass
 
-        ### add any currently untracked column to feature_by_mlm_dtype and set dtype in main dataset
+        ### capture nominal column / value pairs
+        self.nominal_column_values = {}
+        for column in self.data.mlm_dtypes["nominal"]:
+            self.nominal_column_values[column] = list(self.data[column].dropna().unique())
+
+        ### add any currently untracked column to mlm_dtypes and set dtype in main dataset
         # compile single list of features that have already been categorized
-        tracked_columns = [i for i in sum(self.data.feature_by_mlm_dtype.values(), [])]
+        tracked_columns = [i for i in sum(self.data.mlm_dtypes.values(), [])]
         untracked_columns = list(set(current_columns).difference(tracked_columns))
 
         for column in untracked_columns:
@@ -318,107 +425,139 @@ class Machine:
                 value_mean = np.mean(self.data[column].dropna())
                 value_std = np.std(self.data[column].dropna())
             except TypeError:
+                value_mean = 0.01
+                value_std = 0.01
                 pass
 
-            # if column contains non-numeric values
+            # # if first portion of column name is previously identified as a category column
+            # if len(column.split("_")) > 1 \
+            #     and column.split("_")[0] in old_mlm_dtypes["category"] \
+            #     and column.split("_")[1] in self.nominal_column_values["category"]:
+
+            #     self.data.mlm_dtypes["nominal"].append(column)
+            #     self.data[column] = self.data[column].astype("boolean")
+
+            # if column contains non-numeric values, default to nominal mlm_dtype
             try:
                 self.data[column].astype("float").apply(float.is_integer).all()
             except ValueError:
-                self.data.feature_by_mlm_dtype["category"].append(column)
+                self.data.mlm_dtypes["nominal"].append(column)
+                self.data[column] = self.data[column].astype("category")
                 continue
 
-            # if column name suffix indicates that it is an encoded column
-            if column.endswith(("_bins","_count","_target_encoder","_woe","_binarized")):
-                self.data.feature_by_mlm_dtype["category"].append(column)
+            # column dtype is object or categorical, contains only integers, and not just 0's and 1's
+            if (is_object_dtype(self.data[column]) or is_categorical_dtype(self.data[column])) \
+                and self.data[column].astype("float").apply(float.is_integer).all() \
+                and zeros_and_ones != self.data.shape[0]:
+
+                self.data.mlm_dtypes["ordinal"].append(column)
+                self.data[column] = self.data[column].astype("category")
+
 
             # if column name suffix indicates that is is a BoxCox or YeoJohnson transformed column
             elif column.endswith(("_BoxCox","_YeoJohnson")):
-                self.data.feature_by_mlm_dtype["continuous"].append(column)
+
+                self.data.mlm_dtypes["continuous"].append(column)
+                self.data[column] = self.data[column].astype("float64")
+
+            # if column name suffix suggests a continuous feature type
+            elif column.endswith(("_target_encoded", "_woe_encoded", "_catboost_encoded")):
+
+                self.data.mlm_dtypes["continuous"].append(column)
+                self.data[column] = self.data[column].astype("float64")
+
+            # if column name suffix suggests a count feature type
+            elif column.endswith(("_count_encoded")):
+
+                self.data.mlm_dtypes["count"].append(column)
+                self.data[column] = self.data[column].astype("int64")
+
+            # if column name suffix suggests an ordinal category feature type
+            elif column.endswith(("_ordinal_encoded")):
+
+                self.data.mlm_dtypes["ordinal"].append(column)
+                self.data[column] = self.data[column].astype("category")
+
+            # if column name suffix suggests an ordinal category feature type
+            elif "_binned_" in column:
+
+                self.data.mlm_dtypes["ordinal"].append(column)
+                self.data[column] = self.data[column].astype("category")
+
+            # if column name suffix suggests a nominal category feature type
+            elif column.endswith(("_binary_encoded")):
+
+                self.data.mlm_dtypes["nominal"].append(column)
+                self.data[column] = self.data[column].astype("category")
 
             # if column name contains "*", and the name split at "*" returns a list of len == 2, and
             # both parts of the column name are a previously identified continuous or count column
             elif "*" in column \
                 and len(column.split("*")) == 2 \
-                and (column.split("*")[0] in old_feature_by_mlm_dtype["continuous"] or column.split("*")[0] in old_feature_by_mlm_dtype["count"]) \
-                and (column.split("*")[1] in old_feature_by_mlm_dtype["continuous"] or column.split("*")[1] in old_feature_by_mlm_dtype["count"]):
+                and (column.split("*")[0] in old_mlm_dtypes["continuous"] or column.split("*")[0] in old_mlm_dtypes["count"]) \
+                and (column.split("*")[1] in old_mlm_dtypes["continuous"] or column.split("*")[1] in old_mlm_dtypes["count"]):
 
-                self.data.feature_by_mlm_dtype["continuous"].append(column)
+                self.data.mlm_dtypes["continuous"].append(column)
+                self.data[column] = self.data[column].astype("float64")
 
             # if column name contains "*", and the name split at "*" returns a list of len == 2, and
             # both parts of the column name are a previously identified continuous or count column
-            elif "^2" in column \
-                and (column.split("^")[0] in old_feature_by_mlm_dtype["continuous"] or column.split("^")[0] in old_feature_by_mlm_dtype["count"]):
+            elif column.endswith(("^2")) \
+                and (column.split("^")[0] in old_mlm_dtypes["continuous"] or column.split("^")[0] in old_mlm_dtypes["count"]):
 
-                self.data.feature_by_mlm_dtype["continuous"].append(column)
-
-            #
-            elif unique_values > 50:
-                self.data.feature_by_mlm_dtype["continuous"].append(column)
+                self.data.mlm_dtypes["continuous"].append(column)
+                self.data[column] = self.data[column].astype("float64")
 
             #
             elif value_std/value_mean > 2 and value_std > 5:
-                self.data.feature_by_mlm_dtype["continuous"].append(column)
 
-            # column dtype is object
-            elif is_object_dtype(self.data[column]):
-                self.data.feature_by_mlm_dtype["category"].append(column)
+                self.data.mlm_dtypes["continuous"].append(column)
+                self.data[column] = self.data[column].astype("float64")
 
             # if column contains only 0's and 1's, and is not a count column
             elif len(column.split("_")) > 1 \
-                and column.split("_")[0] not in old_feature_by_mlm_dtype["count"] \
+                and column.split("_")[0] not in old_mlm_dtypes["count"] \
                 and self.data[column].astype("float").apply(float.is_integer).all() \
                 and zeros_and_ones == self.data.shape[0]:
 
-                self.data.feature_by_mlm_dtype["category"].append(column)
+                self.data.mlm_dtypes["nominal"].append(column)
+                self.data[column] = self.data[column].astype("category")
 
             # if first portion of column name is previously identified as a category column
             elif len(column.split("_")) > 1 \
-                and column.split("_")[0] in old_feature_by_mlm_dtype["category"]:
+                and column.split("_")[0] in old_mlm_dtypes["nominal"] \
+                and column.split("_")[1] in self.nominal_column_values["category"]:
 
-                self.data.feature_by_mlm_dtype["category"].append(column)
+                self.data.mlm_dtypes["nominal"].append(column)
+                self.data[column] = self.data[column].astype("category")
 
             #
             elif self.data[column].astype("float").apply(float.is_integer).all() \
                 and zeros_and_ones != self.data.shape[0]:
 
-                self.data.feature_by_mlm_dtype["count"].append(column)
+                self.data.mlm_dtypes["count"].append(column)
+                self.data[column] = self.data[column].astype("int64")
 
-            #
-            elif is_numeric_dtype(self.data[column]):
-                self.data.feature_by_mlm_dtype["continuous"].append(column)
-
-            # all else are category
+            # all else are nominal
             else:
-                self.data.feature_by_mlm_dtype["category"].append(column)
 
-        ### set data types
-        for dtype, columns in self.data.feature_by_mlm_dtype.items():
-            if dtype == "category":
-                for column in columns:
-                    # if is_numeric_dtype(self.data[column]):
-                    #     self.data[column] = self.data[column].astype("float64")
-                    # else:
-                    self.data[column] = self.data[column].astype("object")
-            elif dtype == "continuous":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("float64")
-            elif dtype == "count":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("float64")
-            elif dtype == "date":
-                for column in columns:
-                    self.data[column] = self.data[column].astype("datetime64[ns]")
+                self.data.mlm_dtypes["nominal"].append(column)
+                self.data[column] = self.data[column].astype("category")
 
-        # preserve feature_by_mlm_dtype
-        self.meta = self.data.feature_by_mlm_dtype
+        # preserve mlm_dtypes
+        self.meta_mlm_dtypes = self.data.mlm_dtypes
 
         # sort columns alphabetically by name
         self.data = self.data.sort_index(axis=1)
 
-        # add back feature_by_mlm_dtype
-        self.data.feature_by_mlm_dtype = self.meta
+        # add back mlm_dtypes
+        self.data.mlm_dtypes = self.meta_mlm_dtypes
 
-        self.data.feature_by_mlm_dtype = {x:sorted(self.data.feature_by_mlm_dtype[x]) for x in self.data.feature_by_mlm_dtype.keys()}
+        # add helper key / value pairs
+        self.data.mlm_dtypes["category"] = self.data.mlm_dtypes["boolean"] + self.data.mlm_dtypes["nominal"] + self.data.mlm_dtypes["ordinal"]
+        self.data.mlm_dtypes["number"] = self.data.mlm_dtypes["continuous"] + self.data.mlm_dtypes["count"]
+
+        self.data.mlm_dtypes = {x:sorted(self.data.mlm_dtypes[x]) for x in self.data.mlm_dtypes.keys()}
 
     def encode_target(self, reverse=False):
         """
@@ -480,7 +619,7 @@ class Machine:
 
 class PreserveMetaData(pd.DataFrame):
 
-    _metadata = ["feature_by_mlm_dtype"]
+    _metadata = ["mlm_dtypes"]
 
     @property
     def _constructor(self):
