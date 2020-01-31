@@ -257,9 +257,12 @@ class Machine:
 
         # Pandas dtype
         for column in self.data.mlm_dtypes["count"]:
-            self.data[column] = self.data[column].astype("int64")
+            try:
+                self.data[column] = self.data[column].astype("int64")
+            except ValueError:
+                self.data[column] = self.data[column].astype("float64")
 
-        ### count
+        ### string
         # mlmachine dtype capture
         if isinstance(self.identify_as_string, list):
             self.data.mlm_dtypes["string"] = self.identify_as_string
@@ -269,8 +272,8 @@ class Machine:
             self.data.mlm_dtypes["string"] = []
 
         # Pandas dtype
-        for column in self.data.mlm_dtypes["count"]:
-            self.data[column] = self.data[column].astype("int64")
+        for column in self.data.mlm_dtypes["string"]:
+            self.data[column] = self.data[column].astype("string")
 
         ### date
         # mlmachine dtype capture

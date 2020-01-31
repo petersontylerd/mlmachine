@@ -541,11 +541,34 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
     ax = p.make_canvas(
         title="Feature distribution\n* {}".format(feature), position=131, title_scale=1.2
     )
+
+    # x units
+    if -1 <= np.nanmax(bi_df[feature].values) <= 1:
+        x_units = "fff"
+    elif -10 <= np.nanmax(bi_df[feature].values) <= 10:
+        x_units = "ff"
+    else:
+        x_units = "f"
+
+    # y units
+    if -1 <= np.nanmax(bi_df[feature].values) <= 1:
+        y_units = "fff"
+    elif -10 <= np.nanmax(bi_df[feature].values) <= 10:
+        y_units = "ff"
+    else:
+        y_units = "f"
+
+    # x rotation
+    if -10000 < np.nanmax(bi_df[feature].values) < 10000:
+        x_rotate = 0
+    else:
+        x_rotate = 45
+
     p.dist_plot(
         bi_df[feature].values,
         color=style.style_grey,
-        y_units="ff",
-        x_rotate=45,
+        y_units=y_units,
+        x_rotate=x_rotate,
         ax=ax,
     )
 
@@ -560,7 +583,9 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
         y=self.target.name,
         data=bi_df,
         x_jitter=0.1,
-        x_rotate=45,
+        x_rotate=x_rotate,
+        x_units=x_units,
+        y_units=y_units,
         ax=ax,
     )
     plt.show()

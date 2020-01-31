@@ -5,7 +5,6 @@ from time import gmtime, strftime
 import numpy as np
 import pandas as pd
 
-import sklearn.base as base
 import sklearn.feature_selection as feature_selection
 import sklearn.model_selection as model_selection
 

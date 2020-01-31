@@ -17,6 +17,7 @@ from hyperopt.pyll.stochastic import sample
 
 import sklearn.model_selection as model_selection
 
+import sklearn.base as base
 import sklearn.decomposition as decomposition
 import sklearn.discriminant_analysis as discriminant_analysis
 import sklearn.ensemble as ensemble
@@ -37,7 +38,7 @@ from prettierplot import style
 
 
 # set optimization parameters
-def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs, verbose):
+def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs):
     """
     documentation:
         description:
@@ -71,8 +72,6 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
                 number of folds for cross_validation.
             n_jobs : int
                 number of works to deploy upon execution, if applicable.
-            verbose : int
-                controls amount of information printed to console during fit.
         returns:
             results : dictionary
                 dictionary containing details for each individual trial. details include model type,
@@ -98,10 +97,10 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
         score_transform = scoring
 
     cv = model_selection.cross_val_score(
-        estimator=eval("{0}(**{1})".format(model, space)),
+        estimator=BasicModelBuilder(eval(model), space, n_jobs=n_jobs),
         X=data,
         y=target,
-        verbose=verbose,
+        verbose=False,
         n_jobs=n_jobs,
         cv=n_folds,
         scoring=scoring,
@@ -179,7 +178,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
 
 
 def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None, n_folds=3,
-                        n_jobs=4, iters=50, verbose=0, results_file=None,):
+                        n_jobs=4, iters=50, show_progressbar=False, results_file=None,):
     """
     documentation:
         definition:
@@ -211,8 +210,8 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
                 number of folds for cross_validation.
             n_jobs : int, default - 4
                 number of works to deploy upon execution, if applicable.
-            verbose : int, default=0
-                controls amount of information printed to console during fit.
+            show_progressbar : boolean, default=False
+                controls whether to print progress bar to console during training.
             results_file : string, default=None
                 file destination for results summary csv. if none, defaults to
                 ./bayes_optimization_summary_{data}_{time}.csv.
@@ -294,19 +293,20 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
             scoring,
             n_folds,
             n_jobs,
-            verbose,
         )
 
         # run optimization
-        print("#" * 100)
-        print("\n_tuning {0}\n".format(estimator))
+        if show_progressbar:
+            print("#" * 100)
+            print("\nTuning {0}\n".format(estimator))
+
         best = fmin(
             fn=objective,
             space=space,
             algo=tpe.suggest,
             max_evals=iters,
             trials=Trials(),
-            verbose=verbose,
+            show_progressbar=show_progressbar,
         )
 
 
@@ -379,7 +379,7 @@ class BayesOptimModelBuilder:
         return self.model.fit(x, y).feature_importances_
 
 
-class BasicModelBuilder:
+class BasicModelBuilder(base.BaseEstimator):
     """
     documentation:
         description:
@@ -481,15 +481,8 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     return estimator_summary
 
 
-def model_loss_plot(
-    self,
-    bayes_optim_summary,
-    estimator,
-    chart_scale=15,
-    trim_outliers=True,
-    outlier_control=1.5,
-    title_scale=0.7,
-):
+def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_outliers=True, outlier_control=1.5,
+                    title_scale=0.7):
     """
     documentation:
         definition:
@@ -545,15 +538,8 @@ def model_loss_plot(
     plt.show()
 
 
-def model_param_plot(
-    self,
-    bayes_optim_summary,
-    estimator,
-    all_space,
-    n_iter,
-    chart_scale=17,
-    title_scale=0.7,
-):
+def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, chart_scale=17,
+                    title_scale=1.0, show_single_str_params=False):
     """
     documentation:
         definition:
@@ -582,6 +568,9 @@ def model_param_plot(
             title_scale : float, default = 0.7
                 controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
+            show_single_str_params : boolean, default=False
+                controls whether to display visuals for string attributes where the is only one unique value,
+                i.e. there was only one choice for the optimization procedure to choose from during each iteration.
     """
     estimator_summary = self.unpack_bayes_optim_summary(
         bayes_optim_summary=bayes_optim_summary, estimator=estimator
@@ -605,6 +594,9 @@ def model_param_plot(
         theoretical_dist = ["none" if v is None else v for v in theoretical_dist]
         theoretical_dist = np.array(theoretical_dist)
 
+        if isinstance(theoretical_dist[0], np.bool_):
+            theoretical_dist = np.array(["TRUE" if i == True else "FALSE" for i in theoretical_dist.tolist()])
+
         # clean up
         actual_dist = estimator_summary[param].tolist()
         actual_dist = ["none" if v is None else v for v in actual_dist]
@@ -612,49 +604,53 @@ def model_param_plot(
 
         actual_iter_df = estimator_summary[["iteration", param]]
 
+        zeros_and_ones = (actual_iter_df[param].eq(True) | actual_iter_df[param].eq(False)).sum()
+        if zeros_and_ones == actual_iter_df.shape[0]:
+            actual_iter_df = actual_iter_df.replace({True: 'TRUE', False: 'FALSE'})
+
+
         # plot distributions for object params
         if any(isinstance(d, str) for d in theoretical_dist):
 
-            p = PrettierPlot(chart_scale=chart_scale)
-            # theoretical plot
             unique_vals, unique_counts = np.unique(theoretical_dist, return_counts=True)
-            ax = p.make_canvas(
-                title="theoretical plot\n* {}".format(param),
-                y_shift=0.8,
-                position=121,
-                title_scale=title_scale,
-            )
-            p.bar_v(
-                x=unique_vals,
-                counts=unique_counts,
-                label_rotate=90 if len(unique_vals) >= 4 else 0,
-                color=style.style_grey,
-                y_units="f",
-                ax=ax,
-            )
 
-            # actual plot
-            unique_vals, unique_counts = np.unique(actual_dist, return_counts=True)
-            if param == "loss":
-                print(unique_vals)
-                print(unique_counts)
+            if len(unique_vals) > 1 or show_single_str_params:
+                p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
 
-            ax = p.make_canvas(
-                title="actual plot\n* {}".format(param),
-                y_shift=0.8,
-                position=122,
-                title_scale=title_scale,
-            )
-            p.bar_v(
-                x=unique_vals,
-                counts=unique_counts,
-                label_rotate=90 if len(unique_vals) >= 4 else 0,
-                color=style.style_blue,
-                y_units="f",
-                ax=ax,
-            )
+                # theoretical plot
+                ax = p.make_canvas(
+                    title="Theoretical plot\n* {}".format(param),
+                    y_shift=0.8,
+                    position=121,
+                    title_scale=title_scale,
+                )
+                p.bar_v(
+                    x=unique_vals,
+                    counts=unique_counts,
+                    label_rotate=90 if len(unique_vals) >= 4 else 0,
+                    color=style.style_grey,
+                    y_units="f",
+                    ax=ax,
+                )
 
-            plt.show()
+                # actual plot
+                unique_vals, unique_counts = np.unique(actual_dist, return_counts=True)
+                ax = p.make_canvas(
+                    title="Actual plot\n* {}".format(param),
+                    y_shift=0.8,
+                    position=122,
+                    title_scale=title_scale,
+                )
+                p.bar_v(
+                    x=unique_vals,
+                    counts=unique_counts,
+                    label_rotate=90 if len(unique_vals) >= 4 else 0,
+                    color=style.style_blue,
+                    y_units="f",
+                    ax=ax,
+                )
+
+                plt.show()
 
         # plot distributions for number params
         else:
@@ -663,26 +659,35 @@ def model_param_plot(
 
             actual_iter_df = actual_iter_df.astype(convert_dict)
 
-            p = PrettierPlot(chart_scale=chart_scale)
-            # p = PrettierPlot(chart_scale=8, plot_orientation="square")
+            p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
             ax = p.make_canvas(
-                title="actual vs. theoretical plot\n* {}".format(param),
+                title="Actual vs. theoretical plot\n* {}".format(param),
                 y_shift=0.8,
                 position=121,
                 title_scale=title_scale,
             )
+
+            ### dynamic tick label sizing
+            # x units
+            if -1.0 <= np.nanmax(theoretical_dist) <= 1.0:
+                x_units = "fff"
+            elif 1.0 < np.nanmax(theoretical_dist) <= 5.0:
+                x_units = "ff"
+            elif np.nanmax(theoretical_dist) > 5.0:
+                x_units = "f"
+
             p.kde_plot(
                 theoretical_dist,
                 color=style.style_grey,
-                y_units="ppp",
-                x_units="fff" if np.max(theoretical_dist) <= 5.0 else "ff",
+                y_units="ffff",
+                x_units=x_units,
                 ax=ax,
             )
             p.kde_plot(
                 actual_dist,
                 color=style.style_blue,
-                y_units="ppp",
-                x_units="fff" if np.max(actual_dist) <= 5.0 else "ff",
+                y_units="ffff",
+                x_units=x_units,
                 ax=ax,
             )
 
@@ -695,30 +700,44 @@ def model_param_plot(
                 label_color[i] = color_list[ix]
 
             # create Patches
-            Patches = [Patch(color=v, label=k, alpha=alpha) for k, v in label_color.items()]
+            Patches = [Patch(color=v, label=k, alpha=0.8) for k, v in label_color.items()]
 
             # draw legend
             leg = plt.legend(
                 handles=Patches,
-                fontsize=0.8 * chart_scale,
+                fontsize=1.1 * chart_scale,
                 loc="upper right",
-                markerscale=0.3 * chart_scale,
+                markerscale=0.6 * chart_scale,
                 ncol=1,
-                bbox_to_anchor=(1.05, 1.1),
+                bbox_to_anchor=(.95, 1.1),
             )
 
             # label font color
             for text in leg.get_texts():
                 plt.setp(text, color="grey")
 
+            ### dynamic tick label sizing
+            # y units
+            if -1.0 <= np.nanmax(actual_iter_df[param]) <= 1.0:
+                y_units = "fff"
+            elif 1.0 < np.nanmax(actual_iter_df[param]) <= 5.0:
+                y_units = "ff"
+            elif np.nanmax(actual_iter_df[param]) > 5.0:
+                y_units = "f"
+
             ax = p.make_canvas(
-                title="regression plot\n* {}".format(estimator),
+                title="Regression plot\n* {}".format(estimator),
                 y_shift=0.8,
                 position=122,
                 title_scale=title_scale,
             )
             p.reg_plot(
-                x="iteration", y=param, data=actual_iter_df, y_units="fff", ax=ax
+                x="iteration",
+                y=param,
+                data=actual_iter_df,
+                y_units=y_units,
+                x_units="f",
+                ax=ax
             )
             plt.show()
 
@@ -758,6 +777,6 @@ def sample_plot(self, sample_space, n_iter, chart_scale=15):
             theoretical_dist,
             color=style.style_grey,
             y_units="p",
-            x_units="fff" if np.max(theoretical_dist) <= 5.0 else "ff",
+            x_units="fff" if np.nanmax(theoretical_dist) <= 5.0 else "ff",
             ax=ax,
         )
