@@ -447,7 +447,7 @@ class Machine:
 
                 self.data.mlm_dtypes["ordinal"].append(column)
 
-                if self.data[column].dtype.categories.dtype == 'int':
+                if pd.api.types.is_numeric_dtype(self.data[column].dtype.categories.dtype):
                     order = sorted(self.data[column].unique())
                     category_type = pd.api.types.CategoricalDtype(categories=order, ordered=True)
                     self.data[column] = self.data[column].astype(category_type)
@@ -456,7 +456,7 @@ class Machine:
                 else:
                     self.data[column] = self.data[column].astype("category")
 
-                    self.ordinal_encodings[column] = order
+                    self.ordinal_encodings[column] = self.data[column].unique()
 
             # if column name suffix indicates that is is a BoxCox or YeoJohnson transformed column
             elif column.endswith(("_BoxCox","_YeoJohnson")):
