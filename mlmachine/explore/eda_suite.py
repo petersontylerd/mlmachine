@@ -632,33 +632,36 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         # feature vs. target summary
         bi_df = pd.concat([self.data[feature], self.target], axis=1)
         bi_df = bi_df[bi_df[feature].notnull()]
-
         bi_df[self.target.name] = bi_df[self.target.name].astype(float)
-        stats_dict = {
-            "N": len,
-            "Median": np.nanmedian,
-            "Mean": np.nanmean,
-            "StdDev": np.nanstd,
-        }
 
         bi_summ_piv_df = pd.pivot_table(
-            bi_df, index=feature, aggfunc={self.target.name: stats_dict}
+            bi_df, index=feature, aggfunc={self.target.name: [np.nanmin, np.nanmax, np.nanmean, np.nanmedian, np.nanstd]}
         )
         multi_index = bi_summ_piv_df.columns
         single_index = pd.Index([i[1] for i in multi_index.tolist()])
         bi_summ_piv_df.columns = single_index
         bi_summ_piv_df.reset_index(inplace=True)
-
+        bi_summ_piv_df = bi_summ_piv_df.rename(columns={
+                                                "nanmin":"Min",
+                                                "nanmax":"Max",
+                                                "nanmean":"Mean",
+                                                "nanmedian":"Median",
+                                                "nanstd":"StdDev",
+                                            }
+                                        )
         # fill nan's with zero
         fill_columns = bi_summ_piv_df.iloc[:,1:].columns
         bi_summ_piv_df[fill_columns] = bi_summ_piv_df[fill_columns].fillna(0)
+
+        # reorder column
+        bi_summ_piv_df = bi_summ_piv_df[[feature, "Mean","Median","StdDev","Min","Max"]]
 
         #
         if is_numeric_dtype(bi_summ_piv_df[feature]):
             bi_summ_piv_df[feature] = bi_summ_piv_df[feature].astype("int64")
 
-        # convert count and N to int
-        bi_summ_piv_df["N"] = bi_summ_piv_df["N"].astype("int64")
+        # # convert count and N to int
+        # bi_summ_piv_df["N"] = bi_summ_piv_df["N"].astype("int64")
 
         # display summary tables
         self.df_side_by_side(

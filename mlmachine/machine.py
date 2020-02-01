@@ -190,7 +190,7 @@ class Machine:
         ### boolean
         # mlmachine dtype capture
         if isinstance(self.identify_as_boolean, list):
-            self.data.mlm_dtypes["lean"] = self.identify_as_boolean
+            self.data.mlm_dtypes["boolean"] = self.identify_as_boolean
         elif not isinstance(self.identify_as_boolean, list) and self.identify_as_boolean is not None:
             raise AttributeError ("Variable passed to identify_as_boolean is not a list. Provide a list of column names, provide None or allow identify_as_boolean to default to None.")
         elif self.identify_as_boolean is None:
@@ -432,14 +432,6 @@ class Machine:
                 value_std = 0.01
                 pass
 
-            # # if first portion of column name is previously identified as a category column
-            # if len(column.split("_")) > 1 \
-            #     and column.split("_")[0] in old_mlm_dtypes["category"] \
-            #     and column.split("_")[1] in self.nominal_column_values["category"]:
-
-            #     self.data.mlm_dtypes["nominal"].append(column)
-            #     self.data[column] = self.data[column].astype("boolean")
-
             # if column contains non-numeric values, default to nominal mlm_dtype
             try:
                 self.data[column].astype("float").apply(float.is_integer).all()
@@ -454,8 +446,17 @@ class Machine:
                 and zeros_and_ones != self.data.shape[0]:
 
                 self.data.mlm_dtypes["ordinal"].append(column)
-                self.data[column] = self.data[column].astype("category")
 
+                if self.data[column].dtype.categories.dtype == 'int':
+                    order = sorted(self.data[column].unique())
+                    category_type = pd.api.types.CategoricalDtype(categories=order, ordered=True)
+                    self.data[column] = self.data[column].astype(category_type)
+
+                    self.ordinal_encodings[column] = order
+                else:
+                    self.data[column] = self.data[column].astype("category")
+
+                    self.ordinal_encodings[column] = order
 
             # if column name suffix indicates that is is a BoxCox or YeoJohnson transformed column
             elif column.endswith(("_BoxCox","_YeoJohnson")):
