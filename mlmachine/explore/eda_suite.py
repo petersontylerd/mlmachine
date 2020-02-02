@@ -32,10 +32,10 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         parameters
             feature : string
                 feature to visualize.
-            level_count_cap : int, default = 50
+            level_count_cap : int, default=50
                 maximum number of unique levels in feature. if the number of levels exceeds the
                 cap then the feature is skipped.
-            color_map : string specifying built_in matplotlib colormap, default = "viridis"
+            color_map : string specifying built_in matplotlib colormap, default="viridis"
                 colormap from which to draw plot colors.
             legend_labels : list, default=None
                 class labels to be displayed in plot legend(s).
@@ -240,7 +240,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         parameters
             feature : string
                 feature to visualize.
-            color_map : string specifying built_in matplotlib colormap, default = "viridis"
+            color_map : string specifying built_in matplotlib colormap, default="viridis"
                 colormap from which to draw plot colors.
             outliers_out_of_scope : boolean, float or int, default=None
                 truncates the x-axis upper limit so that outliers are out of scope of the visualization.
@@ -498,7 +498,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
         parameters
             feature : string
                 feature to visualize.
-            color_map : string specifying built_in matplotlib colormap, default = "viridis"
+            color_map : string specifying built_in matplotlib colormap, default="viridis"
                 colormap from which to draw plot colors.
             chart_scale : int or float, default=15
                 controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
@@ -600,10 +600,10 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         parameters
             feature : string
                 feature to visualize.
-            level_count_cap : int, default = 50
+            level_count_cap : int, default=50
                 maximum number of unique levels in feature. if the number of levels exceeds the
                 cap then the feature is skipped.
-            color_map : string specifying built_in matplotlib colormap, default = "viridis"
+            color_map : string specifying built_in matplotlib colormap, default="viridis"
                 colormap from which to draw plot colors.
             chart_scale : int or float, default=15
                 controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
@@ -654,7 +654,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         bi_summ_piv_df[fill_columns] = bi_summ_piv_df[fill_columns].fillna(0)
 
         # reorder column
-        bi_summ_piv_df = bi_summ_piv_df[[feature, "Mean","Median","StdDev","Min","Max"]]
+        bi_summ_piv_df = bi_summ_piv_df[[feature,"Mean","Median","StdDev","Min","Max"]]
 
         #
         if is_numeric_dtype(bi_summ_piv_df[feature]):
@@ -790,7 +790,7 @@ def df_side_by_side(self, dfs, names=[]):
         parameters:
             dfs : list
                 list of dfs to be displayed.
-            names : list, default = []
+            names : list, default=[]
                 list of names to be displayed above dataframes.
     """
     html_str = ""

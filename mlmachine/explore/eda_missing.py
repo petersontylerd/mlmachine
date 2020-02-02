@@ -16,7 +16,7 @@ def eda_missing_summary(self, data=None, color=style.style_grey, chart_scale=25)
             data : pandas DataFrame, default=None
                 pandas DataFrame containing independent variables. if left as none,
                 the feature dataset provided to machine during instantiation is used.
-            color : string, color code, default = style.style_grey
+            color : string, color code, default=style.style_grey
                 bar color.
             chart_scale : int or float, default=15
                 controls chart size and proportions. higher value creates larger plots and increases

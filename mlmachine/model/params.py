@@ -1,6 +1,6 @@
 # model/parameter space
 all_space = {
-    "lightgbm.LGBMClassifier": {
+    "LGBMClassifier": {
         "class_weight": hp.choice("class_weight", [none, "balanced"]),
         "colsample_bytree": hp.uniform("colsample_bytree", 0.5, 1.0),
         "boosting_type": hp.choice("boosting_type", ["gbdt", "dart", "goss"])
@@ -18,11 +18,11 @@ all_space = {
         "reg_lambda": hp.uniform("reg_lambda", 0.0, 1.0),
         "subsample_for_bin": hp.uniform("subsample_for_bin", 20000, 400000),
     },
-    "linear_model.LogisticRegression": {
+    "LogisticRegression": {
         "C": hp.loguniform("C", np.log(0.001), np.log(0.2)),
         "penalty": hp.choice("penalty", ["l1", "l2"]),
     },
-    "xgboost.XGBClassifier": {
+    "XGBClassifier": {
         "colsample_bytree": hp.uniform("colsample_bytree", 0.5, 1.0),
         "gamma": hp.uniform("gamma", 0.0, 10),
         "learning_rate": hp.uniform("learning_rate", 0.01, 0.3),
@@ -31,7 +31,7 @@ all_space = {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 1, dtype=int)),
         "subsample": hp.uniform("subsample", 0.3, 1),
     },
-    "ensemble.RandomForestClassifier": {
+    "RandomForestClassifier": {
         "bootstrap": hp.choice("bootstrap", [True, False]),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 1, dtype=int)),
@@ -41,7 +41,7 @@ all_space = {
         ),
         "min_samples_leaf": hp.choice("min_samples_leaf", np.arange(2, 40, dtype=int)),
     },
-    "ensemble.GradientBoostingClassifier": {
+    "GradientBoostingClassifier": {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 1, dtype=int)),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
         "max_features": hp.choice("max_features", ["auto", "sqrt"]),
@@ -52,12 +52,12 @@ all_space = {
         ),
         "min_samples_leaf": hp.choice("min_samples_leaf", np.arange(2, 40, dtype=int)),
     },
-    "ensemble.AdaBoostClassifier": {
+    "AdaBoostClassifier": {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 1, dtype=int)),
         "learning_rate": hp.uniform("learning_rate", 0.01, 0.3),
         "algorithm": hp.choice("algorithm", ["SAMME", "SAMME.R"]),
     },
-    "ensemble.ExtraTreesClassifier": {
+    "ExtraTreesClassifier": {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 1, dtype=int)),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
         "min_samples_split": hp.choice(
@@ -67,12 +67,12 @@ all_space = {
         "max_features": hp.choice("max_features", ["auto", "sqrt"]),
         "criterion": hp.choice("criterion", ["gini", "entropy"]),
     },
-    "svm.SVC": {
+    "SVC": {
         "C": hp.uniform("C", 0.001, 15),
         "decision_function_shape": hp.choice("decision_function_shape", ["ovo", "ovr"]),
         "gamma": hp.uniform("gamma", 0.000000001, 5),
     },
-    "neighbors.KNeighborsClassifier": {
+    "KNeighborsClassifier": {
         "algorithm": hp.choice("algorithm", ["auto", "ball_tree", "kd_tree", "brute"]),
         "n_neighbors": hp.choice("n_neighbors", np.arange(1, 20, dtype=int)),
         "weights": hp.choice("weights", ["distance", "uniform"]),
@@ -82,19 +82,19 @@ all_space = {
 
 # model/parameter space
 all_space = {
-    "linear_model.Lasso": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
-    "linear_model.Ridge": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
-    "linear_model.ElasticNet": {
+    "Lasso": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
+    "Ridge": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
+    "ElasticNet": {
         "alpha": hp.uniform("alpha", 0.0000001, 20),
         "l1_ratio": hp.uniform("l1_ratio", 0.0, 0.2),
     },
-    "kernel_ridge.KernelRidge": {
+    "KernelRidge": {
         "alpha": hp.uniform("alpha", 0.000001, 15),
         "kernel": hp.choice("kernel", ["linear", "polynomial", "rbf"]),
         "degree": hp.choice("degree", [2, 3]),
         "gamma": hp.uniform("gamma", 0.0, 10),
     },
-    "lightgbm.LGBMRegressor": {
+    "LGBMRegressor": {
         "colsample_bytree": hp.uniform("colsample_bytree", 0.5, 1.0),
         "boosting_type": hp.choice("boosting_type", ["gbdt", "dart", "goss"])
         # ,'boosting_type': hp.choice('boosting_type'
@@ -111,7 +111,7 @@ all_space = {
         "reg_lambda": hp.uniform("reg_lambda", 0.0, 1.0),
         "subsample_for_bin": hp.uniform("subsample_for_bin", 20000, 400000),
     },
-    "xgboost.XGBRegressor": {
+    "XGBRegressor": {
         "colsample_bytree": hp.uniform("colsample_bytree", 0.5, 1.0),
         "gamma": hp.uniform("gamma", 0.0, 10),
         "reg_alpha": hp.uniform("reg_alpha", 0.0, 1.0),
@@ -122,7 +122,7 @@ all_space = {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
         "subsample": hp.uniform("subsample", 0.5, 1),
     },
-    "ensemble.RandomForestRegressor": {
+    "RandomForestRegressor": {
         "bootstrap": hp.choice("bootstrap", [True, False]),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
@@ -132,7 +132,7 @@ all_space = {
         ),
         "min_samples_leaf": hp.choice("min_samples_leaf", np.arange(2, 40, dtype=int)),
     },
-    "ensemble.GradientBoostingRegressor": {
+    "GradientBoostingRegressor": {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
         "max_features": hp.choice("max_features", ["auto", "sqrt"]),
@@ -143,12 +143,12 @@ all_space = {
         ),
         "min_samples_leaf": hp.choice("min_samples_leaf", np.arange(2, 40, dtype=int)),
     },
-    "ensemble.AdaBoostRegressor": {
+    "AdaBoostRegressor": {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
         "learning_rate": hp.uniform("learning_rate", 0.000001, 0.2),
         "loss": hp.choice("loss", ["linear", "square", "exponential"]),
     },
-    "ensemble.ExtraTreesRegressor": {
+    "ExtraTreesRegressor": {
         "n_estimators": hp.choice("n_estimators", np.arange(100, 10000, 10, dtype=int)),
         "max_depth": hp.choice("max_depth", np.arange(2, 20, dtype=int)),
         "min_samples_split": hp.choice(
@@ -157,14 +157,14 @@ all_space = {
         "min_samples_leaf": hp.choice("min_samples_leaf", np.arange(2, 40, dtype=int)),
         "max_features": hp.choice("max_features", ["auto", "sqrt"]),
     },
-    "svm.SVR": {
+    "SVR": {
         "C": hp.uniform("C", 0.00001, 10),
         "kernel": hp.choice("kernel", ["linear", "poly", "rbf", "sigmoid"]),
         "degree": hp.choice("degree", [2, 3]),
         "gamma": hp.uniform("gamma", 0.0001, 10),
         "epsilon": hp.uniform("epsilon", 0.001, 5),
     },
-    "neighbors.KNeighborsRegressor": {
+    "KNeighborsRegressor": {
         "algorithm": hp.choice("algorithm", ["auto", "ball_tree", "kd_tree", "brute"]),
         "n_neighbors": hp.choice("n_neighbors", np.arange(1, 20, dtype=int)),
         "weights": hp.choice("weights", ["distance", "uniform"]),

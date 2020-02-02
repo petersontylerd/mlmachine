@@ -17,8 +17,26 @@ from pandas.api.types import (
     CategoricalDtype,
 )
 
-import sklearn.model_selection as model_selection
-import sklearn.preprocessing as preprocessing
+from sklearn.model_selection import (
+    KFold,
+    train_test_split,
+    GridSearchCV,
+    StratifiedKFold,
+    cross_val_score,
+    RandomizedSearchCV,
+)
+from sklearn.preprocessing import (
+    StandardScaler,
+    RobustScaler,
+    PolynomialFeatures,
+    OrdinalEncoder,
+    LabelEncoder,
+    OneHotEncoder,
+    KBinsDiscretizer,
+    QuantileTransformer,
+    PowerTransformer,
+    MinMaxScaler,
+)
 
 
 class Machine:
@@ -117,7 +135,7 @@ class Machine:
             parameters:
                 data : pandas DataFrame
                     input data provided as a pandas DataFrame.
-                remove_features : list, default = []
+                remove_features : list, default=[]
                     features to be completely removed from dataset.
                 identify_as_boolean : list, default=None
                     preidentified boolean features. columns given boolean dtype.
@@ -574,7 +592,7 @@ class Machine:
                     reverses encoding of target variables back to original variables.
         """
         # encode label
-        self.le_ = preprocessing.LabelEncoder()
+        self.le_ = LabelEncoder()
 
         # store as a named Pandas Series
         self.target = pd.Series(
@@ -640,7 +658,7 @@ def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
             dataset to be deconstructed into train and test sets.
         target_col : string
             name of target column in data parameter
-        valid_size : float, default = 0.2
+        valid_size : float, default=0.2
             proportion of dataset to be set aside as "unseen" test data.
         random_state : int
             random number seed
@@ -654,11 +672,11 @@ def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
         y = data[target_col]
         x = data.drop([target_col], axis=1)
 
-    x_train, x_valid, y_train, y_valid = model_selection.train_test_split(
+    X_train, X_valid, y_train, y_valid = train_test_split(
         x, y, test_size=valid_size, random_state=1, stratify=y
     )
 
-    df_train = x_train.merge(y_train, left_index=True, right_index=True)
-    df_valid = x_valid.merge(y_valid, left_index=True, right_index=True)
+    df_train = X_train.merge(y_train, left_index=True, right_index=True)
+    df_valid = X_valid.merge(y_valid, left_index=True, right_index=True)
 
     return df_train, df_valid

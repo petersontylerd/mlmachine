@@ -13,20 +13,41 @@ from pandas.api.types import (
 
 from scipy import sparse, stats, special
 
-import sklearn.base as base
-import sklearn.impute as impute
-import sklearn.pipeline as pipeline
-import sklearn.preprocessing as preprocessing
+from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import (
+    make_pipeline,
+    Pipeline,
+    FeatureUnion,
+    _fit_transform_one,
+    _transform_one,
+)
+
+from sklearn.preprocessing import (
+    StandardScaler,
+    RobustScaler,
+    PolynomialFeatures,
+    OrdinalEncoder,
+    LabelEncoder,
+    OneHotEncoder,
+    KBinsDiscretizer,
+    QuantileTransformer,
+    PowerTransformer,
+    MinMaxScaler,
+    _encoders,
+    _data,
+    _discretization,
+)
 from sklearn.externals.joblib import Parallel, delayed
 
-import category_encoders as ce
+from category_encoders import WOEEncoder, TargetEncoder, CatBoostEncoder, BinaryEncoder, CountEncoder
 
 import itertools
 import collections
 import copy
 
 
-class ContextImputer(base.TransformerMixin, base.BaseEstimator):
+class ContextImputer(TransformerMixin, BaseEstimator):
     """
     documentation:
         description:
@@ -39,7 +60,7 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
                 column with nulls to be imputed.
             context_col : list
                 list of one or most columns to group by to add context to null column.
-            strategy : string, default = 'mean'
+            strategy : string, default='mean'
                 imputing stategy. takes values 'mean', 'median' and 'most_frequent'.
             train : bool, default=True
                 tells class whether we are imputing training data or unseen data.
@@ -97,7 +118,7 @@ class ContextImputer(base.TransformerMixin, base.BaseEstimator):
             )
         return X[self.null_col]
 
-class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
+class DataFrameSelector(BaseEstimator, TransformerMixin):
     """
     documentation:
         description:
@@ -306,7 +327,7 @@ class DataFrameSelector(base.BaseEstimator, base.TransformerMixin):
     def transform(self, X):
         return X[self.final_columns]
 
-class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
+class PandasPipeline(TransformerMixin, BaseEstimator):
     """
     Documentation:
         Description:
@@ -330,7 +351,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
         self.est = self.transformer.fit(X)
 
         # if the class is a OneHotEncoder instance
-        if isinstance(self.est, preprocessing._encoders.OneHotEncoder):
+        if isinstance(self.est, _encoders.OneHotEncoder):
             names = self.est.get_feature_names()
 
             prefixes = list(map(lambda x:str.replace(x, "x", ""), names))
@@ -344,7 +365,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = names
 
         # if the class is a PolynomialFeatures instance
-        elif isinstance(self.est, preprocessing._data.PolynomialFeatures):
+        elif isinstance(self.est, _data.PolynomialFeatures):
 
             ### replace feature code names with actual feature names
             # capture object's feature code names
@@ -376,7 +397,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = feature_actual_names
 
         # if the class is a KBinsDiscretizer instance
-        elif isinstance(self.est, preprocessing._discretization.KBinsDiscretizer):
+        elif isinstance(self.est, KBinsDiscretizer):
             names = []
             bins = self.est.n_bins
             for col in self.original_columns:
@@ -385,7 +406,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = names
 
         # if the class is a OrdinalEncoder instance
-        elif isinstance(self.est, preprocessing._encoders.OrdinalEncoder):
+        elif isinstance(self.est, OrdinalEncoder):
             names = []
             for col in self.original_columns:
                 names.append(col + "_ordinal_encoded")
@@ -393,7 +414,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = names
 
         # if the class is a category_encoders CountEncoder instance
-        elif isinstance(self.est, ce.count.CountEncoder):
+        elif isinstance(self.est, CountEncoder):
             names = []
 
             for col in self.original_columns:
@@ -402,7 +423,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = names
 
         # if the class is a category_encoders BinaryEncoder instance
-        elif isinstance(self.est, ce.binary.BinaryEncoder):
+        elif isinstance(self.est, BinaryEncoder):
             names = []
             self.original_columns = self.est.get_feature_names()
 
@@ -412,7 +433,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
             self.original_columns = names
 
         # if the class is a category_encoders BinaryEncoder instance
-        elif isinstance(self.est, preprocessing._data.QuantileTransformer):
+        elif isinstance(self.est, QuantileTransformer):
             names = []
 
             for col in self.original_columns:
@@ -432,7 +453,7 @@ class PandasPipeline(base.TransformerMixin, base.BaseEstimator):
         X = pd.DataFrame(X, columns=self.original_columns, index=self.index)
         return X
 
-class PandasFeatureUnion(pipeline.FeatureUnion):
+class PandasFeatureUnion(FeatureUnion):
     """
     Documentation:
         Description:
@@ -455,7 +476,7 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
 
         self._validate_transformers()
         result = Parallel(n_jobs=self.n_jobs)(
-            delayed(pipeline._fit_transform_one)(
+            delayed(_fit_transform_one)(
                 transformer=trans,
                 X=X,
                 y=y,
@@ -507,7 +528,7 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
 
     def transform(self, X):
         Xs = Parallel(n_jobs=self.n_jobs)(
-            delayed(pipeline._transform_one)(
+            delayed(_transform_one)(
                 transformer=trans,
                 X=X,
                 y=None,
@@ -551,7 +572,7 @@ class PandasFeatureUnion(pipeline.FeatureUnion):
 
         return Xs
 
-class KFoldSelectEncoder(base.BaseEstimator, base.TransformerMixin):
+class KFoldSelectEncoder(BaseEstimator, TransformerMixin):
     def __init__(self, target, cv, encoder):
         self.target = target
         self.cv = cv
@@ -589,15 +610,15 @@ class KFoldSelectEncoder(base.BaseEstimator, base.TransformerMixin):
 
             # iterate through cv indices
             for train_ix, valid_ix in self.cv.split(X):
-                x_train, x_valid = X.iloc[train_ix], X.iloc[valid_ix]
+                X_train, X_valid = X.iloc[train_ix], X.iloc[valid_ix]
 
                 for column in self.columns:
                     enc = self.encoder(cols=[column])
 
                     # fit on train
-                    x_train[column + self.column_suffix] = enc.fit_transform(x_train[column], x_train[self.target.name])
-                    x_valid[column + self.column_suffix] = enc.transform(x_valid[column])
-                    X.loc[X.index[valid_ix], column + self.column_suffix] = x_valid[column + self.column_suffix].map(x_valid[column + self.column_suffix]).fillna(x_valid[column + self.column_suffix])
+                    X_train[column + self.column_suffix] = enc.fit_transform(X_train[column], X_train[self.target.name])
+                    X_valid[column + self.column_suffix] = enc.transform(X_valid[column])
+                    X.loc[X.index[valid_ix], column + self.column_suffix] = X_valid[column + self.column_suffix].map(X_valid[column + self.column_suffix]).fillna(X_valid[column + self.column_suffix])
 
             # fill nan's with column mean. rarely needed - only when column is severely imbalanced
             for column in X.columns:
@@ -631,7 +652,7 @@ class KFoldSelectEncoder(base.BaseEstimator, base.TransformerMixin):
                 )
         return X
 
-class DualTransformer(base.TransformerMixin, base.BaseEstimator):
+class DualTransformer(TransformerMixin, BaseEstimator):
     """
     documentation:
         description:
@@ -664,7 +685,7 @@ class DualTransformer(base.TransformerMixin, base.BaseEstimator):
             self.yj_lambdas_dict_ = {}
 
             # collect lambas using sklearn implementation
-            yj = preprocessing.PowerTransformer(method="yeo-johnson")
+            yj = PowerTransformer(method="yeo-johnson")
             yj_lambdas = yj.fit(X).lambdas_
 
             # cycle through columns, add transformed columns, store lambdas

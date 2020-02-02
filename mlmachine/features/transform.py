@@ -4,11 +4,22 @@ import pandas as pd
 from scipy import stats
 from scipy import special
 
-import sklearn.base as base
-import sklearn.preprocessing as preprocessing
+from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.preprocessing import (
+    StandardScaler,
+    RobustScaler,
+    PolynomialFeatures,
+    OrdinalEncoder,
+    LabelEncoder,
+    OneHotEncoder,
+    KBinsDiscretizer,
+    QuantileTransformer,
+    PowerTransformer,
+    MinMaxScaler,
+)
 
 
-class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
+class equal_width_binner(TransformerMixin, BaseEstimator):
     """
     documentation:
         description:
@@ -77,7 +88,7 @@ class equal_width_binner(base.TransformerMixin, base.BaseEstimator):
         return X
 
 
-class percentile_binner(base.TransformerMixin, base.BaseEstimator):
+class percentile_binner(TransformerMixin, BaseEstimator):
     """
     documentation:
         description:
@@ -179,7 +190,7 @@ class percentile_binner(base.TransformerMixin, base.BaseEstimator):
         return X
 
 
-class custom_binner(base.TransformerMixin, base.BaseEstimator):
+class custom_binner(TransformerMixin, BaseEstimator):
     """
     documentation:
         description:

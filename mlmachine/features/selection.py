@@ -5,19 +5,51 @@ from time import gmtime, strftime
 import numpy as np
 import pandas as pd
 
-import sklearn.feature_selection as feature_selection
-import sklearn.model_selection as model_selection
+from sklearn.feature_selection import (
+    f_classif,
+    f_regression,
+    VarianceThreshold,
+    SelectFromModel,
+    SelectKBest,
+)
+from sklearn.model_selection import (
+    KFold,
+    train_test_split,
+    GridSearchCV,
+    StratifiedKFold,
+    cross_val_score,
+    RandomizedSearchCV,
+    cross_validate,
+)
 
-import sklearn.ensemble as ensemble
-import sklearn.linear_model as linear_model
-import sklearn.kernel_ridge as kernel_ridge
-import sklearn.naive_bayes as naive_bayes
-import sklearn.neighbors as neighbors
-import sklearn.svm as svm
-import sklearn.tree as tree
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier,
+    AdaBoostClassifier,
+    ExtraTreesClassifier,
+    IsolationForest,
+    RandomForestRegressor,
+    GradientBoostingRegressor,
+    ExtraTreesRegressor,
+    AdaBoostRegressor,
+)
+from sklearn.linear_model import (
+    Lasso,
+    Ridge,
+    ElasticNet,
+    LinearRegression,
+    LogisticRegression,
+    SGDRegressor,
+)
+from sklearn.feature_selection import RFE
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.svm import SVC, SVR
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
-import xgboost
-import lightgbm
+from xgboost import XGBClassifier, XGBRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
 import catboost
 
 from prettierplot.plotter import PrettierPlot
@@ -121,7 +153,7 @@ class FeatureSelector:
                     conditional controlling whether to overwrite values with rank of values.
         """
         # calculate f_values and p_values
-        univariate = feature_selection.f_classif(self.data, self.target)
+        univariate = f_classif(self.data, self.target)
 
         # parse data into dictionary
         feature_dict = {}
@@ -147,7 +179,7 @@ class FeatureSelector:
                     conditional controlling whether to overwrite values with rank of values.
         """
         # calculate f_values and p_values
-        univariate = feature_selection.f_regression(self.data, self.target)
+        univariate = f_regression(self.data, self.target)
 
         # parse data into dictionary
         feature_dict = {}
@@ -172,7 +204,7 @@ class FeatureSelector:
                     conditional controlling whether to overwrite values with rank of values.
         """
         # calculate variance
-        var_importance = feature_selection.VarianceThreshold()
+        var_importance = VarianceThreshold()
         var_importance.fit(self.data)
 
         variance = "variance{}".format("_rank" if rank else "")
@@ -266,9 +298,7 @@ class FeatureSelector:
             estimator_name =  model.estimator.__name__ + "_rfe_rank"
 
             # recursive feature selection
-            rfe = feature_selection.RFE(
-                estimator=model.model, n_features_to_select=1, step=1, verbose=0
-            )
+            rfe = RFE(estimator=model.model, n_features_to_select=1, step=1, verbose=0)
             rfe.fit(self.data, self.target)
             feature_dict[estimator_name] = rfe.ranking_
 
@@ -398,11 +428,11 @@ class FeatureSelector:
                     if none, use object's internal attribute specified during instantiation.
                 estimators : list of strings or sklearn api objects, default=None
                     list of estimators to be used. if none, use object's internal attribute specified during instantiation.
-                n_folds : int, default = 3
+                n_folds : int, default=3
                     number of folds to use in cross validation.
-                step : int, default = 1
+                step : int, default=1
                     number of features to remove per iteration.
-                n_jobs : int, default = 4
+                n_jobs : int, default=4
                     number of works to use when training the model. this parameter will be
                     ignored if the model does not have this parameter.
                 verbose : bool, default=False
@@ -495,7 +525,7 @@ class FeatureSelector:
                     else:
                         score_transform = metric
 
-                    scores = model_selection.cross_validate(
+                    scores = cross_validate(
                         estimator=model.model,
                         X=self.data[top],
                         y=self.target,
@@ -556,7 +586,7 @@ class FeatureSelector:
                 feature_selector_summary : pandas DataFrame or str, default=None
                     pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
-                top_sets : int, default = 5
+                top_sets : int, default=5
                     number of rows to display of the performance summary table
                 show_features : bool, default=False
                     conditional controlling whether to print feature set for best validation
@@ -566,7 +596,7 @@ class FeatureSelector:
                     the specified number of features as a pandas DataFrame.
                 marker_on : bool, default=True
                     conditional controlling whether to display marker for each individual score.
-                title_scale : float, default = 1.0
+                title_scale : float, default=1.0
                     controls the scaling up (higher value) and scaling down (lower value) of the size of
                     the main chart title, the x_axis title and the y_axis title.
         """

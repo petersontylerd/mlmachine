@@ -4,23 +4,23 @@ import numpy as np
 from collections import OrderedDict
 
 from sklearn import model_selection
-import sklearn.decomposition as decomposition
-import sklearn.discriminant_analysis as discriminant_analysis
-import sklearn.ensemble as ensemble
+from sklearn.decomposition import PCA, LatentDirichletAllocation
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, ExtraTreesClassifier, IsolationForest
 import sklearn.gaussian_process as gaussian_process
-import sklearn.linear_model as linear_model
-import sklearn.kernel_ridge as kernel_ridge
-import sklearn.naive_bayes as naive_bayes
-import sklearn.neighbors as neighbors
-import sklearn.svm as svm
-import sklearn.tree as tree
+from sklearn.linear_model import Lasso, Ridge, ElasticNet, LinearRegression, LogisticRegression, SGDRegressor
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.svm import SVC, SVR
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
-import xgboost
-import lightgbm
+from xgboost import XGBClassifier, XGBRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
 import catboost
 
 
-def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
+def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
     """
     documentation:
         description:
@@ -29,13 +29,13 @@ def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
         parameters:
             model : sklearn model or pipeline
                 model to be fit.
-            x_train : array
+            X_train : array
                 training dataset.
             y_train : array
                 training dataset labels.
-            x_valid : array
+            X_valid : array
                 validation dataset.
-            n_folds : int, default = 10
+            n_folds : int, default=10
                 number of folds for performing cross_validation. function will generate this
                 many sets of out_of_fold predictions.
         returns:
@@ -48,11 +48,11 @@ def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
                 meta_learner.
     """
     # row counts
-    n_train = x_train.shape[0]
-    n_valid = x_valid.shape[0]
+    n_train = X_train.shape[0]
+    n_valid = X_valid.shape[0]
 
     # kfold train/test index generator
-    kf = model_selection.KFold(n_splits=n_folds)
+    kf = KFold(n_splits=n_folds)
 
     # create shell arrays for holding results
     oof_train = np.zeros((n_train,))
@@ -60,14 +60,14 @@ def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
     oof_valid_scores = np.empty((n_folds, n_valid))
 
     # iterate through all kfolds to train model, capture scores
-    for i, (train_ix, test_ix) in enumerate(kf.split(x_train)):
+    for i, (train_ix, test_ix) in enumerate(kf.split(X_train)):
         # set train/test observations based on k_fold indices
-        x_train_fold = x_train[train_ix]
+        X_train_fold = X_train[train_ix]
         y_train_fold = y_train[train_ix]
-        x_test_fold = x_train[test_ix]
+        x_test_fold = X_train[test_ix]
 
         # train model based on training variables and labels
-        model.train(x_train_fold, y_train_fold)
+        model.train(X_train_fold, y_train_fold)
 
         # update segment of oof_train where indices match the indices of the observations
         # used as test observations. these are the "out of fold" observations that we are not
@@ -76,7 +76,7 @@ def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
 
         # generate predictions using entire validation dataset, otherwise unused up to this point
         # and capture predictions for each folds
-        oof_valid_scores[i, :] = model.predict(x_valid)
+        oof_valid_scores[i, :] = model.predict(X_valid)
 
     # determine average score of validation predictions
     oof_valid[:] = oof_valid_scores.mean(axis=0)
@@ -84,7 +84,7 @@ def oof_generator(self, model, x_train, y_train, x_valid, n_folds=10):
 
 
 def model_stacker(
-    self, models, bayes_optim_summary, x_train, y_train, x_valid, n_folds, n_jobs
+    self, models, bayes_optim_summary, X_train, y_train, X_valid, n_folds, n_jobs
 ):
     """
     documentation:
@@ -96,11 +96,11 @@ def model_stacker(
             bayes_optim_summary : pandas DataFrame
                 pandas DataFrame containing results from bayesian optimization process
                 execution.
-            x_train : array
+            X_train : array
                 training dataset.
             y_train : array
                 labels for training dataset.
-            x_valid : array
+            X_valid : array
                 validation dataset.
             n_folkds : int
                 number of folds for performing cross_validation. function will generate this
@@ -135,9 +135,9 @@ def model_stacker(
 
             oof_train_model, oof_valid_model = self.oof_generator(
                 model=model,
-                x_train=x_train,
+                X_train=X_train,
                 y_train=y_train,
-                x_valid=x_valid,
+                X_valid=X_valid,
                 n_folds=n_folds,
             )
             try:

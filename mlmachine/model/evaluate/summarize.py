@@ -1,8 +1,35 @@
 import numpy as np
 import pandas as pd
 
-import sklearn.metrics as metrics
-import sklearn.model_selection as model_selection
+from sklearn.metrics import (
+    precision_score,
+    recall_score,
+    f1_score,
+    explained_variance_score,
+    mean_squared_log_error,
+    mean_absolute_error,
+    median_absolute_error,
+    mean_squared_error,
+    r2_score,
+    confusion_matrix,
+    roc_curve,
+    accuracy_score,
+    roc_auc_score,
+    homogeneity_score,
+    completeness_score,
+    classification_report,
+    silhouette_samples,
+)
+from sklearn.model_selection import (
+    KFold,
+    train_test_split,
+    GridSearchCV,
+    StratifiedKFold,
+    cross_val_score,
+    RandomizedSearchCV,
+)
+
+
 
 def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
     """
@@ -14,7 +41,7 @@ def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
             bayes_optim_summary : pandas DataFrame
                 pandas DataFrame containing results from bayesian optimization process
                 execution.
-            num_models : int, default = 1
+            num_models : int, default=1
                 number of top models to return per estimator.
         returns:
             results : dictionary
@@ -55,7 +82,7 @@ def regression_stats(
                 predicted labels.
             feature_count : int
                 number of features in the observation data. used to calculate adjusted r_squared.
-            fold : int, default = 0
+            fold : int, default=0
                 indicator for which cross_validation fold the performance is associated with. if 0,
                 it is assumed that the evaluation is on an entire dataset (either the full training
                 dataset or the full validation dataset), as opposed to a fold.
@@ -72,30 +99,21 @@ def regression_stats(
     results["fold"] = fold
     results["n"] = len(y_True)
 
-    results["explained_variance"] = metrics.explained_variance_score(y_True, y_pred)
-    results["msle"] = metrics.mean_squared_log_error(y_True, y_pred)
-    results["mean_ae"] = metrics.mean_absolute_error(y_True, y_pred)
-    results["median_ae"] = metrics.median_absolute_error(y_True, y_pred)
-    results["mse"] = metrics.mean_squared_error(y_True, y_pred)
-    results["rmse"] = np.sqrt(metrics.mean_squared_error(y_True, y_pred))
-    results["r2"] = metrics.r2_score(y_True, y_pred)
-    results["adjusted_r2"] = 1 - (1 - metrics.r2_score(y_True, y_pred)) * (
+    results["explained_variance"] = explained_variance_score(y_True, y_pred)
+    results["msle"] = mean_squared_log_error(y_True, y_pred)
+    results["mean_ae"] = mean_absolute_error(y_True, y_pred)
+    results["median_ae"] = median_absolute_error(y_True, y_pred)
+    results["mse"] = mean_squared_error(y_True, y_pred)
+    results["rmse"] = np.sqrt(mean_squared_error(y_True, y_pred))
+    results["r2"] = r2_score(y_True, y_pred)
+    results["adjusted_r2"] = 1 - (1 - r2_score(y_True, y_pred)) * (
         len(y_True) - 1
     ) / (len(y_True) - feature_count - 1)
     return results
 
 
-def regression_results(
-    self,
-    model,
-    x_train,
-    y_train,
-    x_valid=None,
-    y_valid=None,
-    n_folds=3,
-    random_state=1,
-    feature_selector_summary=None,
-):
+def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=3,
+                        random_state=1, feature_selector_summary=None):
     """
     documentation:
         description:
@@ -105,18 +123,18 @@ def regression_results(
         paramaters:
             model : model object
                 instantiated model object.
-            x_train : pandas DataFrame
+            X_train : pandas DataFrame
                 training data observations.
             y_train : Pandas Series
                 training data labels.
-            x_valid : pandas DataFrame, default=None
+            X_valid : pandas DataFrame, default=None
                 validation data observations.
             y_valid : Pandas Series, default=None
                 validation data labels.
-            n_folds : int, default = 3
+            n_folds : int, default=3
                 number of cross_validation folds to use when generating
                 cv roc graph.
-            random_state : int, default = 1
+            random_state : int, default=1
                 random number seed.
             feature_selector_summary : pndas DataFrame, default=None
                 pandas DataFrame containing various summary statistics pertaining to model performance. if none, returns summary
@@ -126,15 +144,15 @@ def regression_results(
             feature_selector_summary : pndas DataFrame
                 dataframe containing various summary statistics pertaining to model performance.
     """
-    model.fit(x_train.values, y_train.values)
+    model.fit(X_train.values, y_train.values)
 
     ## training dataset
-    y_pred = model.predict(x_train.values)
+    y_pred = model.predict(X_train.values)
     results = self.regression_stats(
         model=model,
         y_True=y_train.values,
         y_pred=y_pred,
-        feature_count=x_train.shape[1],
+        feature_count=X_train.shape[1],
     )
     # create shell results DataFrame and append
     if feature_selector_summary is None:
@@ -145,13 +163,13 @@ def regression_results(
 
     ## validation dataset
     # if validation data is provided...
-    if x_valid is not None:
-        y_pred = model.predict(x_valid.values)
+    if X_valid is not None:
+        y_pred = model.predict(X_valid.values)
         results = self.regression_stats(
             model=model,
             y_True=y_valid.values,
             y_pred=y_pred,
-            feature_count=x_train.shape[1],
+            feature_count=X_train.shape[1],
             data_type="validation",
         )
         feature_selector_summary = feature_selector_summary.append(
@@ -161,25 +179,25 @@ def regression_results(
         # if validation data is not provided, then perform k_fold cross validation on
         # training data
         cv = list(
-            model_selection.KFold(
+            KFold(
                 n_splits=n_folds, shuffle=True, random_state=random_state
-            ).split(x_train, y_train)
+            ).split(X_train, y_train)
         )
 
         for i, (train_ix, valid_ix) in enumerate(cv):
-            x_train_cv = x_train.iloc[train_ix]
+            X_train_cv = X_train.iloc[train_ix]
             y_train_cv = y_train.iloc[train_ix]
-            x_valid_cv = x_train.iloc[valid_ix]
+            X_valid_cv = X_train.iloc[valid_ix]
             y_valid_cv = y_train.iloc[valid_ix]
 
-            y_pred = model.fit(x_train_cv.values, y_train_cv.values).predict(
-                x_valid_cv.values
+            y_pred = model.fit(X_train_cv.values, y_train_cv.values).predict(
+                X_valid_cv.values
             )
             results = self.regression_stats(
                 model=model,
                 y_True=y_valid_cv,
                 y_pred=y_pred,
-                feature_count=x_valid_cv.shape[1],
+                feature_count=X_valid_cv.shape[1],
                 data_type="validation",
                 fold=i + 1,
             )

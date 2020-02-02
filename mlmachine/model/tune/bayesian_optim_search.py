@@ -15,22 +15,42 @@ import pandas as pd
 from hyperopt import hp, tpe, Trials, fmin, STATUS_OK
 from hyperopt.pyll.stochastic import sample
 
-import sklearn.model_selection as model_selection
 
-import sklearn.base as base
-import sklearn.decomposition as decomposition
-import sklearn.discriminant_analysis as discriminant_analysis
-import sklearn.ensemble as ensemble
-import sklearn.gaussian_process as gaussian_process
-import sklearn.linear_model as linear_model
-import sklearn.kernel_ridge as kernel_ridge
-import sklearn.naive_bayes as naive_bayes
-import sklearn.neighbors as neighbors
-import sklearn.svm as svm
-import sklearn.tree as tree
+from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.decomposition import PCA, LatentDirichletAllocation
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier,
+    AdaBoostClassifier,
+    ExtraTreesClassifier,
+    IsolationForest,
+)
+from sklearn.linear_model import (
+    Lasso,
+    Ridge,
+    ElasticNet,
+    LinearRegression,
+    LogisticRegression,
+    SGDRegressor,
+)
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.model_selection import (
+    KFold,
+    train_test_split,
+    GridSearchCV,
+    StratifiedKFold,
+    cross_val_score,
+    RandomizedSearchCV,
+)
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.svm import SVC, SVR
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
-import xgboost
-import lightgbm
+
+from xgboost import XGBClassifier, XGBRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor
 import catboost
 
 from prettierplot.plotter import PrettierPlot
@@ -96,7 +116,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
     else:
         score_transform = scoring
 
-    cv = model_selection.cross_val_score(
+    cv = cross_val_score(
         estimator=BasicModelBuilder(eval(model), space, n_jobs=n_jobs),
         X=data,
         y=target,
@@ -206,7 +226,7 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
                 dictionary containing str/list key/value pairs, where the str is the name of the estimator
                 and the list contains string of column names. enables utilization of different features sets for
                 each estimator.
-            n_folds : int, default = 3
+            n_folds : int, default=3
                 number of folds for cross_validation.
             n_jobs : int, default - 4
                 number of works to deploy upon execution, if applicable.
@@ -325,7 +345,7 @@ class BayesOptimModelBuilder:
             model_iter : int
                 numberal identifier for a specific parameter set used in a training
                 iteration.
-            n_jobs : int, default = 4
+            n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         returns:
@@ -363,8 +383,8 @@ class BayesOptimModelBuilder:
         # instantiate model
         self.model = self.estimator(**self.params)
 
-    def train(self, x_train, y_train):
-        self.model.fit(x_train, y_train)
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
 
     def predict(self, x):
         return self.model.predict(x)
@@ -379,7 +399,7 @@ class BayesOptimModelBuilder:
         return self.model.fit(x, y).feature_importances_
 
 
-class BasicModelBuilder(base.BaseEstimator):
+class BasicModelBuilder(BaseEstimator):
     """
     documentation:
         description:
@@ -391,7 +411,7 @@ class BasicModelBuilder(base.BaseEstimator):
                 dictionary containing 'parameter : value' pairs. if no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
-            n_jobs : int, default = 4
+            n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         returns:
@@ -426,8 +446,8 @@ class BasicModelBuilder(base.BaseEstimator):
         # instantiate model
         self.model = self.estimator(**self.params)
 
-    def train(self, x_train, y_train):
-        self.model.fit(x_train, y_train)
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
 
     def predict(self, x):
         return self.model.predict(x)
@@ -497,17 +517,17 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
                 execution.
             estimator : string
                 name of estimator to build. needs the format of [submodule].[estimator].
-            chart_scale : float, default = 15
+            chart_scale : float, default=15
                 control chart proportions. higher values scale up size of chart objects, lower
                 values scale down size of chart objects.
             trim_outliers : bool, default=True
                 this removes extremely high (poor) results by trimming values that observations where
                 the loss is greater than 2 standard deviations away from the mean.
-            outlier_control : float: default = 1.5
+            outlier_control : float: default=1.5
                 controls enforcement of outlier trimming. value is multiplied by median, and the resulting
                 product is the cap placed on loss values. values higher than this cap will be excluded.
                 lower values of outlier_control apply more extreme filtering of loss values.
-            title_scale : float, default = 0.7
+            title_scale : float, default=0.7
                 controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
     """
@@ -527,7 +547,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
     # create regression plot
     p = PrettierPlot(chart_scale=chart_scale)
     ax = p.make_canvas(
-        title="regression plot\n* {}".format(estimator),
+        title="Loss by iteration - {}".format(estimator),
         y_shift=0.8,
         position=111,
         title_scale=title_scale,
@@ -562,10 +582,10 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 number of iterations to draw from theoretical distribution in order to visualize the
                 theoretical distribution. higher number leader to more robust distribution but can take
                 considerably longer to create.
-            chart_scale : float, default = 10
+            chart_scale : float, default=10
                 controls proportions of visualizations. larger values scale visual up in size, smaller values
                 scale visual down in size.
-            title_scale : float, default = 0.7
+            title_scale : float, default=0.7
                 controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
             show_single_str_params : boolean, default=False
@@ -619,7 +639,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
                 # theoretical plot
                 ax = p.make_canvas(
-                    title="Theoretical plot\n* {}".format(param),
+                    title="Theoretical distribution\n* {0} - {1}".format(estimator, param),
                     y_shift=0.8,
                     position=121,
                     title_scale=title_scale,
@@ -636,7 +656,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 # actual plot
                 unique_vals, unique_counts = np.unique(actual_dist, return_counts=True)
                 ax = p.make_canvas(
-                    title="Actual plot\n* {}".format(param),
+                    title="Actual selections\n* {0} - {1}".format(estimator, param),
                     y_shift=0.8,
                     position=122,
                     title_scale=title_scale,
@@ -661,7 +681,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
             p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
             ax = p.make_canvas(
-                title="Actual vs. theoretical plot\n* {}".format(param),
+                title="Actual selections vs. theoretical distribution\n* {0} - {1}".format(estimator, param),
                 y_shift=0.8,
                 position=121,
                 title_scale=title_scale,
@@ -726,7 +746,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 y_units = "f"
 
             ax = p.make_canvas(
-                title="Regression plot\n* {}".format(estimator),
+                title="Actual selection by iteration\n* {0} - {1}".format(estimator, param),
                 y_shift=0.8,
                 position=122,
                 title_scale=title_scale,

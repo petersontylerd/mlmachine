@@ -3,8 +3,33 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
-import sklearn.model_selection as model_selection
-import sklearn.metrics as metrics
+from sklearn.model_selection import (
+    KFold,
+    train_test_split,
+    GridSearchCV,
+    StratifiedKFold,
+    cross_val_score,
+    RandomizedSearchCV,
+)
+from sklearn.metrics import (
+    precision_score,
+    recall_score,
+    f1_score,
+    explained_variance_score,
+    mean_squared_log_error,
+    mean_absolute_error,
+    median_absolute_error,
+    mean_squared_error,
+    r2_score,
+    confusion_matrix,
+    roc_curve,
+    accuracy_score,
+    roc_auc_score,
+    homogeneity_score,
+    completeness_score,
+    classification_report,
+    silhouette_samples,
+)
 
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
@@ -18,9 +43,9 @@ def single_shap_value_tree(self, obs_ix, model, data):
         description:
             generate elements necessary for creating a shap force plot for
             a single observation. works with tree_based models, including:
-                - ensemble.random_forest_classifier (package: sklearn)
-                - ensemble.gradient_boosting_classifier (package: sklearn)
-                - ensemble.extra_trees_classifier (package: sklearn)
+                - RandomForestClassifier (package: sklearn)
+                - GradientBoostingClassifier (package: sklearn)
+                - ExtraTreesClassifier (package: sklearn)
                 - lightgbm.lgbm_classifier (package: lightgbm)
                 - xgboost.xgb_classifier (package: xgboost)
         paramaters:
@@ -41,7 +66,7 @@ def single_shap_value_tree(self, obs_ix, model, data):
     """
     # collect observation feature values, model expected value and observation
     # shap values
-    obs_data = data.loc[obs_ix].values.reshape(1, _1)
+    obs_data = data.loc[obs_ix].values.reshape(1, -1)
     explainer = shap.TreeExplainer(model.model)
     obs_shap_values = explainer.shap_values(obs_data)
 
@@ -66,11 +91,11 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
         description:
             generate a shap force plot for a single observation.
             works with tree_based models, including:
-                - ensemble.random_forest_classifier (package: sklearn)
-                - ensemble.gradient_boosting_classifier (package: sklearn)
-                - ensemble.extra_trees_classifier (package: sklearn)
-                - lightgbm.lgbm_classifier (package: lightgbm)
-                - xgboost.xgb_classifier (package: xgboost)
+                - RandomForestClassifier (package: sklearn)
+                - GradientBoostingClassifier (package: sklearn)
+                - ExtraTreesClassifier (package: sklearn)
+                - LGBMClassifier (package: lightgbm)
+                - XGBClassifier (package: xgboost)
         paramaters:
             obs_ix : int
                 index of observations to be visualized.
@@ -84,7 +109,7 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
             classification : bool, default=True
                 bool argument indicating whether the supervised learning
                 task is classification or regression.
-            cmap : string, colormap, default = viridis
+            cmap : string, colormap, default=viridis
                 colormap to use on force plot.
     """
     # create shap value objects
@@ -128,9 +153,9 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
             generate elements necessary for creating a shap force plot for
             multiple observations simultaneously. works with tree_based
             models, including:
-                - ensemble.random_forest_classifier (package: sklearn)
-                - ensemble.gradient_boosting_classifier (package: sklearn)
-                - ensemble.extra_trees_classifier (package: sklearn)
+                - RandomForestClassifier (package: sklearn)
+                - GradientBoostingClassifier (package: sklearn)
+                - ExtraTreesClassifier (package: sklearn)
                 - lightgbm.lgbm_classifier (package: lightgbm)
                 - xgboost.xgb_classifier (package: xgboost)
         paramaters:
@@ -174,9 +199,9 @@ def multi_shap_viz_tree(self, obs_ixs, model, data):
         description:
             generate a shap force plot for multiple  observations simultaneously.
             works with tree_based models, including:
-                - ensemble.random_forest_classifier (package: sklearn)
-                - ensemble.gradient_boosting_classifier (package: sklearn)
-                - ensemble.extra_trees_classifier (package: sklearn)
+                - RandomForestClassifier (package: sklearn)
+                - GradientBoostingClassifier (package: sklearn)
+                - ExtraTreesClassifier (package: sklearn)
                 - lightgbm.lgbm_classifier (package: lightgbm)
                 - xgboost.xgb_classifier (package: xgboost)
         paramaters:
@@ -221,11 +246,11 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
                 name of feature to apply color to dots in scatter plot.
             feature_names : list
                 list of all feature names in the dataset.
-            x_jitter : float, default = 0.08
+            x_jitter : float, default=0.08
                 controls displacement of dots along x_axis.
-            dot_size : float, default = 25
+            dot_size : float, default=25
                 size of dots.
-            alpha : float, default = 0.7
+            alpha : float, default=0.7
                 transparency of dots.
             ax : axes object, default=None
                 axis on which to place visual.
@@ -272,9 +297,9 @@ def shap_dependence_grid(self, obs_data, obs_shap_values, grid_features, all_fea
             all_features : list
                 list containing names for all features for which shap values were
                 calculated.
-            dot_size : float, default = 25
+            dot_size : float, default=25
                 size of dots.
-            alpha : float, default = 0.7
+            alpha : float, default=0.7
                 transparency of dots.
     """
 
@@ -317,7 +342,7 @@ def shap_summary_plot(self, obs_data, obs_shap_values, feature_names, alpha=0.7)
                 observations.
             feature_names : list
                 list of all feature names in the dataset.
-            alpha : float, default = 0.7
+            alpha : float, default=0.7
                 controls transparency of dots.
     """
     shap.summary_plot(

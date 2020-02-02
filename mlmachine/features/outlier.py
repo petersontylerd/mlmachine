@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 
-import sklearn.base as base
+from sklearn.base import TransformerMixin, BaseEstimator
 
 from collections import Counter
 
 import eif
 
 
-class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
+class OutlierIQR(TransformerMixin, BaseEstimator):
     """
     documentation:
         description:
@@ -72,7 +72,7 @@ class OutlierIQR(base.TransformerMixin, base.BaseEstimator):
         return X
 
 
-class ExtendedIsoForest(base.TransformerMixin, base.BaseEstimator):
+class ExtendedIsoForest(TransformerMixin, BaseEstimator):
     """
     documentation:
         description:
