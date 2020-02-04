@@ -387,6 +387,7 @@ class Machine:
 
         ###
         self.data.mlm_dtypes["category"] = self.data.mlm_dtypes["boolean"] + self.data.mlm_dtypes["nominal"] + self.data.mlm_dtypes["ordinal"]
+        self.data.mlm_dtypes["number"] = self.data.mlm_dtypes["continuous"] + self.data.mlm_dtypes["count"]
 
     def update_dtypes(self, columns_to_drop=None):
         """
