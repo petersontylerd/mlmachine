@@ -29,6 +29,7 @@ from sklearn.metrics import (
     completeness_score,
     classification_report,
     silhouette_samples,
+    plot_confusion_matrix,
 )
 
 from prettierplot.plotter import PrettierPlot
@@ -38,7 +39,7 @@ import shap
 
 
 def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, cm_labels=None,
-                        n_folds=3, title_scale=0.7, color_map="viridis", random_state=1):
+                        n_folds=3, title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15):
     """
     documentation:
         description:
@@ -71,21 +72,19 @@ def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=No
     """
 
     print("*" * 55)
-    print("* estimator: {}".format(model.estimator.__name__))
-    print("* parameter set: {}".format(model.model_iter))
+    print("* Estimator: {}".format(model.estimator.__name__))
+    print("* Parameter set: {}".format(model.model_iter))
     print("*" * 55)
 
     # visualize results with confusion matrix
-    p = PrettierPlot(chart_scale=18)
+    p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
     ax = p.make_canvas(
-        title="Model: {}\nParameter set: {}".format(
+        title="Confusion matrix\nModel: {}\nParameter set: {}".format(
             model.estimator.__name__, model.model_iter
         ),
-        x_label="Predicted",
-        y_label="Actual",
         y_shift=0.4,
         x_shift=0.25,
-        position=211,
+        position=131,
         title_scale=title_scale,
     )
 
@@ -97,12 +96,16 @@ def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=No
                 y_valid, y_pred, labels=np.unique(y_train.values)
             )
         )
-        p.confusion_matrix_plot(
+        plot_confusion_matrix(
+            estimator=model,
+            X=X_valid,
             y_true=y_valid,
-            y_pred=y_pred,
-            labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
-            ax=None,
+            display_labels=cm_labels if cm_labels is not None else np.unique(y_valid.values),
+            cmap="viridis",
+            values_format=".0f",
+            ax=ax,
         )
+
     else:
         y_pred = model.fit(X_train, y_train).predict(X_train)
         print(
@@ -110,17 +113,19 @@ def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=No
                 y_train, y_pred, labels=np.unique(y_train.values)
             )
         )
-        p.confusion_matrix_plot(
+        plot_confusion_matrix(
+            estimator=model,
+            X=X_train,
             y_true=y_train,
-            y_pred=y_pred,
-            labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
-            ax=None,
+            display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
+            cmap="viridis",
+            values_format=".0f",
+            ax=ax,
         )
-    plt.show()
 
     # standard roc curve for full training dataset or validation dataset
     # if X_valid is passed in as none, generate roc curve for training data
-    p = PrettierPlot(chart_scale=15)
+    # p = PrettierPlot(chart_scale=15)
     ax = p.make_canvas(
         title="ROC curve - {} data\nModel: {}\nParameter set: {}".format(
             "training" if X_valid is None else "validation",
@@ -129,8 +134,9 @@ def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=No
         ),
         x_label="False positive rate",
         y_label="True positive rate",
-        y_shift=0.5,
-        position=111 if X_valid is not None else 121,
+        y_shift=0.35,
+        position=132,
+        # position=111 if X_valid is not None else 121,
         title_scale=title_scale,
     )
     p.roc_curve_plot(
@@ -163,9 +169,10 @@ def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=No
             ),
             x_label="False positive rate",
             y_label="True positive rate",
-            y_shift=0.5,
+            y_shift=0.35,
+            position=133,
             title_scale=title_scale,
-            position=122,
+            # position=122,
         )
         for i, (train_ix, valid_ix) in enumerate(cv):
             X_train_cv = X_train.iloc[train_ix]
@@ -230,6 +237,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
 
     ## training dataset
     y_pred = model.predict(X_train.values)
+    residuals = y_pred - y_train.values
 
     # residual plot
     p = PrettierPlot()
@@ -243,8 +251,39 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         title_scale=title_scale,
     )
 
+
+    # x units
+    if -1 <= np.nanmax(y_pred) <= 1:
+        x_units = "fff"
+    elif -100 <= np.nanmax(y_pred) <= 100:
+        x_units = "ff"
+    else:
+        x_units = "f"
+
+    # y units
+    if -0.1 <= np.nanmax(residuals) <= 0.1:
+        y_units = "ffff"
+    elif -1 <= np.nanmax(residuals) <= 1:
+        y_units = "fff"
+    elif -10 <= np.nanmax(residuals) <= 10:
+        y_units = "ff"
+    else:
+        y_units = "f"
+
+    # x rotation
+    if -10000 < np.nanmax(y_pred) < 10000:
+        x_rotate = 0
+    else:
+        x_rotate = 45
+
     p.scatter_2d(
-        x=y_pred, y=y_pred - y_train.values, size=7, color=style.style_grey, ax=ax,
+        x=y_pred,
+        y=residuals,
+        size=7,
+        color=style.style_grey,
+        y_units=y_units,
+        x_units=x_units,
+        ax=ax,
     )
     plt.hlines(
         y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2
@@ -271,6 +310,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         print("Full validation dataset performance\n")
 
         y_pred = model.predict(X_valid.values)
+        residuals = y_pred - y_valid.values
 
         # residual plot
         p = PrettierPlot()
@@ -285,7 +325,13 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         )
 
         p.scatter_2d(
-            x=y_pred, y=y_pred - y_valid.values, size=7, color=style.style_grey, ax=ax,
+            x=y_pred,
+            y=residuals,
+            size=7,
+            color=style.style_grey,
+            y_units=y_units,
+            x_units=x_units,
+            ax=ax,
         )
         plt.hlines(
             y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2
@@ -353,6 +399,8 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             y_pred = model.fit(X_train_cv.values, y_train_cv.values).predict(
                 X_valid_cv.values
             )
+            residuals = y_pred - y_valid_cv.values
+
 
             ax = p.make_canvas(
                 title="CV fold {}".format(i + 1),
@@ -364,9 +412,11 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
 
             p.scatter_2d(
                 x=y_pred,
-                y=y_pred - y_valid_cv.values,
+                y=residuals,
                 size=7,
                 color=color_list[i],
+                y_units=y_units,
+                x_units=x_units,
                 ax=ax,
             )
             plt.hlines(

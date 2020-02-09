@@ -65,9 +65,7 @@ def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
     return models
 
 
-def regression_stats(
-    self, model, y_True, y_pred, feature_count, fold=0, data_type="training"
-):
+def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_type="training"):
     """
     documentation:
         description:
@@ -76,7 +74,7 @@ def regression_stats(
         paramaters:
             model : model object
                 instantiated model object.
-            y_True : pandas DataFrame or array
+            y_true : pandas DataFrame or array
                 True labels.
             y_pred : Pandas Series or array
                 predicted labels.
@@ -97,18 +95,18 @@ def regression_stats(
     results["parameter_set"] = model.model_iter
     results["data_type"] = data_type
     results["fold"] = fold
-    results["n"] = len(y_True)
+    results["n"] = len(y_true)
 
-    results["explained_variance"] = explained_variance_score(y_True, y_pred)
-    results["msle"] = mean_squared_log_error(y_True, y_pred)
-    results["mean_ae"] = mean_absolute_error(y_True, y_pred)
-    results["median_ae"] = median_absolute_error(y_True, y_pred)
-    results["mse"] = mean_squared_error(y_True, y_pred)
-    results["rmse"] = np.sqrt(mean_squared_error(y_True, y_pred))
-    results["r2"] = r2_score(y_True, y_pred)
-    results["adjusted_r2"] = 1 - (1 - r2_score(y_True, y_pred)) * (
-        len(y_True) - 1
-    ) / (len(y_True) - feature_count - 1)
+    results["explained_variance"] = explained_variance_score(y_true, y_pred)
+    results["msle"] = mean_squared_log_error(y_true, y_pred)
+    results["mean_ae"] = mean_absolute_error(y_true, y_pred)
+    results["median_ae"] = median_absolute_error(y_true, y_pred)
+    results["mse"] = mean_squared_error(y_true, y_pred)
+    results["rmse"] = np.sqrt(mean_squared_error(y_true, y_pred))
+    results["r2"] = r2_score(y_true, y_pred)
+    results["adjusted_r2"] = 1 - (1 - r2_score(y_true, y_pred)) * (
+        len(y_true) - 1
+    ) / (len(y_true) - feature_count - 1)
     return results
 
 
@@ -150,7 +148,7 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
     y_pred = model.predict(X_train.values)
     results = self.regression_stats(
         model=model,
-        y_True=y_train.values,
+        y_true=y_train.values,
         y_pred=y_pred,
         feature_count=X_train.shape[1],
     )
@@ -167,7 +165,7 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
         y_pred = model.predict(X_valid.values)
         results = self.regression_stats(
             model=model,
-            y_True=y_valid.values,
+            y_true=y_valid.values,
             y_pred=y_pred,
             feature_count=X_train.shape[1],
             data_type="validation",
@@ -195,7 +193,7 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
             )
             results = self.regression_stats(
                 model=model,
-                y_True=y_valid_cv,
+                y_true=y_valid_cv,
                 y_pred=y_pred,
                 feature_count=X_valid_cv.shape[1],
                 data_type="validation",

@@ -105,8 +105,12 @@ class Machine:
         single_shap_viz_tree,
     )
     from .model.tune.bayesian_optim_search import (
-        BasicModelBuilder,
         BayesOptimModelBuilder,
+        BayesOptimClassifierBuilder,
+        BayesOptimRegressorBuilder,
+        BasicClassifierBuilder,
+        BasicRegressorBuilder,
+        BasicModelBuilder,
         exec_bayes_optim_search,
         model_loss_plot,
         model_param_plot,
@@ -125,7 +129,7 @@ class Machine:
 
     def __init__(self, data, remove_features=[], identify_as_boolean=None, identify_as_continuous=None,identify_as_count=None,
                 identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None,
-                identify_as_string=None, target=None, target_type=None):
+                identify_as_string=None, target=None, is_classification=None):
         """
         documentation:
             description:
@@ -159,8 +163,9 @@ class Machine:
                     preidentified string features. columns given string dtype.
                 target : list, default=None
                     name of column containing dependent variable.
-                target_type : list, default=None
-                    target variable type, either 'category' or 'number'
+                is_classification : boolean, default=None
+                    controls whether Machine is instantiated as a classification object or a
+                    regression object.
             attributes:
                 data : pandas DataFrame
                     independent variables returned as a pandas DataFrame
@@ -182,7 +187,10 @@ class Machine:
         self.identify_as_ordinal = identify_as_ordinal
         self.ordinal_encodings = ordinal_encodings
         self.identify_as_string = identify_as_string
-        self.target_type = target_type
+        self.is_classification = is_classification
+
+        if self.is_classification is None:
+            raise Exception ("Indicate whether supervised learning problem is classification or not by specifying 'is_classification=True' or 'is_classification=False'")
 
         if self.identify_as_ordinal is not None and self.ordinal_encodings is None:
             warnings.warn("Recommendation - Ordinal column names passed to 'identify_as_ordinal' variable but, no ordinal encoding instructions pass to 'ordinal_encodings' variable. It is recommended to pass a dictionary containing ordinal column names as keys and lists containing the preferred order of encoding as values", UserWarning)
@@ -192,7 +200,7 @@ class Machine:
         self.capture_mlm_dtypes()
 
         # encode the target column if there is one
-        if self.target is not None and self.target_type == "category":
+        if self.target is not None and self.is_classification:
             self.encode_target()
 
     def capture_mlm_dtypes(self):

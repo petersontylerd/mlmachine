@@ -16,7 +16,7 @@ from hyperopt import hp, tpe, Trials, fmin, STATUS_OK
 from hyperopt.pyll.stochastic import sample
 
 
-from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.base import TransformerMixin, BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.decomposition import PCA, LatentDirichletAllocation
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import (
@@ -196,7 +196,6 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
         "params": space,
     }
 
-
 def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None, n_folds=3,
                         n_jobs=4, iters=50, show_progressbar=False, results_file=None,):
     """
@@ -329,8 +328,7 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
             show_progressbar=show_progressbar,
         )
 
-
-class BayesOptimModelBuilder:
+class BayesOptimClassifierBuilder(ClassifierMixin):
     """
     documentation:
         description:
@@ -398,8 +396,145 @@ class BayesOptimModelBuilder:
     def feature_importances(self, x, y):
         return self.model.fit(x, y).feature_importances_
 
+class BayesOptimRegressorBuilder(RegressorMixin):
+    """
+    documentation:
+        description:
+            helper class for instantiating an input model type with a provided
+            parameter set.
+        parameters:
+            bayes_optim_summary : pandas DataFrame
+                pandas DataFrame containing results from bayesian optimization process
+                execution.
+            estimator : string or sklearn api object
+                name of estimator to build. needs the format of [submodule].[estimator].
+            model_iter : int
+                numberal identifier for a specific parameter set used in a training
+                iteration.
+            n_jobs : int, default=4
+                number of works to use when training the model. this parameter will be
+                ignored if the model does not have this parameter.
+        returns:
+            model : model object
+                model instantiated using parameter set. model possesses train, predict, fit
+                and feature_importances methods.
+    """
 
-class BasicModelBuilder(BaseEstimator):
+    def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
+        self.bayes_optim_summary = bayes_optim_summary
+        self.estimator = estimator
+        self.model_iter = model_iter
+        self.n_jobs = n_jobs
+        self.params = self.bayes_optim_summary[
+            (self.bayes_optim_summary["estimator"] == self.estimator)
+            & (self.bayes_optim_summary["iteration"] == self.model_iter)
+        ]["params"].values[0]
+
+        # turn string into dict
+        self.params = ast.literal_eval(self.params)
+
+        # convert estimator argument to sklearn api object if needed
+        if isinstance(self.estimator, str):
+            self.estimator = eval(self.estimator)
+
+        # capture available model arguments and set probabily and n_jobs where applicable
+        estimator_args = inspect.getfullargspec(self.estimator).args
+
+        if "probability" in estimator_args:
+            self.params["probability"] = True
+
+        if "n_jobs" in estimator_args:
+            self.params["n_jobs"] = self.n_jobs
+
+        # instantiate model
+        self.model = self.estimator(**self.params)
+
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
+
+    def predict(self, x):
+        return self.model.predict(x)
+
+    def predict_proba(self, x):
+        return self.model.predict_proba(x)
+
+    def fit(self, x, y):
+        return self.model.fit(x, y)
+
+    def feature_importances(self, x, y):
+        return self.model.fit(x, y).feature_importances_
+
+class BayesOptimModelBuilder(BaseEstimator):
+    """
+    documentation:
+        description:
+            helper class for instantiating an input model type with a provided
+            parameter set.
+        parameters:
+            bayes_optim_summary : pandas DataFrame
+                pandas DataFrame containing results from bayesian optimization process
+                execution.
+            estimator : string or sklearn api object
+                name of estimator to build. needs the format of [submodule].[estimator].
+            model_iter : int
+                numberal identifier for a specific parameter set used in a training
+                iteration.
+            n_jobs : int, default=4
+                number of works to use when training the model. this parameter will be
+                ignored if the model does not have this parameter.
+        returns:
+            model : model object
+                model instantiated using parameter set. model possesses train, predict, fit
+                and feature_importances methods.
+    """
+
+    def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
+        self.bayes_optim_summary = bayes_optim_summary
+        self.estimator = estimator
+        self.model_iter = model_iter
+        self.n_jobs = n_jobs
+        self.params = self.bayes_optim_summary[
+            (self.bayes_optim_summary["estimator"] == self.estimator)
+            & (self.bayes_optim_summary["iteration"] == self.model_iter)
+        ]["params"].values[0]
+        self._estimator_type = "classifier"
+
+
+        # turn string into dict
+        self.params = ast.literal_eval(self.params)
+
+        # convert estimator argument to sklearn api object if needed
+        if isinstance(self.estimator, str):
+            self.estimator = eval(self.estimator)
+
+        # capture available model arguments and set probabily and n_jobs where applicable
+        estimator_args = inspect.getfullargspec(self.estimator).args
+
+        if "probability" in estimator_args:
+            self.params["probability"] = True
+
+        if "n_jobs" in estimator_args:
+            self.params["n_jobs"] = self.n_jobs
+
+        # instantiate model
+        self.model = self.estimator(**self.params)
+
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
+
+    def predict(self, x):
+        return self.model.predict(x)
+
+    def predict_proba(self, x):
+        return self.model.predict_proba(x)
+
+    def fit(self, x, y):
+        return self.model.fit(x, y)
+
+    def feature_importances(self, x, y):
+        return self.model.fit(x, y).feature_importances_
+
+class BasicRegressorBuilder(RegressorMixin):
     """
     documentation:
         description:
@@ -426,6 +561,7 @@ class BasicModelBuilder(BaseEstimator):
         self.params = {} if params is None else params
         self.n_jobs = n_jobs
         self.random_state = random_state
+        self._estimator_type = "classifier"
 
         # convert estimator argument to sklearn api object if needed
         if isinstance(self.estimator, str):
@@ -461,6 +597,131 @@ class BasicModelBuilder(BaseEstimator):
     def feature_importances(self, x, y):
         return self.model.fit(x, y).feature_importances_
 
+class BasicClassifierBuilder(ClassifierMixin):
+    """
+    documentation:
+        description:
+            helper class for instantiating an input model type.
+        parameters:
+            estimator : sklearn model, as either an uncalled object or a string.
+                model to instantiate.
+            params : dictionary, default=None
+                dictionary containing 'parameter : value' pairs. if no dictionary is provided,
+                then an empty dictionary is created by default, which instantiates the model with
+                its default parameter values.
+            n_jobs : int, default=4
+                number of works to use when training the model. this parameter will be
+                ignored if the model does not have this parameter.
+        returns:
+            model : model object
+                model instantiated using parameter set. model possesses train, predict, fit
+                and feature_importances methods.
+    """
+
+    def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
+
+        self.estimator = estimator
+        self.params = {} if params is None else params
+        self.n_jobs = n_jobs
+        self.random_state = random_state
+        self._estimator_type = "classifier"
+
+        # convert estimator argument to sklearn api object if needed
+        if isinstance(self.estimator, str):
+            self.estimator = eval(self.estimator)
+
+        # capture available model arguments and set probabily and n_jobs where applicable
+        estimator_args = inspect.getfullargspec(self.estimator).args
+
+        if "probability" in estimator_args:
+            self.params["probability"] = True
+
+        if "n_jobs" in estimator_args:
+            self.params["n_jobs"] = self.n_jobs
+
+        if "random_state" in estimator_args:
+            self.params["random_state"] = self.random_state
+
+        # instantiate model
+        self.model = self.estimator(**self.params)
+
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
+
+    def predict(self, x):
+        return self.model.predict(x)
+
+    def predict_proba(self, x):
+        return self.model.predict_proba(x)
+
+    def fit(self, x, y):
+        return self.model.fit(x, y)
+
+    def feature_importances(self, x, y):
+        return self.model.fit(x, y).feature_importances_
+
+class BasicModelBuilder(BaseEstimator):
+    """
+    documentation:
+        description:
+            helper class for instantiating an input model type.
+        parameters:
+            estimator : sklearn model, as either an uncalled object or a string.
+                model to instantiate.
+            params : dictionary, default=None
+                dictionary containing 'parameter : value' pairs. if no dictionary is provided,
+                then an empty dictionary is created by default, which instantiates the model with
+                its default parameter values.
+            n_jobs : int, default=4
+                number of works to use when training the model. this parameter will be
+                ignored if the model does not have this parameter.
+        returns:
+            model : model object
+                model instantiated using parameter set. model possesses train, predict, fit
+                and feature_importances methods.
+    """
+
+    def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
+
+        self.estimator = estimator
+        self.params = {} if params is None else params
+        self.n_jobs = n_jobs
+        self.random_state = random_state
+        self._estimator_type = "classifier"
+
+        # convert estimator argument to sklearn api object if needed
+        if isinstance(self.estimator, str):
+            self.estimator = eval(self.estimator)
+
+        # capture available model arguments and set probabily and n_jobs where applicable
+        estimator_args = inspect.getfullargspec(self.estimator).args
+
+        if "probability" in estimator_args:
+            self.params["probability"] = True
+
+        if "n_jobs" in estimator_args:
+            self.params["n_jobs"] = self.n_jobs
+
+        if "random_state" in estimator_args:
+            self.params["random_state"] = self.random_state
+
+        # instantiate model
+        self.model = self.estimator(**self.params)
+
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
+
+    def predict(self, x):
+        return self.model.predict(x)
+
+    def predict_proba(self, x):
+        return self.model.predict_proba(x)
+
+    def fit(self, x, y):
+        return self.model.fit(x, y)
+
+    def feature_importances(self, x, y):
+        return self.model.fit(x, y).feature_importances_
 
 def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     """
@@ -499,7 +760,6 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     estimator_summary["iteration"] = estimator_df["iteration"]
 
     return estimator_summary
-
 
 def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_outliers=True, outlier_control=1.5,
                     title_scale=0.7):
@@ -556,7 +816,6 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
         x="iteration", y="iter_loss", data=estimator_summary, y_units="ffff", ax=ax
     )
     plt.show()
-
 
 def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, chart_scale=17,
                     title_scale=1.0, show_single_str_params=False):
@@ -760,7 +1019,6 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 ax=ax
             )
             plt.show()
-
 
 def sample_plot(self, sample_space, n_iter, chart_scale=15):
     """
