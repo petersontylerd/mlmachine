@@ -727,6 +727,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             label_rotate=rotation,
             color=style.style_grey,
             y_units="f",
+            x_tick_wrap=True,
             ax=ax,
         )
 

@@ -743,7 +743,7 @@ def skew_summary(self, data=None, columns=None):
                 the feature dataset provided to machine during instantiation is used.
             columns : list of strings, default=None
                 list containing string names of columns. if left as none, the value associated
-                with sel.mlm_dtypes["number"] will be used as the column list.
+                with self.data.mlm_dtypes["continuous"] will be used as the column list.
     """
     # use data/mlm_dtypes["continuous"] columns provided during instantiation if left unspecified
     if data is None:
@@ -756,20 +756,48 @@ def skew_summary(self, data=None, columns=None):
         .apply(lambda X: stats.skew(X.dropna()))
         .sort_values(ascending=False)
     )
-    skewness = pd.DataFrame({"skew": skewness})
+    skewness = pd.DataFrame({"Skew": skewness})
 
     # add column describing percent of values that are zero
-    skewness["pct_zero"] = np.nan
+    skewness["Percent zero"] = np.nan
     for col in columns:
 
         try:
-            skewness.loc[col]["pct_zero"] = data[data[col] == 0][
+            skewness.loc[col]["Percent zero"] = data[data[col] == 0][
                 col
             ].value_counts() / len(data)
         except ValueError:
-            skewness.loc[col]["pct_zero"] = 0.0
-    skewness = skewness.sort_values(["skew"])
+            skewness.loc[col]["Percent zero"] = 0.0
+    skewness = skewness.sort_values(["Skew"])
+    
     return skewness
+
+def missing_summary(self, data=None):
+    """
+    Documentation:
+        Description:
+            displays Pandas DataFrame summarizing the missingness of each variable.
+        Parameters:
+            data : Pandas DataFrame, default=None
+                Pandas DataFrame containing independent variables. if left as none,
+                the feature dataset provided to machine during instantiation is used.
+    """
+    # use data/target provided during instantiation if left unspecified
+    if data is None:
+        data = self.data
+
+    # calcule missing data statistics
+    total_missing = data.isnull().sum()
+    percent_missing = data.isnull().sum() / len(data) * 100
+    percent_missing = pd.DataFrame(
+        {"Total missing": total_missing, "Percent missing": percent_missing}
+    )
+    percent_missing = percent_missing[
+        ~(percent_missing["Percent missing"].isna())
+        & (percent_missing["Percent missing"] > 0)
+    ].sort_values(["Percent missing"], ascending=False)
+
+    return percent_missing
 
 def unique_category_levels(self, data=None):
     """
@@ -822,6 +850,32 @@ def compare_train_valid_levels(self, train_data, validation_data):
     # if all levels present in both datasets
     if counter == 0:
         print("All levels in all category columns present in both datasets.")
+
+def missing_col_compare(self, train_data, validation_data):
+    """
+    Documentation:
+        Description:
+            compares the columns that contain missing data in the training dataset
+            to the columns that contain missing data in the validation dataset. prints
+            a summary of the disjunction.
+        Parameters:
+            train_data : Pandas DataFrame
+                Pandas DataFrame containing training data.
+            validation_data : Pandas DataFrame
+                Pandas DataFrame containing validation data.
+    """
+    train_missing = train_data.isnull().sum()
+    train_missing = train_missing[train_missing > 0].index
+
+    validation_missing = validation_data.isnull().sum()
+    validation_missing = validation_missing[validation_missing > 0].index
+
+    print("Feature has missing values in validation data, not training data.")
+    print(set(validation_missing) - set(train_missing))
+    print("")
+    print("Feature has missing values in training data, not validation data.")
+    print(set(train_missing) - set(validation_missing))
+
 
 class PreserveMetaData(pd.DataFrame):
 

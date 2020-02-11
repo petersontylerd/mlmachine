@@ -1,0 +1,237 @@
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+from scipy import stats
+from scipy import special
+
+from prettierplot.plotter import PrettierPlot
+from prettierplot import style
+
+
+def eda_missing_summary(self, data=None, color=style.style_grey, display_df=False, chart_scale=15):
+    """
+    Documentation:
+        Description:
+            creates vertical bar chart visualizating the percent of rows of a feature that is missing.
+        Parameters:
+            data : Pandas DataFrame, default=None
+                Pandas DataFrame containing independent variables. if left as none,
+                the feature dataset provided to machine during instantiation is used.
+            color : string, color code, default=style.style_grey
+                bar color.
+            display_df : boolean, default=False
+                controls whether to display summary data in Pandas DataFrame along with chart.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases
+                visual elements proportionally.
+    """
+    # use data/target provided during instantiation if left unspecified
+    if data is None:
+        data = self.data
+
+    percent_missing = self.missing_summary(data)
+
+    if not percent_missing.empty:
+        if display_df:
+            display(percent_missing)
+
+        p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_standard")
+        ax = p.make_canvas(
+            title="Percent missing by feature",
+            y_shift=0.8,
+            title_scale=0.8,
+        )
+        p.bar_v(
+            x=percent_missing.index,
+            counts=percent_missing["Percent missing"],
+            label_rotate=45 if len(percent_missing.index) <=5 else 90,
+            color=color,
+            y_units="p",
+            x_tick_wrap=False,
+            ax=ax,
+        )
+    else:
+        print("No nulls")
+
+def eda_skew_summary(self, data=None, color=style.style_grey, display_df=False, chart_scale=15):
+    """
+    Documentation:
+        Description:
+            creates vertical bar chart visualizating the percent of rows of a feature that is missing.
+        Parameters:
+            data : Pandas DataFrame, default=None
+                Pandas DataFrame containing independent variables. if left as none,
+                the feature dataset provided to machine during instantiation is used.
+            color : string, color code, default=style.style_grey
+                bar color.
+            display_df : boolean, default=False
+                controls whether to display summary data in Pandas DataFrame along with chart.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases
+                visual elements proportionally.
+    """
+    # use data/target provided during instantiation if left unspecified
+    if data is None:
+        data = self.data
+
+    skew_summary = self.skew_summary(data)
+
+    if display_df:
+        display(skew_summary)
+
+    p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_standard")
+    ax = p.make_canvas(
+        title="Skew by feature",
+        y_shift=0.8,
+        title_scale=0.8,
+    )
+    p.bar_v(
+        x=skew_summary.index,
+        counts=skew_summary["Skew"],
+        label_rotate=45 if len(skew_summary.index) <=5 else 90,
+        color=color,
+        y_units="fff",
+        x_tick_wrap=False,
+        ax=ax,
+    )
+
+def eda_transform_initial(self, data, name, chart_scale=15):
+    """
+    Documentation:
+        Description:
+            creates a two_panel visualization. the left plot is the current distribution overlayed on a
+            normal distribution. the right plot is a qqplot overlayed across a straight line.
+        Parameters:
+            data : Pandas Series
+                target variables data object.
+            name : string
+                name of target variable.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases
+                visual elements proportionally.
+    """
+    p = PrettierPlot(chart_scale=chart_scale)
+
+    # distribution / kernel density plot
+    ax = p.make_canvas(
+        title="dist/kde - {} (initial)".format(name),
+        x_label="",
+        y_label="",
+        y_shift=0.8,
+        position=221,
+    )
+    p.dist_plot(
+        data, color=style.style_grey, fit=stats.norm, x_rotate=True, ax=ax
+    )
+    plt.xticks([])
+    plt.yticks([])
+
+    # qq plot
+    ax = p.make_canvas(
+        title="probability plot - {} (initial)".format(name),
+        x_label="",
+        y_label="",
+        y_shift=0.8,
+        position=222,
+    )
+    p.prob_plot(data, plot=ax)
+    plt.xticks([])
+    plt.yticks([])
+
+
+def eda_transform_log1(self, data, name, chart_scale=15):
+    """
+    Documentation:
+        Description:
+            creates a two_panel visualization. the left plot is the log + 1 adjusted distribution overlayed
+            on a normal distribution. the right plot is a log + 1 adjusted qqplot overlayed across a straight
+            line.
+        Parameters:
+            data : Pandas Series
+                target variables data object.
+            name : string
+                name of target variable.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases
+                visual elements proportionally.
+    """
+    p = PrettierPlot(chart_scale=chart_scale)
+
+    # distribution / kernel density plot
+    ax = p.make_canvas(
+        title="dist/kde - {} (log+1)".format(name),
+        x_label="",
+        y_label="",
+        y_shift=0.8,
+        position=223,
+    )
+    p.dist_plot(
+        np.log1p(data), color=style.style_grey, fit=stats.norm, x_rotate=True, ax=ax
+    )
+    plt.xticks([])
+    plt.yticks([])
+
+    # qq plot
+    ax = p.make_canvas(
+        title="probability plot - {} (log+1)".format(name),
+        x_label="",
+        y_label="",
+        y_shift=0.8,
+        position=224,
+    )
+    p.prob_plot(np.log1p(data), plot=ax)
+    plt.xticks([])
+    plt.yticks([])
+
+
+def eda_transform_box_cox(self, data, name, lmbda, chart_scale=15):
+    """
+    Documentation:
+        Description:
+            creates a two_panel visualization. the left plot is the box-cox transformed distribution overlayed
+            on a normal distribution. the right plot is a box-cox transformed qqplot overlayed across a straight
+            line.
+        Parameters:
+            data : Pandas Series
+                target variables data object.
+            name : string
+                name of target variable.
+            lmbda : float
+                box-cox transformation parameter.
+            chart_scale : int or float, default=15
+                controls chart size and proportions. higher value creates larger plots and increases
+                visual elements proportionally.
+    """
+    p = PrettierPlot(chart_scale=chart_scale)
+
+    # distribution / kernel density plot
+    ax = p.make_canvas(
+        title="dist/kde - {} (box-cox, {})".format(name, lmbda),
+        x_label="",
+        y_label="",
+        y_shift=0.8,
+        position=223,
+    )
+    p.dist_plot(
+        special.boxcox1p(data, lmbda),
+        color=style.style_grey,
+        fit=stats.norm,
+        x_rotate=True,
+        ax=ax,
+    )
+    plt.xticks([])
+    plt.yticks([])
+
+    # qq plot
+    ax = p.make_canvas(
+        title="Probability plot - {} (box-cox, {})".format(name, lmbda),
+        x_label="",
+        y_label="",
+        y_shift=0.8,
+        position=224,
+    )
+    p.prob_plot(special.boxcox1p(data, lmbda), plot=ax)
+    plt.xticks([])
+    plt.yticks([])
+

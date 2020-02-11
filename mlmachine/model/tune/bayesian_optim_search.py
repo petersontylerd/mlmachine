@@ -909,6 +909,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                     label_rotate=90 if len(unique_vals) >= 4 else 0,
                     color=style.style_grey,
                     y_units="f",
+                    x_tick_wrap=True,
                     ax=ax,
                 )
 
@@ -926,6 +927,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                     label_rotate=90 if len(unique_vals) >= 4 else 0,
                     color=style.style_blue,
                     y_units="f",
+                    x_tick_wrap=True,
                     ax=ax,
                 )
 

@@ -49,7 +49,6 @@ class Machine:
     """
 
     # import mlmachine submodules
-    from .explore.eda_missing import eda_missing_summary
     from .explore.eda_suite import (
         df_side_by_side,
         eda_cat_target_cat_feat,
@@ -57,7 +56,9 @@ class Machine:
         eda_num_target_cat_feat,
         eda_num_target_num_feat,
     )
-    from .explore.eda_transform import (
+    from .explore.eda_preprocessing import (
+        eda_missing_summary,
+        eda_skew_summary,
         eda_transform_box_cox,
         eda_transform_initial,
         eda_transform_log1,
@@ -71,11 +72,9 @@ class Machine:
         PandasPipeline,
         unique_category_levels,
         compare_train_valid_levels,
-        skew_summary,
-    )
-    from .features.missing import (
         missing_col_compare,
-        missing_data_dropper_all,
+        missing_summary,
+        skew_summary,
     )
     from .features.outlier import (
         ExtendedIsoForest,
