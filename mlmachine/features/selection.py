@@ -61,15 +61,15 @@ from ..model.tune.bayesian_optim_search import BasicModelBuilder
 
 class FeatureSelector:
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             evaluate feature importance using several different feature selection techniques,
             including f_score, variance, recursive feature selection, and correlation to target
             on a list of estimators. also includes methods for performing corss_validation and
             visualization of the results.p
-        parameters:
-            data : pandas DataFrame, default=None
-                pandas DataFrame containing independent variables. if left as none,
+        Parameters:
+            data : Pandas DataFrame, default=None
+                Pandas DataFrame containing independent variables. if left as none,
                 the feature dataset provided to machine during instantiation is used.
             target : Pandas Series, default=None
                 Pandas Series containing dependent target variable. if left as none,
@@ -89,11 +89,11 @@ class FeatureSelector:
 
     def feature_selector_suite(self, rank=False, add_stats=False, n_jobs=1, save_to_csv=False):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 run all feature selections processes and aggregate results. calculate summary
                 statistics on results.
-            parameters:
+            Parameters:
                 rank : bool, default=False
                     conditional controlling whether to overwrite values with rank of values.
                 add_stats : bool, default=True
@@ -144,11 +144,11 @@ class FeatureSelector:
 
     def feature_selector_f_score_class(self, rank=False):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each feature, calculate f_values and p_values in the context of a
                 classification problem.
-            parameters
+            Parameters:
                 rank : bool, default=False
                     conditional controlling whether to overwrite values with rank of values.
         """
@@ -160,7 +160,7 @@ class FeatureSelector:
         feature_dict["f_value"] = univariate[0]
         feature_dict["p_value"] = univariate[1]
 
-        # load dictionary into pandas DataFrame and rank values
+        # load dictionary into Pandas DataFrame and rank values
         feature_selector_summary = pd.DataFrame(data=feature_dict, index=self.data.columns)
 
         # overwrite values with rank
@@ -170,11 +170,11 @@ class FeatureSelector:
 
     def feature_selector_f_score_reg(self, rank=False):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each feature, calculate f_values and p_values in the context of a
                 regression problem.
-            parameters
+            Parameters:
                 rank : bool, default=False
                     conditional controlling whether to overwrite values with rank of values.
         """
@@ -186,7 +186,7 @@ class FeatureSelector:
         feature_dict["f_value"] = univariate[0]
         feature_dict["p_value"] = univariate[1]
 
-        # load dictionary into pandas DataFrame and rank values
+        # load dictionary into Pandas DataFrame and rank values
         feature_selector_summary = pd.DataFrame(data=feature_dict, index=self.data.columns)
 
         # overwrite values with rank
@@ -196,10 +196,10 @@ class FeatureSelector:
 
     def feature_selector_variance(self, rank=False):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each feature, calculate variance.
-            parameters
+            Parameters:
                 rank : bool, default=False
                     conditional controlling whether to overwrite values with rank of values.
         """
@@ -209,7 +209,7 @@ class FeatureSelector:
 
         variance = "variance{}".format("_rank" if rank else "")
 
-        # load data into pandas DataFrame and rank values
+        # load data into Pandas DataFrame and rank values
         feature_selector_summary = pd.DataFrame(
             var_importance.variances_, index=self.data.columns, columns=[variance]
         )
@@ -222,10 +222,10 @@ class FeatureSelector:
 
     def feature_selector_importance(self, rank=False, add_stats=False, n_jobs=1):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each estimator, for each feature, calculate feature importance.
-            parameters
+            Parameters:
                 rank : bool, default=False
                     conditional controlling whether to overwrite values with rank of values.
                 add_stats : bool, default=True
@@ -269,11 +269,11 @@ class FeatureSelector:
 
     def feature_selector_rfe(self, add_stats=False, n_jobs=1):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each estimator, recursively remove features one at a time, capturing
                 the step in which each feature is removed.
-            parameters:
+            Parameters:
                 add_stats : bool, default=True
                     add row-wise summary statistics for feature importance ranking columns.
                     requires columns to be ranked in ascending or descending order, which
@@ -312,11 +312,11 @@ class FeatureSelector:
 
     def feature_selector_corr(self, rank=False):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each feature, calculate absolute correlation coefficient relative to
                 target dataset.
-            parameters:
+            Parameters:
                 rank : bool, default=False
                     conditional controlling whether to overwrite values with rank of values.
         """
@@ -340,10 +340,10 @@ class FeatureSelector:
 
     def apply_ranks(self, feature_selector_summary):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 apply ascending or descending ranking on feature importance values.
-            parameters:
+            Parameters:
                 feature_selector_summary : Pandas DataFrame
                     Pandas DataFrame with an index corresponding to feature names and columns
                     corresponding to feature importance values.
@@ -376,12 +376,12 @@ class FeatureSelector:
 
     def feature_selector_stats(self, feature_selector_summary):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 add row-wise summary statistics for feature importance ranking columns. if data
                 provided includes raw feature importance values, ranking will be applied
                 automatically.
-            parameters:
+            Parameters:
                 feature_selector_summary : Pandas DataFrame
                     Pandas DataFrame with an index corresponding to feature names and columns
                     corresponding to feature importance values or feature importance rankings.
@@ -415,16 +415,16 @@ class FeatureSelector:
     def feature_selector_cross_val(self, scoring, feature_selector_summary=None, estimators=None,
                                     n_folds=3, step=1, n_jobs=4, verbose=False, save_to_csv=False):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 perform cross_validation for each estimator, for progressively smaller sets of features. the list
                 of features is reduced by one feature on each pass. the feature removed is the least important
                 feature of the remaining set. calculates both the training and test performance.
-            parameters:
+            Parameters:
                 scoring : list of strings
                     list containing strings for one or more performance scoring metrics.
-                feature_selector_summary : pandas DataFrame or str, default=None
-                    pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
+                feature_selector_summary : Pandas DataFrame or str, default=None
+                    Pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
                 estimators : list of strings or sklearn api objects, default=None
                     list of estimators to be used. if none, use object's internal attribute specified during instantiation.
@@ -573,18 +573,18 @@ class FeatureSelector:
     def feature_selector_results_plot(self, scoring, cv_summary=None, feature_selector_summary=None, top_sets=0,
                                     show_features=False, show_scores=None, marker_on=True, title_scale=0.7,):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each estimator, visualize the training and validation performance
                 for each feature set.
-            parameters:
+            Parameters:
                 scoring : string
                     scoring metric to visualize.
-                cv_summary : pandas DataFrame or str, default=None
-                    pandas DataFrame, or str of csv file location, containing cross_validation results.
+                cv_summary : Pandas DataFrame or str, default=None
+                    Pandas DataFrame, or str of csv file location, containing cross_validation results.
                     if none, use object's internal attribute specified during instantiation.
-                feature_selector_summary : pandas DataFrame or str, default=None
-                    pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
+                feature_selector_summary : Pandas DataFrame or str, default=None
+                    Pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
                 top_sets : int, default=5
                     number of rows to display of the performance summary table
@@ -593,7 +593,7 @@ class FeatureSelector:
                     score.
                 show_scores : int or none, default=None
                     display certain number of top features. if none, display nothing. if int, display
-                    the specified number of features as a pandas DataFrame.
+                    the specified number of features as a Pandas DataFrame.
                 marker_on : bool, default=True
                     conditional controlling whether to display marker for each individual score.
                 title_scale : float, default=1.0
@@ -706,18 +706,18 @@ class FeatureSelector:
 
     def create_cross_val_features_df(self, scoring, cv_summary=None, feature_selector_summary=None):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each estimator, visualize the training and validation performance
                 for each feature set.
-            parameters:
+            Parameters:
                 scoring : string
                     scoring metric to visualize.
-                cv_summary : pandas DataFrame or str, default=None
-                    pandas DataFrame, or str of csv file location, containing cross_validation results.
+                cv_summary : Pandas DataFrame or str, default=None
+                    Pandas DataFrame, or str of csv file location, containing cross_validation results.
                     if none, use object's internal attribute specified during instantiation.
-                feature_selector_summary : pandas DataFrame or str, default=None
-                    pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
+                feature_selector_summary : Pandas DataFrame or str, default=None
+                    Pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
         """
         # load results summary if needed
@@ -798,13 +798,13 @@ class FeatureSelector:
 
     def create_cross_val_features_dict(self, cross_val_features_df=None):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 for each estimator, visualize the training and validation performance
                 for each feature set.
-            parameters:
-                cross_val_features_df : pandas DataFrame, default=None
-                    pandas DataFrame, or str of csv file location, containing summary of features used
+            Parameters:
+                cross_val_features_df : Pandas DataFrame, default=None
+                    Pandas DataFrame, or str of csv file location, containing summary of features used
                     in each estimator to achieve best validation score. if none, use object's internal
                     attribute specified during instantiation.
         """

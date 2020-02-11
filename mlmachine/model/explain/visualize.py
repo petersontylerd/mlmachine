@@ -39,8 +39,8 @@ import shap
 
 def single_shap_value_tree(self, obs_ix, model, data):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate elements necessary for creating a shap force plot for
             a single observation. works with tree_based models, including:
                 - RandomForestClassifier (package: sklearn)
@@ -53,9 +53,9 @@ def single_shap_value_tree(self, obs_ix, model, data):
                 index of observation to be analyzed.
             model : model object
                 instantiated model object.
-            data : pandas DataFrame
+            data : Pandas DataFrame
                 dataset from which to slice indiviudal observation.
-        returns:
+        Returns:
             obs_data : array
                 feature values for the specified observation.
             base_value : float
@@ -87,8 +87,8 @@ def single_shap_value_tree(self, obs_ix, model, data):
 
 def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=True, cmap="viridis"):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate a shap force plot for a single observation.
             works with tree_based models, including:
                 - RandomForestClassifier (package: sklearn)
@@ -101,7 +101,7 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
                 index of observations to be visualized.
             model : model object
                 instantiated model object.
-            data : pandas DataFrame
+            data : Pandas DataFrame
                 dataset from which to slice indiviudal observation.
             target : Pandas Series, default=None
                 True labels for observations. this is optional to allow explainations
@@ -148,8 +148,8 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
 
 def multi_shap_value_tree(self, obs_ixs, model, data):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate elements necessary for creating a shap force plot for
             multiple observations simultaneously. works with tree_based
             models, including:
@@ -163,9 +163,9 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
                 index values of observations to be analyzed.
             model : model object
                 instantiated model object.
-            data : pandas DataFrame
+            data : Pandas DataFrame
                 dataset from which to slice indiviudal observations.
-        returns:
+        Returns:
             obs_data : array
                 feature values for the specified observations.
             base_value : float
@@ -195,8 +195,8 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
 
 def multi_shap_viz_tree(self, obs_ixs, model, data):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate a shap force plot for multiple  observations simultaneously.
             works with tree_based models, including:
                 - RandomForestClassifier (package: sklearn)
@@ -209,7 +209,7 @@ def multi_shap_viz_tree(self, obs_ixs, model, data):
                 index values of observations to be analyzed.
             model : model object
                 instantiated model object.
-            data : pandas DataFrame
+            data : Pandas DataFrame
                 dataset from which to slice observations.
     """
     obs_data, base_value, obs_shap_values = self.multi_shap_value_tree(obs_ixs=obs_ixs, model=model, data=data)
@@ -227,8 +227,8 @@ def multi_shap_viz_tree(self, obs_ixs, model, data):
 def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color_feature, feature_names,
                         x_jitter=0.08, dot_size=25, alpha=0.7, show=True, ax=None):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate a shap dependence plot for a pair of features. one feature is
             represented in a scatter plot, with each observation's actual value on the
             x_axis and the corresponding shap value for the observation on the y_axis.
@@ -279,8 +279,8 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
 
 def shap_dependence_grid(self, obs_data, obs_shap_values, grid_features, all_features, dot_size, alpha):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate a shap dependence plot for a pair of features. one feature is
             represented in a scatter plot, with each observation's actual value on the
             x_axis and the corresponding shap value for the observation on the y_axis.
@@ -331,8 +331,8 @@ def shap_dependence_grid(self, obs_data, obs_shap_values, grid_features, all_fea
 
 def shap_summary_plot(self, obs_data, obs_shap_values, feature_names, alpha=0.7):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate a shap summary plot for multiple  observations.
         paramaters:
             obs_data : array

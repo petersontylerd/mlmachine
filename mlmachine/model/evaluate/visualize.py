@@ -41,18 +41,18 @@ import shap
 def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, cm_labels=None,
                         n_folds=3, title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generate a panel of reports and visualizations summarizing the
             performance of a classification model.
         paramaters:
             model : model object
                 instantiated model object.
-            X_train : pandas DataFrame
+            X_train : Pandas DataFrame
                 training data observations.
             y_train : Pandas Series
                 training data labels.
-            X_valid : pandas DataFrame, default=None
+            X_valid : Pandas DataFrame, default=None
                 validation data observations.
             y_valid : Pandas Series, default=None
                 validation data labels.
@@ -196,8 +196,8 @@ def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=No
 def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=3, title_scale=0.7,
                     color_map="viridis", random_state=1):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             creates a set of residual plots and pandas DataFrames, where each row captures various summary statistics
             pertaining to a model's performance. generates residual plots and captures performance data for training
             and validation datasets. if no validation set is provided, then cross_validation is performed on the
@@ -205,11 +205,11 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         paramaters:
             model : model object
                 instantiated model object.
-            X_train : pandas DataFrame
+            X_train : Pandas DataFrame
                 training data observations.
             y_train : Pandas Series
                 training data labels.
-            X_valid : pandas DataFrame, default=None
+            X_valid : Pandas DataFrame, default=None
                 validation data observations.
             y_valid : Pandas Series, default=None
                 validation data labels.

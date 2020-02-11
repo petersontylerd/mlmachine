@@ -22,11 +22,11 @@ import catboost
 
 def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             generates out_of_fold (oof) predictions using provided model, training dataset
             and corresponding labels, and a validation dataset.
-        parameters:
+        Parameters:
             model : sklearn model or pipeline
                 model to be fit.
             X_train : array
@@ -38,7 +38,7 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
             n_folds : int, default=10
                 number of folds for performing cross_validation. function will generate this
                 many sets of out_of_fold predictions.
-        returns:
+        Returns:
             oof_train : array
                 array containing observation data to be passed to the meta_learner. oof_train
                 is updated throughout the cross_validation process with observations that are
@@ -87,14 +87,14 @@ def model_stacker(
     self, models, bayes_optim_summary, X_train, y_train, X_valid, n_folds, n_jobs
 ):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             stacking helper.
-        parameters:
+        Parameters:
             models : dictionary
                 dictionary of 'x : y' pairs  to be fit.
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             X_train : array
                 training dataset.
@@ -108,7 +108,7 @@ def model_stacker(
             n_jobs : int
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
-        returns:
+        Returns:
             oof_train : array
                 out_of_fold training data observations.
             oof_valid : array

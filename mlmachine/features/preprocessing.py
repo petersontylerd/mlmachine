@@ -49,13 +49,13 @@ import copy
 
 class ContextImputer(TransformerMixin, BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             impute numberal columns with certain value, as specified by the strategy parameter. also
             utilizes one or more additional context columns as a group by value to add more subtlety to
             fill_value identification. imputes training data features, and stores impute values to be used
             on validation and unseen data.
-        parameters:
+        Parameters:
             null_col : list
                 column with nulls to be imputed.
             context_col : list
@@ -68,7 +68,7 @@ class ContextImputer(TransformerMixin, BaseEstimator):
                 only used when train=False. value is a dictionary containing 'feature : value' pairs.
                 dictionary is retrieved from training data pipeline using named steps. the attribute is
                 called train_value_.
-        returns:
+        Returns:
             X : array
                 dataset where each column with missing values has been imputed with a value learned from a particular
                 strategy while also consider select columns as a group by variable.
@@ -120,9 +120,9 @@ class ContextImputer(TransformerMixin, BaseEstimator):
 
 class DataFrameSelector(BaseEstimator, TransformerMixin):
     """
-    documentation:
-        description:
-            select a susbset set of features of a pandas DataFrame as part of a
+    Documentation:
+        Description:
+            select a susbset set of features of a Pandas DataFrame as part of a
             pipeline. capable of select and/or deselecting columns by name and by
             data type.
 
@@ -132,7 +132,7 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
             logic cannot be resolved by this rule alone, exclusion parameters
             will be prioritized over inclusion parameters.
 
-        parameters:
+        Parameters:
             include_columns : list
                 list of features to select from Pandas DataFrame.
             include_pd_dtypes : list
@@ -654,20 +654,20 @@ class KFoldSelectEncoder(BaseEstimator, TransformerMixin):
 
 class DualTransformer(TransformerMixin, BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             performs yeo-johnson transformation on all specified feature. also performs box_cox transformation. if
             the minimum value in a feature is 0, box_cox + 1 transformation is performed. if minimum value is greater
             than 0, standard box_cox transformation is performed. each transformation process automatically determines
             the optimal lambda value. these values are stored for transformation of validation data.
 
             note - this method adds additional columns rather than updating existing columns inplace.
-        parameters:
+        Parameters:
             yeojohnson : bool, default=True
                 conditional controls whether yeo-johnson transformation is applied to input data.
             boxcox : bool, default=True
                 conditional controls whether box_cox transformation is applied to input data.
-        returns:
+        Returns:
             X : array
                 yeo-johnson, and potentially box_cox (or box_cox + 1) transformed input data.
     """
@@ -733,19 +733,19 @@ class DualTransformer(TransformerMixin, BaseEstimator):
 
 def skew_summary(self, data=None, columns=None):
     """
-    documentation:
-        description:
-            displays pandas DataFrame summarizing the skew of each number variable. also summarizes
+    Documentation:
+        Description:
+            displays Pandas DataFrame summarizing the skew of each number variable. also summarizes
             the percent of a column that has a value of zero.
-        parameters:
-            data : pandas DataFrame, default=None
-                pandas DataFrame containing independent variables. if left as none,
+        Parameters:
+            data : Pandas DataFrame, default=None
+                Pandas DataFrame containing independent variables. if left as none,
                 the feature dataset provided to machine during instantiation is used.
             columns : list of strings, default=None
                 list containing string names of columns. if left as none, the value associated
                 with sel.mlm_dtypes["number"] will be used as the column list.
     """
-    # use data/mlm_dtypes["number"] columns provided during instantiation if left unspecified
+    # use data/mlm_dtypes["continuous"] columns provided during instantiation if left unspecified
     if data is None:
         data = self.data
     if columns is None:
@@ -770,6 +770,58 @@ def skew_summary(self, data=None, columns=None):
             skewness.loc[col]["pct_zero"] = 0.0
     skewness = skewness.sort_values(["skew"])
     return skewness
+
+def unique_category_levels(self, data=None):
+    """
+    Documentation:
+        Description:
+            displays Pandas DataFrame summarizing the skew of each number variable. also summarizes
+            the percent of a column that has a value of zero.
+        Parameters:
+            data : Pandas DataFrame, default=None
+                Pandas DataFrame containing independent variables. if left as none,
+                the feature dataset provided to machine during instantiation is used.
+    """
+
+    # use data/mlm_dtypes["continuous"] columns provided during instantiation if left unspecified
+    if data is None:
+        data = self.data
+
+    # print unique values in each category columns
+    for column in data.mlm_dtypes["category"]:
+        print(column, "\t", np.unique(data[column]))
+
+def compare_train_valid_levels(self, train_data, validation_data):
+    """
+    Documentation:
+        Description:
+            displays Pandas DataFrame summarizing the skew of each number variable. also summarizes
+            the percent of a column that has a value of zero.
+        Parameters:
+            train_data : Pandas DataFrame
+                Pandas DataFrame containing training data.
+            validation_data : Pandas DataFrame
+                Pandas DataFrame containing validation data.
+    """
+    counter = 0
+    for col in train_data.mlm_dtypes["category"]:
+        train_values = train_data[col].unique()
+        valid_values = validation_data[col].unique()
+
+        train_diff = set(train_values) - set(valid_values)
+        valid_diff = set(valid_values) - set(train_values)
+
+        if len(train_diff) > 0 or len(valid_diff) > 0:
+            print("\n\n*** " + col)
+            print("Value present in training data, not in validation data")
+            print(train_diff)
+            print("Value present in validation data, not in training data")
+            print(valid_diff)
+            counter+=1
+
+    # if all levels present in both datasets
+    if counter == 0:
+        print("All levels in all category columns present in both datasets.")
 
 class PreserveMetaData(pd.DataFrame):
 

@@ -11,11 +11,11 @@ from prettierplot import style
 
 def eda_transform_initial(self, data, name):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             creates a two_panel visualization. the left plot is the current distribution overlayed on a
             normal distribution. the right plot is a qqplot overlayed across a straight line.
-        parameters:
+        Parameters:
             data : Pandas Series
                 target variables data object.
             name : string
@@ -52,12 +52,12 @@ def eda_transform_initial(self, data, name):
 
 def eda_transform_log1(self, data, name):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             creates a two_panel visualization. the left plot is the log + 1 adjusted distribution overlayed
             on a normal distribution. the right plot is a log + 1 adjusted qqplot overlayed across a straight
             line.
-        parameters:
+        Parameters:
             data : Pandas Series
                 target variables data object.
             name : string
@@ -94,12 +94,12 @@ def eda_transform_log1(self, data, name):
 
 def eda_transform_box_cox(self, data, name, lmbda):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             creates a two_panel visualization. the left plot is the box-cox transformed distribution overlayed
             on a normal distribution. the right plot is a box-cox transformed qqplot overlayed across a straight
             line.
-        parameters:
+        Parameters:
             data : Pandas Series
                 target variables data object.
             name : string

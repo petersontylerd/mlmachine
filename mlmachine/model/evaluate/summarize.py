@@ -33,17 +33,17 @@ from sklearn.model_selection import (
 
 def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             aggregate best model(s) for each estimator as determined by bayesian optimization
             hyperparamter tuning process.
         paramaters:
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             num_models : int, default=1
                 number of top models to return per estimator.
-        returns:
+        Returns:
             results : dictionary
                 dictionary containing string: list key/value pairs, where the string is the
                 name of a algorithm class and the list contains the integer(s) associated with
@@ -67,14 +67,14 @@ def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
 
 def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_type="training"):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             create a dictionary containing information regarding model information and various metrics
             describing the model's performance.
         paramaters:
             model : model object
                 instantiated model object.
-            y_true : pandas DataFrame or array
+            y_true : Pandas DataFrame or array
                 True labels.
             y_pred : Pandas Series or array
                 predicted labels.
@@ -84,7 +84,7 @@ def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_ty
                 indicator for which cross_validation fold the performance is associated with. if 0,
                 it is assumed that the evaluation is on an entire dataset (either the full training
                 dataset or the full validation dataset), as opposed to a fold.
-        returns:
+        Returns:
             results : dictionary
                 dictionary containing string: float key/value pairs, where the string is the
 
@@ -113,19 +113,19 @@ def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_ty
 def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=3,
                         random_state=1, feature_selector_summary=None):
     """
-    documentation:
-        description:
-            creates a pandas DataFrame where each row captures various summary statistics pertaining to a model's performance.
+    Documentation:
+        Description:
+            creates a Pandas DataFrame where each row captures various summary statistics pertaining to a model's performance.
             captures performance data for training and validation datasets. if no validation set is provided, then
             cross_validation is performed on the training dataset.
         paramaters:
             model : model object
                 instantiated model object.
-            X_train : pandas DataFrame
+            X_train : Pandas DataFrame
                 training data observations.
             y_train : Pandas Series
                 training data labels.
-            X_valid : pandas DataFrame, default=None
+            X_valid : Pandas DataFrame, default=None
                 validation data observations.
             y_valid : Pandas Series, default=None
                 validation data labels.
@@ -135,10 +135,10 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
             random_state : int, default=1
                 random number seed.
             feature_selector_summary : pndas DataFrame, default=None
-                pandas DataFrame containing various summary statistics pertaining to model performance. if none, returns summary
-                pandas DataFrame for the input model. if feature_selector_summary DataFrame is provided from a previous run, the new
+                Pandas DataFrame containing various summary statistics pertaining to model performance. if none, returns summary
+                Pandas DataFrame for the input model. if feature_selector_summary DataFrame is provided from a previous run, the new
                 performance results are appended to the provivded summary.
-        returns:
+        Returns:
             feature_selector_summary : pndas DataFrame
                 dataframe containing various summary statistics pertaining to model performance.
     """

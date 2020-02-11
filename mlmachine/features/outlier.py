@@ -10,10 +10,10 @@ import eif
 
 class OutlierIQR(TransformerMixin, BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             identifies outliers using inter_quartile range method.
-        parameters:
+        Parameters:
             outlier_count : int
                 minimum number of values across all features that need to be outliers
                 in order for an observation to be flagged.
@@ -25,7 +25,7 @@ class OutlierIQR(TransformerMixin, BaseEstimator):
                 list of features to be evaluated for outliers.
             drop_outliers : bool, default=False
                 if True, drops outliers from the input data.
-        returns:
+        Returns:
             x : array
                 dataset with outlier observations removed.
     """
@@ -74,10 +74,10 @@ class OutlierIQR(TransformerMixin, BaseEstimator):
 
 class ExtendedIsoForest(TransformerMixin, BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             identifies outliers using extended isolation forest method.
-        parameters:
+        Parameters:
             columns : list
                 columns to be evaluated by extended isolation forest
             n_trees : int
@@ -92,7 +92,7 @@ class ExtendedIsoForest(TransformerMixin, BaseEstimator):
                 percent of input dataset observations to identify as outliers.
             drop_outliers : bool, default=False
                 dictates whether identified outliers are removed from input dataset.
-        returns:
+        Returns:
             x : array
                 dataset with outlier observations removed.
     """
@@ -145,12 +145,12 @@ class ExtendedIsoForest(TransformerMixin, BaseEstimator):
 
 def outlier_summary(self, iqr_outliers, if_outliers, eif_outliers):
     """
-    documentation:
-        description:
-            creates pandas DataFrame summarizing which observations were flagged
+    Documentation:
+        Description:
+            creates Pandas DataFrame summarizing which observations were flagged
             as outliers and by which outlier detection method each observation was
             identified.
-        parameters:
+        Parameters:
             iqr_outliers : array
                 array contains indexes of observations identified as outliers using
                 iqr method.
@@ -160,8 +160,8 @@ def outlier_summary(self, iqr_outliers, if_outliers, eif_outliers):
             eif_outliers : array
                 array contains indexes of observations identified as outliers using
                 extended isolition forest method.
-        returns:
-            outlier_summary : pandas DataFrame
+        Returns:
+            outlier_summary : Pandas DataFrame
                 DataFrame summarizing outlier
     """
     # merge and de_duplicate outlier index values
@@ -184,17 +184,17 @@ def outlier_summary(self, iqr_outliers, if_outliers, eif_outliers):
 
 def outlier_IQR(self, data, iqr_step):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             identifies outliers using inter_quartile range method.
-        parameters:
+        Parameters:
             data : Pandas Series
                 input data array.
             iqr_step : float
                 multiplier that controls level of sensitivity of outlier detection method.
                 higher values for iqr_step will cause OutlierIQR to only detect increasingly
                 extreme values.
-        returns:
+        Returns:
             outlier_index : array
                 index of outliers in original data array.
     """

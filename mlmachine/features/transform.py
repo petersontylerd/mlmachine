@@ -21,12 +21,12 @@ from sklearn.preprocessing import (
 
 class equal_width_binner(TransformerMixin, BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             bin number columns into specified segments. bins training data
             features, and stores the cut points to be used on validation and
             unseen data.
-        parameters:
+        Parameters:
             equal_bin_dict : dictionary, default=None
                 dictionary containing 'column : label' pairs. label is a list that
                 proscribes the bin labels to be used for each paired column. the bin
@@ -41,7 +41,7 @@ class equal_width_binner(TransformerMixin, BaseEstimator):
                 validation data. only used when train=False. retrieved from training
                 data pipeline using named steps. variable to be retrieved from traing
                 pipeline is called train_value_..
-        returns:
+        Returns:
             X : array
                 dataset with additional columns represented binned versions of input columns.
     """
@@ -90,10 +90,10 @@ class equal_width_binner(TransformerMixin, BaseEstimator):
 
 class percentile_binner(TransformerMixin, BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             bin number columns into segments based on percentile cut_offs.
-        parameters:
+        Parameters:
             columns : list
                 list of colummns to be binned. the percentiles are derived from
                 the raw data.
@@ -106,7 +106,7 @@ class percentile_binner(TransformerMixin, BaseEstimator):
                 validation data. only used when train=False. retrieved from training
                 data pipeline using named steps. variable to be retrieved from traing
                 pipeline is called train_value_..
-        returns:
+        Returns:
             X : array
                 dataset with additional columns represented binned versions of input columns.
     """
@@ -192,14 +192,14 @@ class percentile_binner(TransformerMixin, BaseEstimator):
 
 class custom_binner(TransformerMixin, BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             bin number columns into custom segments.
-        parameters:
+        Parameters:
             custom_bin_dict : dictionary
                 dictionary containing 'column : bin' specifcation pairs. bin specifications
                 should be a list.
-        returns:
+        Returns:
             X : array
                 dataset with additional columns represented binned versions of input columns.
     """

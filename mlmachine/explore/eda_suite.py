@@ -25,11 +25,11 @@ from prettierplot import style
 
 def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             produces exploratory data visualizations and statistical summaries for a object
             feature in the context of a object target.
-        parameters
+        Parameters:
             feature : string
                 feature to visualize.
             level_count_cap : int, default=50
@@ -128,7 +128,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         fill_columns = prop_df.iloc[:,:].columns
         prop_df[fill_columns] = prop_df[fill_columns].fillna(0)
 
-        # execute z_test
+        # execute z-test
         if len(np.unique(bi_df[bi_df[feature].notnull()][feature])) == 2:
 
             # total observations
@@ -154,8 +154,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             )
 
             stat_test_df = pd.DataFrame(
-                data=[{"z_test statistic": z, "p_value": p_val}],
-                columns=["z_test statistic", "p_value"],
+                data=[{"z-test statistic": z, "p-value": p_val}],
+                columns=["z-test statistic", "p-value"],
                 index=[feature],
             ).round(4)
 
@@ -233,11 +233,11 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
 def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None, chart_scale=15):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             produces exploratory data visualizations and statistical summaries for a number
             feature in the context of a object target.
-        parameters
+        Parameters:
             feature : string
                 feature to visualize.
             color_map : string specifying built_in matplotlib colormap, default="viridis"
@@ -316,7 +316,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     )
     describe_df = describe_df.rename(columns={"index": ""})
 
-    # execute z_test or t_test
+    # execute z-test or t-test
     if len(np.unique(self.target)) == 2:
         s1 = bi_df[
             (bi_df[self.target.name] == bi_df[self.target.name].unique()[0])
@@ -328,16 +328,16 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
             z, p_val = ztest(s1, s2)
 
             stat_test_df = pd.DataFrame(
-                data=[{"z_test statistic": z, "p_value": p_val}],
-                columns=["z_test statistic", "p_value"],
+                data=[{"z-test statistic": z, "p-value": p_val}],
+                columns=["z-test statistic", "p-value"],
                 index=[feature],
             ).round(4)
         else:
             t, p_val = stats.ttest_ind(s1, s2)
 
             stat_test_df = pd.DataFrame(
-                data=[{"t_test statistic": t, "p_value": p_val}],
-                columns=["t_test statistic", "p_value"],
+                data=[{"t-test statistic": t, "p-value": p_val}],
+                columns=["t-test statistic", "p-value"],
                 index=[feature],
             ).round(4)
         self.df_side_by_side(
@@ -491,11 +491,11 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
 
 def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             produces exploratory data visualizations and statistical summaries for a number
             feature in the context of a number target.
-        parameters
+        Parameters:
             feature : string
                 feature to visualize.
             color_map : string specifying built_in matplotlib colormap, default="viridis"
@@ -593,11 +593,11 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
 
 def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", chart_scale=15):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             produces exploratory data visualizations and statistical summaries for a number
             feature in the context of a object target.
-        parameters
+        Parameters:
             feature : string
                 feature to visualize.
             level_count_cap : int, default=50
@@ -783,11 +783,11 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
 def df_side_by_side(self, dfs, names=[]):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             helper function for displaying pandas DataFrames side by side in a
             notebook.
-        parameters:
+        Parameters:
             dfs : list
                 list of dfs to be displayed.
             names : list, default=[]

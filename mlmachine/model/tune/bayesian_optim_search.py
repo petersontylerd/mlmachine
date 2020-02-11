@@ -60,11 +60,11 @@ from prettierplot import style
 # set optimization parameters
 def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             customizable objective function to be minimized in the bayesian hyper_parameter optimization
             process.
-        parameters:
+        Parameters:
             space : dictionary
                 dictionary containg 'parameter : value distribution' key/value pairs. the key specifies the
                 parameter of the model and optimization process draws trial values from the distribution.
@@ -92,7 +92,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
                 number of folds for cross_validation.
             n_jobs : int
                 number of works to deploy upon execution, if applicable.
-        returns:
+        Returns:
             results : dictionary
                 dictionary containing details for each individual trial. details include model type,
                 iteration, parameter values, run time, and cross_validation summary statistics.
@@ -199,11 +199,11 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
 def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None, n_folds=3,
                         n_jobs=4, iters=50, show_progressbar=False, results_file=None,):
     """
-    documentation:
+    Documentation:
         definition:
             perform bayesian hyper_parameter optimization across a set of models and parameter value
             distribution.
-        parameters:
+        Parameters:
             all_space : dictionary of dictionaries
                 dictionary of nested dictionaries. outer key is a model, and the corresponding value is
                 a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
@@ -288,7 +288,7 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
             input_data = data.copy()
         else:
             raise AttributeError(
-                "input data set must be either a pandas DataFrame or a numpy ndarray"
+                "input data set must be either a Pandas DataFrame or a numpy ndarray"
             )
 
         # conditionally handle input target
@@ -330,13 +330,13 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
 
 class BayesOptimClassifierBuilder(ClassifierMixin):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             helper class for instantiating an input model type with a provided
             parameter set.
-        parameters:
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+        Parameters:
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             estimator : string or sklearn api object
                 name of estimator to build. needs the format of [submodule].[estimator].
@@ -346,7 +346,7 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
             n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
-        returns:
+        Returns:
             model : model object
                 model instantiated using parameter set. model possesses train, predict, fit
                 and feature_importances methods.
@@ -398,13 +398,13 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
 
 class BayesOptimRegressorBuilder(RegressorMixin):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             helper class for instantiating an input model type with a provided
             parameter set.
-        parameters:
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+        Parameters:
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             estimator : string or sklearn api object
                 name of estimator to build. needs the format of [submodule].[estimator].
@@ -414,7 +414,7 @@ class BayesOptimRegressorBuilder(RegressorMixin):
             n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
-        returns:
+        Returns:
             model : model object
                 model instantiated using parameter set. model possesses train, predict, fit
                 and feature_importances methods.
@@ -466,13 +466,13 @@ class BayesOptimRegressorBuilder(RegressorMixin):
 
 class BayesOptimModelBuilder(BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             helper class for instantiating an input model type with a provided
             parameter set.
-        parameters:
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+        Parameters:
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             estimator : string or sklearn api object
                 name of estimator to build. needs the format of [submodule].[estimator].
@@ -482,7 +482,7 @@ class BayesOptimModelBuilder(BaseEstimator):
             n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
-        returns:
+        Returns:
             model : model object
                 model instantiated using parameter set. model possesses train, predict, fit
                 and feature_importances methods.
@@ -536,10 +536,10 @@ class BayesOptimModelBuilder(BaseEstimator):
 
 class BasicRegressorBuilder(RegressorMixin):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             helper class for instantiating an input model type.
-        parameters:
+        Parameters:
             estimator : sklearn model, as either an uncalled object or a string.
                 model to instantiate.
             params : dictionary, default=None
@@ -549,7 +549,7 @@ class BasicRegressorBuilder(RegressorMixin):
             n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
-        returns:
+        Returns:
             model : model object
                 model instantiated using parameter set. model possesses train, predict, fit
                 and feature_importances methods.
@@ -599,10 +599,10 @@ class BasicRegressorBuilder(RegressorMixin):
 
 class BasicClassifierBuilder(ClassifierMixin):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             helper class for instantiating an input model type.
-        parameters:
+        Parameters:
             estimator : sklearn model, as either an uncalled object or a string.
                 model to instantiate.
             params : dictionary, default=None
@@ -612,7 +612,7 @@ class BasicClassifierBuilder(ClassifierMixin):
             n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
-        returns:
+        Returns:
             model : model object
                 model instantiated using parameter set. model possesses train, predict, fit
                 and feature_importances methods.
@@ -662,10 +662,10 @@ class BasicClassifierBuilder(ClassifierMixin):
 
 class BasicModelBuilder(BaseEstimator):
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             helper class for instantiating an input model type.
-        parameters:
+        Parameters:
             estimator : sklearn model, as either an uncalled object or a string.
                 model to instantiate.
             params : dictionary, default=None
@@ -675,7 +675,7 @@ class BasicModelBuilder(BaseEstimator):
             n_jobs : int, default=4
                 number of works to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
-        returns:
+        Returns:
             model : model object
                 model instantiated using parameter set. model possesses train, predict, fit
                 and feature_importances methods.
@@ -725,19 +725,19 @@ class BasicModelBuilder(BaseEstimator):
 
 def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     """
-    documentation:
+    Documentation:
         definition:
             unpack bayesian optimization results summary data for a specified estimator
-            into a pandas DataFrame where there is one column for each parameter.
-        parameters
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+            into a Pandas DataFrame where there is one column for each parameter.
+        Parameters:
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             estimator : string
                 name of estimator to build. needs the format of [submodule].[estimator].
-        returns:
-            estimator_param_summary : pandas DataFrame
-                pandas DataFrame where each row is a record of the parameters used and the
+        Returns:
+            estimator_param_summary : Pandas DataFrame
+                Pandas DataFrame where each row is a record of the parameters used and the
                 loss recorded in an iteration.
     """
 
@@ -764,16 +764,16 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
 def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_outliers=True, outlier_control=1.5,
                     title_scale=0.7):
     """
-    documentation:
+    Documentation:
         definition:
             visualize how the bayesian optimization loss change over time across all iterations.
             extremely poor results are removed from visualized dataset by two filters.
                 1) loss values worse than [loss mean + (2 x loss std)]
                 2) los values worse than [median * outliers_control]. 'outlier_control' is a parameter
                    that can be set during function execution.
-        parameters
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+        Parameters:
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             estimator : string
                 name of estimator to build. needs the format of [submodule].[estimator].
@@ -820,15 +820,15 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
 def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, chart_scale=17,
                     title_scale=1.0, show_single_str_params=False):
     """
-    documentation:
+    Documentation:
         definition:
             visualize hyper_parameter optimization over the iterations. compares theoretical
             distribution to the distribution of values that were actually chosen. for parameters
             with a number range of values, this function also visualizes how the parameter
             value changes over time.
-        parameters
-            bayes_optim_summary : pandas DataFrame
-                pandas DataFrame containing results from bayesian optimization process
+        Parameters:
+            bayes_optim_summary : Pandas DataFrame
+                Pandas DataFrame containing results from bayesian optimization process
                 execution.
             estimator : string
                 name of estimator to build. needs the format of [submodule].[estimator].
@@ -1022,12 +1022,12 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
 def sample_plot(self, sample_space, n_iter, chart_scale=15):
     """
-    documentation:
+    Documentation:
         definition:
             visualizes a single hyperopt theoretical distribution. useful for helping to determine a
             distribution to use when setting up hyperopt distribution objects for actual parameter
             tuning.
-        parameters
+        Parameters:
             sample_space : dictionary
                 dictionary of 'param name : hyperopt distribution object' key/value pairs. the name can
                 be arbitrarily chosen, and the value is a defined hyperopt distribution.

@@ -41,8 +41,8 @@ from sklearn.preprocessing import (
 
 class Machine:
     """
-    documentation:
-        description:
+    Documentation:
+        Description:
             machine facilitates rapid machine learning experimentation tasks, including data
             cleaning, feature encoding, exploratory data analysis, data prepation, model building,
             model tuning and model evaluation.
@@ -69,6 +69,8 @@ class Machine:
         KFoldSelectEncoder,
         PandasFeatureUnion,
         PandasPipeline,
+        unique_category_levels,
+        compare_train_valid_levels,
         skew_summary,
     )
     from .features.missing import (
@@ -131,14 +133,14 @@ class Machine:
                 identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None,
                 identify_as_string=None, target=None, is_classification=None):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 __init__ handles initial processing of main data set. returns
                 data frame of independent variables, series containing dependent variable
                 and a dictionary that categorizes features by data type.
-            parameters:
-                data : pandas DataFrame
-                    input data provided as a pandas DataFrame.
+            Parameters:
+                data : Pandas DataFrame
+                    input data provided as a Pandas DataFrame.
                 remove_features : list, default=[]
                     features to be completely removed from dataset.
                 identify_as_boolean : list, default=None
@@ -167,8 +169,8 @@ class Machine:
                     controls whether Machine is instantiated as a classification object or a
                     regression object.
             attributes:
-                data : pandas DataFrame
-                    independent variables returned as a pandas DataFrame
+                data : Pandas DataFrame
+                    independent variables returned as a Pandas DataFrame
                 target : Pandas Series
                     dependent variable returned as a Pandas Series
         """
@@ -205,8 +207,8 @@ class Machine:
 
     def capture_mlm_dtypes(self):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 determine feature type for each feature as being object, number
                 or bool.
         """
@@ -399,12 +401,12 @@ class Machine:
 
     def update_dtypes(self, columns_to_drop=None):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 update mlm_dtypes dictionary to include new columns. ensures new object columns
                 in dataset have the dtype "category". optionally drops specific columns from the dataset
                 and mlm_dtypes.
-            parameters:
+            Parameters:
                 columns_to_drop : list, default=None
                     columns to drop from output dataset(s)/
         """
@@ -592,11 +594,11 @@ class Machine:
 
     def encode_target(self, reverse=False):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 encode object target column and store as a Pandas Series, where
                 the name is the name of the feature in the original dataset.
-            parameters:
+            Parameters:
                 reverse : bool, default=False
                     reverses encoding of target variables back to original variables.
         """
@@ -623,20 +625,20 @@ class Machine:
 
     def recombine_data(self, data=None, target=None):
         """
-        documentation:
-            description:
+        Documentation:
+            Description:
                 helper function for recombining the features in the 'data' variable
-                and the 'target' variable into one pandas DataFrame.
-            parameters:
-                data : pandas DataFrame, default=None
-                    pandas DataFrame containing independent variables. if left as none,
+                and the 'target' variable into one Pandas DataFrame.
+            Parameters:
+                data : Pandas DataFrame, default=None
+                    Pandas DataFrame containing independent variables. if left as none,
                     the feature dataset provided to machine during instantiation is used.
                 target : Pandas Series, default=None
                     Pandas Series containing dependent target variable. if left as none,
                     the target dataset provided to machine during instantiation is used.
             return:
-                df : pandas DataFrame
-                    pandas DataFrame containing combined independent and dependent variables.
+                df : Pandas DataFrame
+                    Pandas DataFrame containing combined independent and dependent variables.
         """
         # use data/target provided during instantiation if left unspecified
         if data is None:
@@ -659,11 +661,11 @@ class PreserveMetaData(pd.DataFrame):
 
 def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
     """
-    description:
+    Description:
         intakes a single dataset and returns a training dataset and a validation dataset
         stored in pandas DataFrames.
-    parameters:
-        data: pandas DataFrame or array
+    Parameters:
+        data: Pandas DataFrame or array
             dataset to be deconstructed into train and test sets.
         target_col : string
             name of target column in data parameter
@@ -671,10 +673,10 @@ def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
             proportion of dataset to be set aside as "unseen" test data.
         random_state : int
             random number seed
-    returns:
-        df_train : pandas DataFrame
+    Returns:
+        df_train : Pandas DataFrame
             training dataset to be passed into mlmachine pipeline
-        df_valid : pandas DataFrame
+        df_valid : Pandas DataFrame
             validation dataset to be passed into mlmachine pipeline
     """
     if isinstance(data, pd.DataFrame):
