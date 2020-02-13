@@ -327,7 +327,7 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return X[self.final_columns]
 
-class PandasPipeline(TransformerMixin, BaseEstimator):
+class PandasTransformer(TransformerMixin, BaseEstimator):
     """
     Documentation:
         Description:

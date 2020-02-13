@@ -69,7 +69,7 @@ class Machine:
         DualTransformer,
         KFoldSelectEncoder,
         PandasFeatureUnion,
-        PandasPipeline,
+        PandasTransformer,
         unique_category_levels,
         compare_train_valid_levels,
         missing_col_compare,
