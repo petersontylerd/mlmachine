@@ -35,10 +35,239 @@ from sklearn.metrics import (
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
-import shap
+
+def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, cm_labels=None,
+                        n_folds=None, title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15):
+    """
+    Documentation:
+        Description:
+            generate a panel of reports and visualizations summarizing the
+            performance of a classification model.
+        paramaters:
+            model : model object
+                instantiated model object.
+            X_train : Pandas DataFrame
+                training data observations.
+            y_train : Pandas Series
+                training data labels.
+            X_valid : Pandas DataFrame, default=None
+                validation data observations.
+            y_valid : Pandas Series, default=None
+                validation data labels.
+            cm_labels : list, default=None
+                custom labels for confusion matrix axes. if left as none,
+                will default to 0, 1, 2...
+            n_folds : int, default=None
+                number of cross_validation folds to use when generating
+                cv roc graph. If validation data is provided through X_valid/y_valid,
+                n_folds is ignored
+            color_map : string specifying built_in matplotlib colormap, default="viridis"
+                colormap from which to draw plot colors.
+            title_scale : float, default=1.0
+                controls the scaling up (higher value) and scaling down (lower value) of the size of
+                the main chart title, the x_axis title and the y_axis title.
+            random_state : int, default=1
+                random number seed.
+    """
+
+    print("*" * 55)
+    print("* Estimator: {}".format(model.estimator.__name__))
+    print("* Parameter set: {}".format(model.model_iter))
+    print("*" * 55)
+
+    print("\n" + "*" * 55)
+    print("Training data evaluation")
+
+    ## training panel
+    # generate predictions
+    y_pred = model.fit(X_train, y_train).predict(X_train)
+
+    # create canvas
+    p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
+
+    # confusion matrix
+    ax = p.make_canvas(
+        title="Confusion matrix - training data\nModel: {}\nParameter set: {}".format(
+            model.estimator.__name__, model.model_iter
+        ),
+        y_shift=0.4,
+        x_shift=0.25,
+        position=121,
+        title_scale=title_scale,
+    )
+
+    plot_confusion_matrix(
+        estimator=model,
+        X=X_train,
+        y_true=y_train,
+        display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
+        cmap="viridis",
+        values_format=".0f",
+        ax=ax,
+    )
+
+    # ROC curve
+    ax = p.make_canvas(
+        title="ROC curve - training data\nModel: {}\nParameter set: {}".format(
+            "training" if X_valid is None else "validation",
+            model.estimator.__name__,
+            model.model_iter,
+        ),
+        x_label="False positive rate",
+        y_label="True positive rate",
+        y_shift=0.35,
+        position=122,
+        # position=111 if X_valid is not None else 121,
+        title_scale=title_scale,
+    )
+    p.roc_curve_plot(
+        model=model,
+        X_train=X_train,
+        y_train=y_train,
+        linecolor=style.style_grey,
+        ax=ax,
+    )
+    plt.subplots_adjust(wspace=0.3)
+    plt.show()
+
+    # if cross-validation
+    if X_valid is not None:
+        print("\n" + "*" * 55)
+        print("Validation data evaluation")
+
+        # generate colors
+        # color_list = style.color_gen(color_map, num=len(cv))
+
+        # generate predictions
+        y_pred = model.fit(X_train, y_train).predict(X_valid)
+
+        # create canvas
+        p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
+
+        # visualize results with confusion matrix
+        ax = p.make_canvas(
+            title="Confusion matrix - validation data\nModel: {}\nParameter set: {}".format(
+                model.estimator.__name__, model.model_iter
+            ),
+            y_shift=0.4,
+            x_shift=0.25,
+            position=121,
+            title_scale=title_scale,
+        )
+
+        plot_confusion_matrix(
+            estimator=model,
+            X=X_valid,
+            y_true=y_valid,
+            display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
+            cmap="viridis",
+            values_format=".0f",
+            ax=ax,
+        )
+
+        # ROC curve
+        ax = p.make_canvas(
+            title="ROC curve - validation data\nModel: {}\nParameter set: {}".format(
+                model.estimator.__name__,
+                model.model_iter,
+            ),
+            x_label="False positive rate",
+            y_label="True positive rate",
+            y_shift=0.35,
+            position=122,
+            # position=111 if X_valid is not None else 121,
+            title_scale=title_scale,
+        )
+        p.roc_curve_plot(
+            model=model,
+            X_train=X_train,
+            y_train=y_train,
+            X_valid=X_valid,
+            y_valid=y_valid,
+            linecolor=style.style_grey,
+            ax=ax,
+        )
+        plt.subplots_adjust(wspace=0.3)
+        plt.show()
+
+    elif isinstance(n_folds, int):
+        print("\n" + "*" * 55)
+        print("Cross validation evaluation")
+
+        # cross_validated roc curve
+        cv = list(
+            StratifiedKFold(
+                n_splits=n_folds, shuffle=True, random_state=random_state
+            ).split(X_train, y_train)
+        )
+
+        # generate colors
+        color_list = style.color_gen(color_map, num=len(cv))
+
+        for i, (train_ix, valid_ix) in enumerate(cv):
+            print("\n" + "*" * 55)
+            print("CV Fold {}".format(i + 1))
+
+            X_train_cv = X_train.iloc[train_ix]
+            y_train_cv = y_train.iloc[train_ix]
+            X_valid_cv = X_train.iloc[valid_ix]
+            y_valid_cv = y_train.iloc[valid_ix]
+
+            # generate predictions
+            y_pred = model.fit(X_train_cv, y_train_cv).predict(X_valid_cv)
+
+            # create canvas
+            p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
+
+            # visualize results with confusion matrix
+            ax = p.make_canvas(
+                title="Confusion matrix - CV Fold {}\nModel: {}\nParameter set: {}".format(
+                    i + 1, model.estimator.__name__, model.model_iter
+                ),
+                y_shift=0.4,
+                x_shift=0.25,
+                position=121,
+                title_scale=title_scale,
+            )
+
+            plot_confusion_matrix(
+                estimator=model,
+                X=X_valid_cv,
+                y_true=y_valid_cv,
+                display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
+                cmap="viridis",
+                values_format=".0f",
+                ax=ax,
+            )
+
+            # ROC curve
+            ax = p.make_canvas(
+                title="ROC curve - CV Fold {}\nModel: {}\nParameter set: {}".format(
+                    i + 1,
+                    model.estimator.__name__,
+                    model.model_iter,
+                ),
+                x_label="False positive rate",
+                y_label="True positive rate",
+                y_shift=0.35,
+                position=122,
+                # position=111 if X_valid is not None else 121,
+                title_scale=title_scale,
+            )
+            p.roc_curve_plot(
+                model=model,
+                X_train=X_train_cv,
+                y_train=y_train_cv,
+                X_valid=X_valid_cv,
+                y_valid=y_valid_cv,
+                linecolor=style.style_grey,
+                ax=ax,
+            )
+            plt.subplots_adjust(wspace=0.3)
+            plt.show()
 
 
-def classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, cm_labels=None,
+def binary_classification_panel_old(self, model, X_train, y_train, X_valid=None, y_valid=None, cm_labels=None,
                         n_folds=3, title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15):
     """
     Documentation:

@@ -8,6 +8,7 @@ from timeit import default_timer as timer
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+import seaborn as sns
 
 import numpy as np
 import pandas as pd
@@ -762,7 +763,7 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     return estimator_summary
 
 def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_outliers=True, outlier_control=1.5,
-                    title_scale=0.7):
+                    title_scale=0.7, color_map="viridis"):
     """
     Documentation:
         definition:
@@ -790,6 +791,8 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
             title_scale : float, default=0.7
                 controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
+            color_map : string specifying built_in matplotlib colormap, default="viridis"
+                colormap from which to draw plot colors.
     """
     estimator_summary = self.unpack_bayes_optim_summary(
         bayes_optim_summary=bayes_optim_summary, estimator=estimator
@@ -804,6 +807,8 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
             & (estimator_summary["iter_loss"] < outlier_control * median)
         ]
 
+    color_list = style.color_gen(name=color_map, num=2)
+
     # create regression plot
     p = PrettierPlot(chart_scale=chart_scale)
     ax = p.make_canvas(
@@ -813,12 +818,19 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
         title_scale=title_scale,
     )
     p.reg_plot(
-        x="iteration", y="iter_loss", data=estimator_summary, y_units="ffff", ax=ax
+        x="iteration",
+        y="iter_loss",
+        data=estimator_summary,
+        y_units="ffff",
+        line_color=color_list[0],
+        dot_color=color_list[1],
+        alpha=1.0,
+        ax=ax,
     )
     plt.show()
 
 def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, chart_scale=17,
-                    title_scale=1.0, show_single_str_params=False):
+                    color_map="viridis", title_scale=1.0, show_single_str_params=False):
     """
     Documentation:
         definition:
@@ -844,6 +856,8 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
             chart_scale : float, default=10
                 controls proportions of visualizations. larger values scale visual up in size, smaller values
                 scale visual down in size.
+            color_map : string specifying built_in matplotlib colormap, default="viridis"
+                colormap from which to draw plot colors.
             title_scale : float, default=0.7
                 controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
@@ -854,6 +868,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
     estimator_summary = self.unpack_bayes_optim_summary(
         bayes_optim_summary=bayes_optim_summary, estimator=estimator
     )
+    estimator_summary = estimator_summary.replace([None], "None")
 
     # return space belonging to estimator
     estimator_space = all_space[estimator]
@@ -891,9 +906,15 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
         # plot distributions for object params
         if any(isinstance(d, str) for d in theoretical_dist):
 
-            unique_vals, unique_counts = np.unique(theoretical_dist, return_counts=True)
+            color_list = style.color_gen(name=color_map, num=len(actual_iter_df[param].unique()))
+            unique_vals_theo, unique_counts_theo = np.unique(theoretical_dist, return_counts=True)
 
-            if len(unique_vals) > 1 or show_single_str_params:
+            if len(unique_vals_theo) > 1 or show_single_str_params:
+
+                # actual plot
+                unique_vals_actual, unique_counts_actual = np.unique(actual_dist, return_counts=True)
+                df = pd.DataFrame({"param": unique_vals_actual, "theorical": unique_counts_theo, "actual": unique_counts_actual})
+
                 p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
 
                 # theoretical plot
@@ -903,33 +924,37 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                     position=121,
                     title_scale=title_scale,
                 )
-                p.bar_v(
-                    x=unique_vals,
-                    counts=unique_counts,
-                    label_rotate=90 if len(unique_vals) >= 4 else 0,
-                    color=style.style_grey,
-                    y_units="f",
-                    x_tick_wrap=True,
+                p.facet_cat(
+                    df=df,
+                    feature="param",
+                    color_map=color_map,
+                    bbox=(1.0, 1.15),
+                    alpha=0.8,
+                    legend_labels=df["param"].values,
+                    x_units=None,
                     ax=ax,
                 )
 
-                # actual plot
-                unique_vals, unique_counts = np.unique(actual_dist, return_counts=True)
+                #
                 ax = p.make_canvas(
-                    title="Actual selections\n* {0} - {1}".format(estimator, param),
-                    y_shift=0.8,
+                    title="Theoretical distribution\n* {0} - {1}".format(estimator, param),
+                    y_shift=0.5,
                     position=122,
                     title_scale=title_scale,
                 )
-                p.bar_v(
-                    x=unique_vals,
-                    counts=unique_counts,
-                    label_rotate=90 if len(unique_vals) >= 4 else 0,
-                    color=style.style_blue,
-                    y_units="f",
-                    x_tick_wrap=True,
+                sns.stripplot(
+                    x="iteration",
+                    y=param,
+                    data=estimator_summary,
+                    jitter=0.3,
+                    alpha=0.5,
+                    size=1.0 * chart_scale,
+                    palette=sns.color_palette(color_list),
                     ax=ax,
-                )
+                ).set(xlabel=None, ylabel=None)
+
+                # tick label font size
+                ax.tick_params(axis="both", colors=style.style_grey, labelsize=1.2 * chart_scale)
 
                 plt.show()
 
@@ -939,6 +964,8 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
             convert_dict = {"iteration": int, param: float}
 
             actual_iter_df = actual_iter_df.astype(convert_dict)
+            color_list = style.color_gen(name=color_map, num=2)
+
 
             p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
             ax = p.make_canvas(
@@ -959,14 +986,14 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
             p.kde_plot(
                 theoretical_dist,
-                color=style.style_grey,
+                color=color_list[1],
                 y_units="ffff",
                 x_units=x_units,
                 ax=ax,
             )
             p.kde_plot(
                 actual_dist,
-                color=style.style_blue,
+                color=color_list[0],
                 y_units="ffff",
                 x_units=x_units,
                 ax=ax,
@@ -976,7 +1003,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
             # create labels
             label_color = {}
             legend_labels = ["theoretical", "actual"]
-            color_list = [style.style_grey, style.style_blue]
+            # color_list = color_list[::-1]
             for ix, i in enumerate(legend_labels):
                 label_color[i] = color_list[ix]
 
@@ -1018,6 +1045,9 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 data=actual_iter_df,
                 y_units=y_units,
                 x_units="f",
+                line_color=color_list[0],
+                dot_color=color_list[1],
+                alpha=1.0,
                 ax=ax
             )
             plt.show()

@@ -93,7 +93,7 @@ class Machine:
         top_bayes_optim_models,
     )
     from .model.evaluate.visualize import (
-        classification_panel,
+        binary_classification_panel,
         regression_panel,
     )
     from .model.explain.visualize import (

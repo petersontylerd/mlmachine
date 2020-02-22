@@ -769,7 +769,7 @@ def skew_summary(self, data=None, columns=None):
         except ValueError:
             skewness.loc[col]["Percent zero"] = 0.0
     skewness = skewness.sort_values(["Skew"])
-    
+
     return skewness
 
 def missing_summary(self, data=None):
