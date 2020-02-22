@@ -64,6 +64,99 @@ def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
         models[estimator] = est_df.values.tolist()
     return models
 
+def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None):
+    """
+    Documentation:
+        Description:
+            creates a Pandas DataFrame where each row corresponds to an observation, the model's prediction
+            for that observation, and the probabilities associated with the prediction.
+        paramaters:
+            model : model object
+                instantiated model object.
+            X_train : Pandas DataFrame
+                training data observations.
+            y_train : Pandas Series
+                training data labels.
+            X_valid : Pandas DataFrame, default=None
+                validation data observations.
+            y_valid : Pandas Series, default=None
+                validation data labels.
+        Returns:
+            df : Pandas DataFrame
+                Pandas DataFrame containing prediction summary data.
+    """
+    model.fit(X_train.values, y_train.values)
+
+    if X_valid is None:
+        probas = model.predict_proba(X_train)
+        data = {
+            "Label": y_train,
+            "Prediction": probas.argmax(axis=1),
+            "Positive": probas[:,0],
+            "Negative": probas[:,1],
+        }
+        df = pd.DataFrame(data, index=y_train.index)
+        df["Difference"] = np.abs(df["Positive"] - df["Negative"])
+        df["Incorrect"] = np.abs(df["Label"] - df["Prediction"])
+    else:
+        probas = model.predict_proba(X_valid)
+        data = {
+            "Label": y_valid,
+            "Prediction": probas.argmax(axis=1),
+            "Positive": probas[:,0],
+            "Negative": probas[:,1],
+        }
+        df = pd.DataFrame(data, index=y_valid.index)
+        df["Difference"] = np.abs(df["Positive"] - df["Negative"])
+        df["Incorrect"] = np.abs(df["Label"] - df["Prediction"])
+
+    # sort to bring largest errors to the top
+    df = df.sort_values(["Incorrect","Difference"], ascending=[False,False])
+    return df
+
+def regression_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None):
+    """
+    Documentation:
+        Description:
+            creates a Pandas DataFrame where each row corresponds to an observation, the model's prediction
+            for that observation, and the probabilities associated with the prediction.
+        paramaters:
+            model : model object
+                instantiated model object.
+            X_train : Pandas DataFrame
+                training data observations.
+            y_train : Pandas Series
+                training data labels.
+            X_valid : Pandas DataFrame, default=None
+                validation data observations.
+            y_valid : Pandas Series, default=None
+                validation data labels.
+        Returns:
+            df : Pandas DataFrame
+                Pandas DataFrame containing prediction summary data.
+    """
+    if X_valid is None:
+        preds = model.predict(X_train)
+        data = {
+            "Label": y_train,
+            "Prediction": preds,
+        }
+        df = pd.DataFrame(data, index=y_train.index)
+        df["Difference"] = np.abs(df["Label"] - df["Prediction"])
+        df["Percent difference"] =  ((df['Prediction'] - df['Label']) / df['Label']) * 100
+    else:
+        preds = model.predict(X_valid)
+        data = {
+            "Label": y_valid,
+            "Prediction": preds,
+        }
+        df = pd.DataFrame(data, index=y_valid.index)
+        df["Difference"] = np.abs(df["Label"] - df["Prediction"])
+        df["Percent difference"] =  ((df['Prediction'] - df['Label']) / df['Label']) * 100
+
+    # sort to bring largest errors to the top
+    df = df.sort_values(["Percent difference"], ascending=[False])
+    return df
 
 def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_type="training"):
     """
@@ -91,27 +184,26 @@ def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_ty
     """
     results = {}
 
-    results["estimator"] = model.estimator.__name__
-    results["parameter_set"] = model.model_iter
-    results["data_type"] = data_type
-    results["fold"] = fold
-    results["n"] = len(y_true)
+    results["Estimator"] = model.estimator.__name__
+    results["Parameter set"] = model.model_iter
+    results["Dataset type"] = data_type
+    results["CV fold"] = fold
+    results["N"] = len(y_true)
 
-    results["explained_variance"] = explained_variance_score(y_true, y_pred)
-    results["msle"] = mean_squared_log_error(y_true, y_pred)
-    results["mean_ae"] = mean_absolute_error(y_true, y_pred)
-    results["median_ae"] = median_absolute_error(y_true, y_pred)
-    results["mse"] = mean_squared_error(y_true, y_pred)
-    results["rmse"] = np.sqrt(mean_squared_error(y_true, y_pred))
-    results["r2"] = r2_score(y_true, y_pred)
-    results["adjusted_r2"] = 1 - (1 - r2_score(y_true, y_pred)) * (
+    results["Explained Variance"] = explained_variance_score(y_true, y_pred)
+    results["Mean squared log error"] = mean_squared_log_error(y_true, y_pred)
+    results["Mean absolute error"] = mean_absolute_error(y_true, y_pred)
+    results["Median absolute error"] = median_absolute_error(y_true, y_pred)
+    results["Mean squared error"] = mean_squared_error(y_true, y_pred)
+    results["Root mean squared error"] = np.sqrt(mean_squared_error(y_true, y_pred))
+    results["R-squared"] = r2_score(y_true, y_pred)
+    results["Adjusted R-squared"] = 1 - (1 - r2_score(y_true, y_pred)) * (
         len(y_true) - 1
     ) / (len(y_true) - feature_count - 1)
     return results
 
-
 def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=3,
-                        random_state=1, feature_selector_summary=None):
+                        random_state=1, regression_results_summary=None):
     """
     Documentation:
         Description:
@@ -134,12 +226,12 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
                 cv roc graph.
             random_state : int, default=1
                 random number seed.
-            feature_selector_summary : pndas DataFrame, default=None
+            regression_results_summary : Pandas DataFrame, default=None
                 Pandas DataFrame containing various summary statistics pertaining to model performance. if none, returns summary
-                Pandas DataFrame for the input model. if feature_selector_summary DataFrame is provided from a previous run, the new
+                Pandas DataFrame for the input model. if regression_results_summary DataFrame is provided from a previous run, the new
                 performance results are appended to the provivded summary.
         Returns:
-            feature_selector_summary : pndas DataFrame
+            regression_results_summary : Pandas DataFrame
                 dataframe containing various summary statistics pertaining to model performance.
     """
     model.fit(X_train.values, y_train.values)
@@ -153,9 +245,9 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
         feature_count=X_train.shape[1],
     )
     # create shell results DataFrame and append
-    if feature_selector_summary is None:
-        feature_selector_summary = pd.DataFrame(columns=list(results.keys()))
-    feature_selector_summary = feature_selector_summary.append(
+    if regression_results_summary is None:
+        regression_results_summary = pd.DataFrame(columns=list(results.keys()))
+    regression_results_summary = regression_results_summary.append(
         results, ignore_index=True
     )
 
@@ -170,7 +262,7 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
             feature_count=X_train.shape[1],
             data_type="validation",
         )
-        feature_selector_summary = feature_selector_summary.append(
+        regression_results_summary = regression_results_summary.append(
             results, ignore_index=True
         )
     else:
@@ -199,7 +291,7 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
                 data_type="validation",
                 fold=i + 1,
             )
-            feature_selector_summary = feature_selector_summary.append(
+            regression_results_summary = regression_results_summary.append(
                 results, ignore_index=True
             )
-    return feature_selector_summary
+    return regression_results_summary

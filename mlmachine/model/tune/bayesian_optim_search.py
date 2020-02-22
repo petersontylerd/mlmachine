@@ -869,6 +869,8 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
         bayes_optim_summary=bayes_optim_summary, estimator=estimator
     )
     estimator_summary = estimator_summary.replace([None], "None")
+    # estimator_summary = estimator_summary.replace([True], "TRUE")
+    # estimator_summary = estimator_summary.replace([False], "FALSE")
 
     # return space belonging to estimator
     estimator_space = all_space[estimator]
@@ -888,8 +890,6 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
         theoretical_dist = ["none" if v is None else v for v in theoretical_dist]
         theoretical_dist = np.array(theoretical_dist)
 
-        if isinstance(theoretical_dist[0], np.bool_):
-            theoretical_dist = np.array(["TRUE" if i == True else "FALSE" for i in theoretical_dist.tolist()])
 
         # clean up
         actual_dist = estimator_summary[param].tolist()
@@ -902,6 +902,12 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
         if zeros_and_ones == actual_iter_df.shape[0]:
             actual_iter_df = actual_iter_df.replace({True: 'TRUE', False: 'FALSE'})
 
+        if isinstance(theoretical_dist[0], np.bool_):
+            theoretical_dist = np.array(["TRUE" if i == True else "FALSE" for i in theoretical_dist.tolist()])
+
+            # estimator_summary = estimator_summary[[param,"iteration"]]
+            estimator_summary = estimator_summary.replace([True], "TRUE")
+            estimator_summary = estimator_summary.replace([False], "FALSE")
 
         # plot distributions for object params
         if any(isinstance(d, str) for d in theoretical_dist):
@@ -913,13 +919,14 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
                 # actual plot
                 unique_vals_actual, unique_counts_actual = np.unique(actual_dist, return_counts=True)
-                df = pd.DataFrame({"param": unique_vals_actual, "theorical": unique_counts_theo, "actual": unique_counts_actual})
+
+                df = pd.DataFrame({"param": unique_vals_actual, "Theorical": unique_counts_theo, "Actual": unique_counts_actual})
 
                 p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
 
                 # theoretical plot
                 ax = p.make_canvas(
-                    title="Theoretical distribution\n* {0} - {1}".format(estimator, param),
+                    title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator, param),
                     y_shift=0.8,
                     position=121,
                     title_scale=title_scale,
@@ -930,14 +937,14 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                     color_map=color_map,
                     bbox=(1.0, 1.15),
                     alpha=0.8,
-                    legend_labels=df["param"].values,
+                    legend_labels=df.columns[1:].values,
                     x_units=None,
                     ax=ax,
                 )
 
                 #
                 ax = p.make_canvas(
-                    title="Theoretical distribution\n* {0} - {1}".format(estimator, param),
+                    title="Selection by iteration\n* {0} - {1}".format(estimator, param),
                     y_shift=0.5,
                     position=122,
                     title_scale=title_scale,
@@ -948,7 +955,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                     data=estimator_summary,
                     jitter=0.3,
                     alpha=0.5,
-                    size=1.0 * chart_scale,
+                    size=0.7 * chart_scale,
                     palette=sns.color_palette(color_list),
                     ax=ax,
                 ).set(xlabel=None, ylabel=None)
@@ -969,7 +976,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
             p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
             ax = p.make_canvas(
-                title="Actual selections vs. theoretical distribution\n* {0} - {1}".format(estimator, param),
+                title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator, param),
                 y_shift=0.8,
                 position=121,
                 title_scale=title_scale,
@@ -986,14 +993,14 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
             p.kde_plot(
                 theoretical_dist,
-                color=color_list[1],
+                color=color_list[0],
                 y_units="ffff",
                 x_units=x_units,
                 ax=ax,
             )
             p.kde_plot(
                 actual_dist,
-                color=color_list[0],
+                color=color_list[1],
                 y_units="ffff",
                 x_units=x_units,
                 ax=ax,
@@ -1002,7 +1009,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
             ## create custom legend
             # create labels
             label_color = {}
-            legend_labels = ["theoretical", "actual"]
+            legend_labels = ["Theoretical", "Actual"]
             # color_list = color_list[::-1]
             for ix, i in enumerate(legend_labels):
                 label_color[i] = color_list[ix]
@@ -1034,7 +1041,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 y_units = "f"
 
             ax = p.make_canvas(
-                title="Actual selection by iteration\n* {0} - {1}".format(estimator, param),
+                title="Selection by iteration\n* {0} - {1}".format(estimator, param),
                 y_shift=0.8,
                 position=122,
                 title_scale=title_scale,

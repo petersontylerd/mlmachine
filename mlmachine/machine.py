@@ -88,6 +88,8 @@ class Machine:
         equal_width_binner,
     )
     from .model.evaluate.summarize import (
+        binary_prediction_summary,
+        regression_prediction_summary,
         regression_results,
         regression_stats,
         top_bayes_optim_models,

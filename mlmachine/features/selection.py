@@ -253,7 +253,10 @@ class FeatureSelector:
             estimator_name =  model.estimator.__name__ + "_feature_importance"
 
             # build dict
-            feature_dict[estimator_name] = model.feature_importances(self.data.values, self.target)
+            try:
+                feature_dict[estimator_name] = model.feature_importances(self.data.values, self.target)
+            except AttributeError:
+                continue
 
         feature_selector_summary = pd.DataFrame(feature_dict, index=self.data.columns)
 
@@ -299,8 +302,12 @@ class FeatureSelector:
 
             # recursive feature selection
             rfe = RFE(estimator=model.model, n_features_to_select=1, step=1, verbose=0)
-            rfe.fit(self.data, self.target)
-            feature_dict[estimator_name] = rfe.ranking_
+
+            try:
+                rfe.fit(self.data, self.target)
+                feature_dict[estimator_name] = rfe.ranking_
+            except (RuntimeError, KeyError):
+                continue
 
         feature_selector_summary = pd.DataFrame(feature_dict, index=self.data.columns)
 
