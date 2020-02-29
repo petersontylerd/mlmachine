@@ -458,10 +458,7 @@ class PandasFeatureUnion(FeatureUnion):
     Documentation:
         Description:
             Modified version of sklearn's FeatureUnion class that outputs a Pandas DataFrame rather
-            than a two dimensional array. Credit to X for this idea. Please take a look at the creator's
-            original article detailing this function:
-
-            https://zablo.net/blog/post/pandas-dataframe-in-scikit-learn-feature-union/index.html
+            than a two dimensional array.
     """
 
     def fit_transform(self, X, y=None, **fit_params):

@@ -80,7 +80,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     print("*" * 55)
 
     print("\n" + "*" * 55)
-    print("Training data evaluation")
+    print("Training data evaluation\n")
 
     ## training panel
     # generate predictions
@@ -110,7 +110,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         X=X_train,
         y_true=y_train,
         display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
-        cmap="viridis",
+        cmap=color_map,
         values_format=".0f",
         ax=ax,
     )
@@ -118,7 +118,6 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     # ROC curve
     ax = p.make_canvas(
         title="ROC curve - training data\nModel: {}\nParameter set: {}".format(
-            "training" if X_valid is None else "validation",
             model.estimator.__name__,
             model.model_iter,
         ),
@@ -142,7 +141,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     # if cross-validation
     if X_valid is not None:
         print("\n" + "*" * 55)
-        print("Validation data evaluation")
+        print("Validation data evaluation\n")
 
         # generate colors
         # color_list = style.color_gen(color_map, num=len(cv))
@@ -175,7 +174,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             X=X_valid,
             y_true=y_valid,
             display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
-            cmap="viridis",
+            cmap=color_map,
             values_format=".0f",
             ax=ax,
         )
@@ -207,7 +206,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
 
     elif isinstance(n_folds, int):
         print("\n" + "*" * 55)
-        print("Cross validation evaluation")
+        print("Cross validation evaluation\n")
 
         # cross_validated roc curve
         cv = list(
@@ -221,7 +220,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
 
         for i, (train_ix, valid_ix) in enumerate(cv):
             print("\n" + "*" * 55)
-            print("CV Fold {}".format(i + 1))
+            print("CV Fold {}\n".format(i + 1))
 
             X_train_cv = X_train.iloc[train_ix]
             y_train_cv = y_train.iloc[train_ix]
@@ -255,7 +254,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 X=X_valid_cv,
                 y_true=y_valid_cv,
                 display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
-                cmap="viridis",
+                cmap=color_map,
                 values_format=".0f",
                 ax=ax,
             )
