@@ -47,7 +47,7 @@ import collections
 import copy
 
 
-class ContextImputer(TransformerMixin, BaseEstimator):
+class GroupbyImputer(TransformerMixin, BaseEstimator):
     """
     Documentation:
         Description:
@@ -56,9 +56,9 @@ class ContextImputer(TransformerMixin, BaseEstimator):
             fill_value identification. imputes training data features, and stores impute values to be used
             on validation and unseen data.
         Parameters:
-            null_col : list
+            null_column : list
                 column with nulls to be imputed.
-            context_col : list
+            groupby_column : list
                 list of one or most columns to group by to add context to null column.
             strategy : string, default='mean'
                 imputing stategy. takes values 'mean', 'median' and 'most_frequent'.
@@ -74,11 +74,9 @@ class ContextImputer(TransformerMixin, BaseEstimator):
                 strategy while also consider select columns as a group by variable.
     """
 
-    def __init__(
-        self, null_col, context_col, strategy="mean", train=True, train_value=None
-    ):
-        self.null_col = null_col
-        self.context_col = context_col
+    def __init__(self, null_column, groupby_column, strategy="mean", train=True, train_value=None):
+        self.null_column = null_column
+        self.groupby_column = groupby_column
         self.strategy = strategy
         self.train = train
         self.train_value = train_value
@@ -86,37 +84,46 @@ class ContextImputer(TransformerMixin, BaseEstimator):
     def fit(self, X, y=None):
         if self.strategy == "mean":
             self.train_value = (
-                X[X[self.null_col].notnull()]
-                .groupby(self.context_col)
-                .mean()[self.null_col]
+                X[X[self.null_column].notnull()]
+                .groupby(self.groupby_column)
+                .mean()[self.null_column]
             )
+            self.overall = X[X[self.null_column].notnull()][self.null_column].mean()
+
         elif self.strategy == "median":
             self.train_value = (
-                X[X[self.null_col].notnull()]
-                .groupby(self.context_col)
-                .median()[self.null_col]
+                X[X[self.null_column].notnull()]
+                .groupby(self.groupby_column)
+                .median()[self.null_column]
             )
+            self.overall = X[X[self.null_column].notnull()][self.null_column].median()
+            self.overall = X[X[self.null_column].notnull()][self.null_column].median()
         elif self.strategy == "most_frequent":
             self.train_value = (
-                X[X[self.null_col].notnull()]
-                .groupby(self.context_col)[self.null_col]
+                X[X[self.null_column].notnull()]
+                .groupby(self.groupby_column)[self.null_column]
                 .agg(lambda X: X.value_counts().index[0])
             )
+            self.overall = X[X[self.null_column].notnull()][self.null_column].mode()[0]
 
         self.train_value = self.train_value.reset_index()
+
         return self
 
     def transform(self, X):
         # impute missing values based on train_value
-        if isinstance(self.context_col, str):
-            X[self.null_col] = np.where(
-                X[self.null_col].isnull(),
-                X[self.context_col].map(
-                    self.train_value.set_index(self.context_col)[self.null_col]
+        if isinstance(self.groupby_column, str):
+            X[self.null_column] = np.where(
+                X[self.null_column].isnull(),
+                X[self.groupby_column].map(
+                    self.train_value.set_index(self.groupby_column)[self.null_column]
                 ),
-                X[self.null_col],
+                X[self.null_column],
             )
-        return X[self.null_col]
+
+            X[self.null_column] = X[self.null_column].fillna(value=self.overall)
+
+        return X[self.null_column]
 
 class DataFrameSelector(BaseEstimator, TransformerMixin):
     """
@@ -848,7 +855,7 @@ def compare_train_valid_levels(self, train_data, validation_data):
     if counter == 0:
         print("All levels in all category columns present in both datasets.")
 
-def missing_col_compare(self, train_data, validation_data):
+def missing_col_compare(self, validation_data, train_data=None):
     """
     Documentation:
         Description:
@@ -856,11 +863,16 @@ def missing_col_compare(self, train_data, validation_data):
             to the columns that contain missing data in the validation dataset. prints
             a summary of the disjunction.
         Parameters:
-            train_data : Pandas DataFrame
-                Pandas DataFrame containing training data.
             validation_data : Pandas DataFrame
                 Pandas DataFrame containing validation data.
+            train_data : Pandas DataFrame, default=None
+                Pandas DataFrame containing training data. If no value is passed, method
+                will default to using the objects data attribute.
     """
+    # use data/target provided during instantiation if left unspecified
+    if train_data is None:
+        train_data = self.data
+
     train_missing = train_data.isnull().sum()
     train_missing = train_missing[train_missing > 0].index
 

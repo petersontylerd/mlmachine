@@ -64,7 +64,7 @@ class Machine:
         eda_transform_log1,
     )
     from .features.preprocessing import (
-        ContextImputer,
+        GroupbyImputer,
         DataFrameSelector,
         DualTransformer,
         KFoldSelectEncoder,
