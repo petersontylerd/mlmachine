@@ -576,7 +576,7 @@ class PandasFeatureUnion(FeatureUnion):
 
         return Xs
 
-class KFoldSelectEncoder(BaseEstimator, TransformerMixin):
+class KFoldEncoder(BaseEstimator, TransformerMixin):
     def __init__(self, target, cv, encoder):
         self.target = target
         self.cv = cv
@@ -660,9 +660,10 @@ class DualTransformer(TransformerMixin, BaseEstimator):
     """
     Documentation:
         Description:
-            performs yeo-johnson transformation on all specified feature. also performs box_cox transformation. if
-            the minimum value in a feature is 0, box_cox + 1 transformation is performed. if minimum value is greater
-            than 0, standard box_cox transformation is performed. each transformation process automatically determines
+            performs yeo-johnson transformation on all specified features. also performs Box-Cox transformation. if
+            the minimum value in a feature is 0, Box-Cox + 1 transformation is performed. if the minimum value in a
+            is less than 0, Box-Cox + 1 + the minimum value is performed. if the minimum value is greaterthan 0,
+            standard Box-Cox transformation is performed. each transformation process automatically determines
             the optimal lambda value. these values are stored for transformation of validation data.
 
             note - this method adds additional columns rather than updating existing columns inplace.
@@ -670,10 +671,10 @@ class DualTransformer(TransformerMixin, BaseEstimator):
             yeojohnson : bool, default=True
                 conditional controls whether yeo-johnson transformation is applied to input data.
             boxcox : bool, default=True
-                conditional controls whether box_cox transformation is applied to input data.
+                conditional controls whether Box-Cox transformation is applied to input data.
         Returns:
             X : array
-                yeo-johnson, and potentially box_cox (or box_cox + 1) transformed input data.
+                yeo-johnson, and potentially Box-Cox (or Box-Cox + 1) transformed input data.
     """
 
     def __init__(self, yeojohnson=True, boxcox=True):
@@ -696,21 +697,26 @@ class DualTransformer(TransformerMixin, BaseEstimator):
             for ix, col in enumerate(X.columns):
                 self.yj_lambdas_dict_[col] = yj_lambdas[ix]
 
-        ## box_cox
+        ## Box-Cox
         if self.boxcox:
 
-            self.bc_p1_lambdas_dict_ = {}
             self.bc_lambdas_dict_ = {}
+            self.bc_zero_lambdas_dict_ = {}
+            self.bc_neg_lambdas_dict_ = {}
 
             for col in X.columns:
-                # if minimum feature value is 0, do box_cox + 1
-                if np.min(X[col]) == 0:
+                # if minimum feature value is 0, do Box-Cox + 1
+                feature_minimum = np.min(X[col].values)
+                if feature_minimum == 0:
                     _, lmbda = stats.boxcox(X[col].values + 1, lmbda=None)
-                    self.bc_p1_lambdas_dict_[col] = lmbda
-                # otherwise do standard box_cox
-                elif np.min(X[col]) > 0:
+                    self.bc_zero_lambdas_dict_[col] = lmbda
+                # otherwise do standard Box-Cox
+                elif feature_minimum > 0:
                     _, lmbda = stats.boxcox(X[col].values, lmbda=None)
                     self.bc_lambdas_dict_[col] = lmbda
+                else:
+                    _, lmbda = stats.boxcox(X[col].values + feature_minimum + 1, lmbda=None)
+                    self.bc_neg_lambdas_dict_[col] = lmbda
         return self
 
     def transform(self, X):
@@ -721,11 +727,16 @@ class DualTransformer(TransformerMixin, BaseEstimator):
                     X[col].values, lmbda=self.yj_lambdas_dict_[col]
                 )
 
-        # box_cox
+        # Box-Cox
         if self.boxcox:
-            for col in self.bc_p1_lambdas_dict_.keys():
+            for col in self.bc_zero_lambdas_dict_.keys():
                 X[col + "BoxCox"] = stats.boxcox(
-                    X[col].values + 1, lmbda=self.bc_p1_lambdas_dict_[col]
+                    X[col].values + 1, lmbda=self.bc_zero_lambdas_dict_[col]
+                )
+
+            for col in self.bc_neg_lambdas_dict_.keys():
+                X[col + "BoxCox"] = stats.boxcox(
+                    X[col].values + np.min(X[col].values) + 1, lmbda=self.bc_neg_lambdas_dict_[col]
                 )
 
             for col in self.bc_lambdas_dict_.keys():

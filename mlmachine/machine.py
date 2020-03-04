@@ -67,7 +67,7 @@ class Machine:
         GroupbyImputer,
         DataFrameSelector,
         DualTransformer,
-        KFoldSelectEncoder,
+        KFoldEncoder,
         PandasFeatureUnion,
         PandasTransformer,
         unique_category_levels,
