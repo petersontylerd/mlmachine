@@ -355,11 +355,11 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
 
     def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
         self.bayes_optim_summary = bayes_optim_summary
-        self.estimator = estimator
+        self.estimator_name = estimator
         self.model_iter = model_iter
         self.n_jobs = n_jobs
         self.params = self.bayes_optim_summary[
-            (self.bayes_optim_summary["estimator"] == self.estimator)
+            (self.bayes_optim_summary["estimator"] == self.estimator_name)
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
 
@@ -367,11 +367,11 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator, str):
-            self.estimator = eval(self.estimator)
+        if isinstance(self.estimator_name, str):
+            self.estimator_name = eval(self.estimator_name)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator).args
+        estimator_args = inspect.getfullargspec(self.estimator_name).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -380,22 +380,22 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
             self.params["n_jobs"] = self.n_jobs
 
         # instantiate model
-        self.model = self.estimator(**self.params)
+        self.custom_model = self.estimator_name(**self.params)
 
     def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
+        self.custom_model.fit(X_train, y_train)
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.custom_model.predict(x)
 
     def predict_proba(self, x):
-        return self.model.predict_proba(x)
+        return self.custom_model.predict_proba(x)
 
     def fit(self, x, y):
-        return self.model.fit(x, y)
+        return self.custom_model.fit(x, y)
 
-    def feature_importances(self, x, y):
-        return self.model.fit(x, y).feature_importances_
+    def feature_importances_(self, x, y):
+        return self.custom_model.fit(x, y).feature_importances_
 
 class BayesOptimRegressorBuilder(RegressorMixin):
     """
@@ -423,11 +423,11 @@ class BayesOptimRegressorBuilder(RegressorMixin):
 
     def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
         self.bayes_optim_summary = bayes_optim_summary
-        self.estimator = estimator
+        self.estimator_name = estimator
         self.model_iter = model_iter
         self.n_jobs = n_jobs
         self.params = self.bayes_optim_summary[
-            (self.bayes_optim_summary["estimator"] == self.estimator)
+            (self.bayes_optim_summary["estimator"] == self.estimator_name)
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
 
@@ -435,11 +435,11 @@ class BayesOptimRegressorBuilder(RegressorMixin):
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator, str):
-            self.estimator = eval(self.estimator)
+        if isinstance(self.estimator_name, str):
+            self.estimator_name = eval(self.estimator_name)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator).args
+        estimator_args = inspect.getfullargspec(self.estimator_name).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -448,22 +448,22 @@ class BayesOptimRegressorBuilder(RegressorMixin):
             self.params["n_jobs"] = self.n_jobs
 
         # instantiate model
-        self.model = self.estimator(**self.params)
+        self.custom_model = self.estimator_name(**self.params)
 
     def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
+        self.custom_model.fit(X_train, y_train)
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.custom_model.predict(x)
 
     def predict_proba(self, x):
-        return self.model.predict_proba(x)
+        return self.custom_model.predict_proba(x)
 
     def fit(self, x, y):
-        return self.model.fit(x, y)
+        return self.custom_model.fit(x, y)
 
-    def feature_importances(self, x, y):
-        return self.model.fit(x, y).feature_importances_
+    def feature_importances_(self, x, y):
+        return self.custom_model.fit(x, y).feature_importances_
 
 class BayesOptimModelBuilder(BaseEstimator):
     """
@@ -491,11 +491,11 @@ class BayesOptimModelBuilder(BaseEstimator):
 
     def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
         self.bayes_optim_summary = bayes_optim_summary
-        self.estimator = estimator
+        self.estimator_name = estimator
         self.model_iter = model_iter
         self.n_jobs = n_jobs
         self.params = self.bayes_optim_summary[
-            (self.bayes_optim_summary["estimator"] == self.estimator)
+            (self.bayes_optim_summary["estimator"] == self.estimator_name)
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
         self._estimator_type = "classifier"
@@ -505,11 +505,11 @@ class BayesOptimModelBuilder(BaseEstimator):
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator, str):
-            self.estimator = eval(self.estimator)
+        if isinstance(self.estimator_name, str):
+            self.estimator_name = eval(self.estimator_name)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator).args
+        estimator_args = inspect.getfullargspec(self.estimator_name).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -518,22 +518,22 @@ class BayesOptimModelBuilder(BaseEstimator):
             self.params["n_jobs"] = self.n_jobs
 
         # instantiate model
-        self.model = self.estimator(**self.params)
+        self.custom_model = self.estimator_name(**self.params)
 
     def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
+        self.custom_model.fit(X_train, y_train)
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.custom_model.predict(x)
 
     def predict_proba(self, x):
-        return self.model.predict_proba(x)
+        return self.custom_model.predict_proba(x)
 
     def fit(self, x, y):
-        return self.model.fit(x, y)
+        return self.custom_model.fit(x, y)
 
-    def feature_importances(self, x, y):
-        return self.model.fit(x, y).feature_importances_
+    def feature_importances_(self, x, y):
+        return self.custom_model.fit(x, y).feature_importances_
 
 class BasicRegressorBuilder(RegressorMixin):
     """
@@ -558,18 +558,17 @@ class BasicRegressorBuilder(RegressorMixin):
 
     def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
 
-        self.estimator = estimator
+        self.estimator_name = estimator
         self.params = {} if params is None else params
         self.n_jobs = n_jobs
         self.random_state = random_state
-        self._estimator_type = "classifier"
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator, str):
-            self.estimator = eval(self.estimator)
+        if isinstance(self.estimator_name, str):
+            self.estimator_name = eval(self.estimator_name)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator).args
+        estimator_args = inspect.getfullargspec(self.estimator_name).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -581,22 +580,22 @@ class BasicRegressorBuilder(RegressorMixin):
             self.params["random_state"] = self.random_state
 
         # instantiate model
-        self.model = self.estimator(**self.params)
+        self.custom_model = self.estimator_name(**self.params)
 
     def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
+        self.custom_model.fit(X_train, y_train)
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.custom_model.predict(x)
 
     def predict_proba(self, x):
-        return self.model.predict_proba(x)
+        return self.custom_model.predict_proba(x)
 
     def fit(self, x, y):
-        return self.model.fit(x, y)
+        return self.custom_model.fit(x, y)
 
-    def feature_importances(self, x, y):
-        return self.model.fit(x, y).feature_importances_
+    def feature_importances_(self, x, y):
+        return self.custom_model.fit(x, y).feature_importances_
 
 class BasicClassifierBuilder(ClassifierMixin):
     """
@@ -621,18 +620,17 @@ class BasicClassifierBuilder(ClassifierMixin):
 
     def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
 
-        self.estimator = estimator
+        self.estimator_name = estimator
         self.params = {} if params is None else params
         self.n_jobs = n_jobs
         self.random_state = random_state
-        self._estimator_type = "classifier"
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator, str):
-            self.estimator = eval(self.estimator)
+        if isinstance(self.estimator_name, str):
+            self.estimator_name = eval(self.estimator_name)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator).args
+        estimator_args = inspect.getfullargspec(self.estimator_name).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -644,22 +642,22 @@ class BasicClassifierBuilder(ClassifierMixin):
             self.params["random_state"] = self.random_state
 
         # instantiate model
-        self.model = self.estimator(**self.params)
+        self.custom_model = self.estimator_name(**self.params)
 
     def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
+        self.custom_model.fit(X_train, y_train)
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.custom_model.predict(x)
 
     def predict_proba(self, x):
-        return self.model.predict_proba(x)
+        return self.custom_model.predict_proba(x)
 
     def fit(self, x, y):
-        return self.model.fit(x, y)
+        return self.custom_model.fit(x, y)
 
-    def feature_importances(self, x, y):
-        return self.model.fit(x, y).feature_importances_
+    def feature_importances_(self, x, y):
+        return self.custom_model.fit(x, y).feature_importances_
 
 class BasicModelBuilder(BaseEstimator):
     """
@@ -684,18 +682,17 @@ class BasicModelBuilder(BaseEstimator):
 
     def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
 
-        self.estimator = estimator
+        self.estimator_name = estimator
         self.params = {} if params is None else params
         self.n_jobs = n_jobs
         self.random_state = random_state
-        self._estimator_type = "classifier"
 
-        # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator, str):
-            self.estimator = eval(self.estimator)
+        # convert estimator argument to sklearn api object if estimator passed as str
+        if isinstance(self.estimator_name, str):
+            self.estimator_name = eval(self.estimator_name)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator).args
+        estimator_args = inspect.getfullargspec(self.estimator_name).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -707,22 +704,22 @@ class BasicModelBuilder(BaseEstimator):
             self.params["random_state"] = self.random_state
 
         # instantiate model
-        self.model = self.estimator(**self.params)
+        self.custom_model = self.estimator_name(**self.params)
 
     def train(self, X_train, y_train):
-        self.model.fit(X_train, y_train)
+        self.custom_model.fit(X_train, y_train)
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.custom_model.predict(x)
 
     def predict_proba(self, x):
-        return self.model.predict_proba(x)
+        return self.custom_model.predict_proba(x)
 
     def fit(self, x, y):
-        return self.model.fit(x, y)
+        return self.custom_model.fit(x, y)
 
-    def feature_importances(self, x, y):
-        return self.model.fit(x, y).feature_importances_
+    def feature_importances_(self, x, y):
+        return self.custom_model.fit(x, y).feature_importances_
 
 def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     """

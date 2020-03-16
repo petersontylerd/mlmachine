@@ -715,7 +715,7 @@ class DualTransformer(TransformerMixin, BaseEstimator):
                     _, lmbda = stats.boxcox(X[col].values, lmbda=None)
                     self.bc_lambdas_dict_[col] = lmbda
                 else:
-                    _, lmbda = stats.boxcox(X[col].values + feature_minimum + 1, lmbda=None)
+                    _, lmbda = stats.boxcox(X[col].values + np.abs(feature_minimum) + 1, lmbda=None)
                     self.bc_neg_lambdas_dict_[col] = lmbda
         return self
 
@@ -723,28 +723,36 @@ class DualTransformer(TransformerMixin, BaseEstimator):
         # yeo-johnson
         if self.yeojohnson:
             for col in self.yj_lambdas_dict_.keys():
-                X[col + "YeoJohnson"] = stats.yeojohnson(
+                X[col + "_YeoJohnson"] = stats.yeojohnson(
                     X[col].values, lmbda=self.yj_lambdas_dict_[col]
                 )
 
         # Box-Cox
         if self.boxcox:
             for col in self.bc_zero_lambdas_dict_.keys():
-                X[col + "BoxCox"] = stats.boxcox(
-                    X[col].values + 1, lmbda=self.bc_zero_lambdas_dict_[col]
-                )
+                try:
+                    X[col + "_BoxCox"] = stats.boxcox(
+                        X[col].values + 1, lmbda=self.bc_zero_lambdas_dict_[col]
+                    )
+                except ValueError:
+                    X[col + "_BoxCox"] = 0.
 
             for col in self.bc_neg_lambdas_dict_.keys():
-                X[col + "BoxCox"] = stats.boxcox(
-                    X[col].values + np.min(X[col].values) + 1, lmbda=self.bc_neg_lambdas_dict_[col]
-                )
+                try:
+                    X[col + "_BoxCox"] = stats.boxcox(
+                        X[col].values + np.abs(np.min(X[col].values)) + 1, lmbda=self.bc_neg_lambdas_dict_[col]
+                    )
+                except ValueError:
+                    X[col + "_BoxCox"] = 0.
 
             for col in self.bc_lambdas_dict_.keys():
-                X[col + "BoxCox"] = stats.boxcox(
-                    X[col].values, lmbda=self.bc_lambdas_dict_[col]
-                )
+                try:
+                    X[col + "_BoxCox"] = stats.boxcox(
+                        X[col].values, lmbda=self.bc_lambdas_dict_[col]
+                    )
+                except ValueError:
+                    X[col + "_BoxCox"] = 0.
         return X
-        # return X.drop(self.original_columns, axis=1)
 
 def skew_summary(self, data=None, columns=None):
     """
@@ -895,7 +903,6 @@ def missing_col_compare(self, validation_data, train_data=None):
     print("")
     print("Feature has missing values in training data, not validation data.")
     print(set(train_missing) - set(validation_missing))
-
 
 class PreserveMetaData(pd.DataFrame):
 

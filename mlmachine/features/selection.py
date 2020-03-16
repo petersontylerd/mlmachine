@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 
+import abc
+import inspect
 from time import gmtime, strftime
 
 import numpy as np
@@ -21,7 +23,6 @@ from sklearn.model_selection import (
     RandomizedSearchCV,
     cross_validate,
 )
-
 from sklearn.ensemble import (
     RandomForestClassifier,
     GradientBoostingClassifier,
@@ -47,6 +48,9 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.exceptions import NotFittedError
+from sklearn.base import clone
+from sklearn.metrics import get_scorer
 
 from xgboost import XGBClassifier, XGBRegressor
 from lightgbm import LGBMClassifier, LGBMRegressor
@@ -55,6 +59,7 @@ import catboost
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
+from mlxtend.feature_selection import SequentialFeatureSelector
 
 from ..model.tune.bayesian_optim_search import BasicModelBuilder
 
@@ -87,13 +92,22 @@ class FeatureSelector:
         self.estimators = estimators
         self.classification = classification
 
-    def feature_selector_suite(self, rank=False, add_stats=False, n_jobs=1, save_to_csv=False):
+    def feature_selector_suite(self, sequential_scoring=None, sequential_n_folds=0, rank=False, add_stats=False,
+                                n_jobs=1, save_to_csv=False, run_variance=True, run_importance=True, run_rfe=True,
+                                run_corr=True, run_f_score=True, run_sfs=True, run_sbs=True):
         """
         Documentation:
             Description:
                 run all feature selections processes and aggregate results. calculate summary
                 statistics on results.
             Parameters:
+                sequential_scoring : str or list, default=None
+                    scoring metric for sequential feature selector algorithms. if list is provided,
+                    algorithm is run for each scoring metric. If None, accuracy is used for classifiers
+                    and r2 is used for regressors.
+                sequential_n_folds : int, default=0
+                    number of folds to use in cross-validation procedure for sequential feature selector
+                    algorithms. If 0 is passed, no cross-validation is performed.
                 rank : bool, default=False
                     conditional controlling whether to overwrite values with rank of values.
                 add_stats : bool, default=True
@@ -107,18 +121,49 @@ class FeatureSelector:
                     number of works to deploy upon execution, if applicable. if estimator does not
                     have an n_jobs parameter, this is ignored.
                 save_to_csv : bool, default=True
-                    conditional controlling whethor or not the feature selection summary results
+                    conditional controlling whether or not the feature selection summary results
                     are saved to a csv file.
+                run_variance : bool, default=True
+                    conditional controlling whether or not the variance feature selection method
+                    is executed.
+                run_importance : bool, default=True
+                    conditional controlling whether or not the feature importance feature selection method
+                    is executed.
+                run_rfe : bool, default=True
+                    conditional controlling whether or not the recursive feature elimination feature selection
+                    method is executed.
+                run_corr : bool, default=True
+                    conditional controlling whether or not the correlation to target feature selection
+                    method is executed.
+                run_f_score : bool, default=True
+                    conditional controlling whether or not the F-score feature selection
+                    method is executed.
+                run_sfs : bool, default=True
+                    conditional controlling whether or not the sequential forward selection feature selection
+                    method is executed.
+                run_sbs : bool, default=True
+                    conditional controlling whether or not the sequential backward selection feature selection
+                    method is executed.
         """
         # run individual top feature processes
-        self.results_variance = self.feature_selector_variance(rank=rank)
-        self.results_importance = self.feature_selector_importance(rank=rank, n_jobs=n_jobs)
-        self.results_rfe = self.feature_selector_rfe(n_jobs=n_jobs)
-        self.results_corr = self.feature_selector_corr(rank=rank)
+        self.results_variance = self.feature_selector_variance(rank=rank) if run_variance else None
+        self.results_importance = self.feature_selector_importance(rank=rank, n_jobs=n_jobs) if run_importance else None
+        self.results_rfe = self.feature_selector_rfe(n_jobs=n_jobs) if run_rfe else None
+        self.results_forward = self.feature_selector_forward_sequential(
+                                                            n_jobs=n_jobs,
+                                                            scoring=sequential_scoring,
+                                                            n_folds=sequential_n_folds,
+                                                        ) if run_sfs else None
+        self.results_backward = self.feature_selector_backward_sequential(
+                                                            n_jobs=n_jobs,
+                                                            scoring=sequential_scoring,
+                                                            n_folds=sequential_n_folds,
+                                                        ) if run_sbs else None
+        self.results_corr = self.feature_selector_corr(rank=rank) if run_corr else None
         if self.classification:
-            self.results_f_score = self.feature_selector_f_score_class(rank=rank)
+            self.results_f_score = self.feature_selector_f_score_class(rank=rank) if run_f_score else None
         else:
-            self.results_f_score = self.feature_selector_f_score_reg(rank=rank)
+            self.results_f_score = self.feature_selector_f_score_reg(rank=rank) if run_f_score else None
 
         # combine results into single summary table
         results = [
@@ -127,7 +172,13 @@ class FeatureSelector:
             self.results_corr,
             self.results_rfe,
             self.results_importance,
+            self.results_forward,
+            self.results_backward,
         ]
+
+        # remove any None values
+        results = [result for result in results if result is not None]
+
         feature_selector_summary = pd.concat(results, join="inner", axis=1)
 
         if add_stats:
@@ -166,6 +217,7 @@ class FeatureSelector:
         # overwrite values with rank
         if rank:
             feature_selector_summary = self.apply_ranks(feature_selector_summary)
+
         return feature_selector_summary
 
     def feature_selector_f_score_reg(self, rank=False):
@@ -192,6 +244,7 @@ class FeatureSelector:
         # overwrite values with rank
         if rank:
             feature_selector_summary = self.apply_ranks(feature_selector_summary)
+
         return feature_selector_summary
 
     def feature_selector_variance(self, rank=False):
@@ -242,19 +295,16 @@ class FeatureSelector:
         #
         feature_dict = {}
         for estimator in self.estimators:
-            model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
 
-            # estimator name
-            if model.estimator.__module__.split(".")[1] == "sklearn":
-                estimator_module = model.estimator.__module__.split(".")[0]
-            else:
-                estimator_module = model.estimator.__module__.split(".")[1]
-
-            estimator_name =  model.estimator.__name__ + "_feature_importance"
+            model, estimator_name = self.model_type_check(estimator=estimator, n_jobs=n_jobs)
+            estimator_name =  estimator_name + "_feature_importance"
 
             # build dict
             try:
-                feature_dict[estimator_name] = model.feature_importances(self.data.values, self.target)
+                feature_dict[estimator_name] = model.feature_importances_(self.data.values, self.target)
+            except NotFittedError:
+                model.fit(self.data.values, self.target)
+                feature_dict[estimator_name] = model.feature_importances_
             except AttributeError:
                 continue
 
@@ -290,18 +340,16 @@ class FeatureSelector:
         #
         feature_dict = {}
         for estimator in self.estimators:
-            model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
-
-            # estimator name
-            if model.estimator.__module__.split(".")[1] == "sklearn":
-                estimator_module = model.estimator.__module__.split(".")[0]
-            else:
-                estimator_module = model.estimator.__module__.split(".")[1]
-
-            estimator_name =  model.estimator.__name__ + "_rfe_rank"
+            model, estimator_name = self.model_type_check(estimator=estimator, n_jobs=n_jobs)
+            estimator_name =  estimator_name + "_rfe_rank"
 
             # recursive feature selection
-            rfe = RFE(estimator=model.model, n_features_to_select=1, step=1, verbose=0)
+            rfe = RFE(
+                    estimator=model.custom_model if hasattr(model, "custom_model") else model,
+                    n_features_to_select=1,
+                    step=1,
+                    verbose=0
+                )
 
             try:
                 rfe.fit(self.data, self.target)
@@ -315,6 +363,166 @@ class FeatureSelector:
         if add_stats:
             feature_selector_summary = self.feature_selector_stats(feature_selector_summary)
 
+        return feature_selector_summary
+
+    def feature_selector_backward_sequential(self, scoring, n_folds=0, add_stats=False, n_jobs=1):
+
+        """
+        Documentation:
+            Description:
+                for each estimator, recursively remove features one at a time, capturing
+                the step in which each feature is removed.
+            Parameters:
+                scoring : str or list
+                    scoring metric for sequential feature selector algorithm. if list is provided,
+                    algorithm is run for each scoring metric
+                n_folds : int, default=0
+                    number of folds to use in cross-validation procedure. If 0 is passed,
+                    no cross-validation is performed.
+                add_stats : bool, default=True
+                    add row-wise summary statistics for feature importance ranking columns.
+                    requires columns to be ranked in ascending or descending order, which
+                    enforces consistent directionality in assigning importance, and normalize
+                    the scale of the feature importance values. Ignored if one RFE rank
+                    column is provided.
+                n_jobs : int, default=1
+                    number of works to deploy upon execution, if applicable. if estimator does not
+                    have an n_jobs parameter, this is ignored.
+        """
+        # if scorers are specified using a list of strings, convert to a list of sklearn scorers
+        if isinstance(scoring, list):
+            if all(isinstance(metric, str) for metric in scoring):
+                scoring = [get_scorer(metric) for metric in scoring]
+        # if scorer is specified as a single string, convert to a list containing the associated sklearn scorer
+        elif isinstance(scoring, str):
+            scoring = [get_scorer(scoring)]
+
+        # iterate through estimators and scoring metrics
+        results = []
+        for estimator in self.estimators:
+            for metric in scoring:
+
+                model, estimator_name = self.model_type_check(estimator=estimator, n_jobs=n_jobs)
+
+                try:
+                    estimator_name =  estimator_name + "_SBS_rank_" + metric.__name__
+                except AttributeError:
+                    estimator_name =  estimator_name + "_SBS_rank_" + metric._score_func.__name__
+
+                #
+                selector = SequentialFeatureSelector(
+                            model,
+                            k_features=1,
+                            forward=False,
+                            floating=False,
+                            verbose=0,
+                            scoring=metric,
+                            cv=n_folds,
+                            clone_estimator=False,
+                    )
+                selector = selector.fit(self.data, self.target)
+
+                #
+                feature_sets = {}
+                for index in list(selector.subsets_.keys()):
+                    feature_sets[index] = set(selector.subsets_[index]["feature_names"])
+
+                #
+                feature_selector_estimator_summary = pd.DataFrame(columns=["feature", estimator_name])
+
+                #
+                for n_features, feature_set in feature_sets.items():
+                    try:
+                        selected_feature = list(feature_sets[n_features] - feature_sets[n_features - 1])
+                    except:
+                        selected_feature = list(feature_sets[n_features])
+
+                    feature_selector_estimator_summary.loc[len(feature_selector_estimator_summary)] = [selected_feature[0], n_features]
+                feature_selector_estimator_summary = feature_selector_estimator_summary.set_index("feature")
+
+                results.append(feature_selector_estimator_summary)
+
+
+        feature_selector_summary = pd.concat(results, join="inner", axis=1)
+        return feature_selector_summary
+
+    def feature_selector_forward_sequential(self, scoring, n_folds=0, add_stats=False, n_jobs=1):
+
+        """
+        Documentation:
+            Description:
+                for each estimator, recursively remove features one at a time, capturing
+                the step in which each feature is removed.
+            Parameters:
+                scoring : str or list
+                    scoring metric for sequential feature selector algorithm. if list is provided,
+                    algorithm is run for each scoring metric
+                n_folds : int, default=0
+                    number of folds to use in cross-validation procedure. If 0 is passed,
+                    no cross-validation is performed.
+                add_stats : bool, default=True
+                    add row-wise summary statistics for feature importance ranking columns.
+                    requires columns to be ranked in ascending or descending order, which
+                    enforces consistent directionality in assigning importance, and normalize
+                    the scale of the feature importance values. Ignored if one RFE rank
+                    column is provided.
+                n_jobs : int, default=1
+                    number of works to deploy upon execution, if applicable. if estimator does not
+                    have an n_jobs parameter, this is ignored.
+        """
+        # if scorers are specified using a list of strings, convert to a list of sklearn scorers
+        if isinstance(scoring, list):
+            if all(isinstance(metric, str) for metric in scoring):
+                scoring = [get_scorer(metric) for metric in scoring]
+        # if scorer is specified as a single string, convert to a list containing the associated sklearn scorer
+        elif isinstance(scoring, str):
+            scoring = [get_scorer(scoring)]
+
+        # iterate through estimators and scoring metrics
+        results = []
+        for estimator in self.estimators:
+            for metric in scoring:
+                model, estimator_name = self.model_type_check(estimator=estimator, n_jobs=n_jobs)
+
+                try:
+                    estimator_name =  estimator_name + "_SFS_rank_" + metric.__name__
+                except AttributeError:
+                    estimator_name =  estimator_name + "_SFS_rank_" + metric._score_func.__name__
+
+                #
+                selector = SequentialFeatureSelector(
+                            model,
+                            k_features=self.data.shape[1],
+                            forward=True,
+                            floating=False,
+                            verbose=0,
+                            scoring=metric,
+                            cv=n_folds,
+                            clone_estimator=False,
+                    )
+                selector = selector.fit(self.data, self.target)
+
+                #
+                feature_sets = {}
+                for index in selector.k_feature_idx_[::-1]:
+                    feature_sets[index + 1] = set(selector.subsets_[index + 1]["feature_names"])
+
+                #
+                feature_selector_estimator_summary = pd.DataFrame(columns=["feature", estimator_name])
+
+                #
+                for n_features, feature_set in feature_sets.items():
+                    try:
+                        selected_feature = list(feature_sets[n_features] - feature_sets[n_features - 1])
+                    except:
+                        selected_feature = list(feature_sets[n_features])
+
+                    feature_selector_estimator_summary.loc[len(feature_selector_estimator_summary)] = [selected_feature[0], n_features]
+                feature_selector_estimator_summary = feature_selector_estimator_summary.set_index("feature")
+
+                results.append(feature_selector_estimator_summary)
+
+        feature_selector_summary = pd.concat(results, join="inner", axis=1)
         return feature_selector_summary
 
     def feature_selector_corr(self, rank=False):
@@ -420,7 +628,7 @@ class FeatureSelector:
         return feature_selector_summary
 
     def feature_selector_cross_val(self, scoring, feature_selector_summary=None, estimators=None,
-                                    n_folds=3, step=1, n_jobs=4, verbose=False, save_to_csv=False):
+                                    n_folds=3, step=1, n_jobs=1, verbose=False, save_to_csv=False):
         """
         Documentation:
             Description:
@@ -439,7 +647,7 @@ class FeatureSelector:
                     number of folds to use in cross validation.
                 step : int, default=1
                     number of features to remove per iteration.
-                n_jobs : int, default=4
+                n_jobs : int, default=1
                     number of works to use when training the model. this parameter will be
                     ignored if the model does not have this parameter.
                 verbose : bool, default=False
@@ -487,8 +695,6 @@ class FeatureSelector:
             if verbose:
                 print(estimator)
 
-            # instantiate default model and create empty DataFrame for capturing scores
-            model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
             cv = pd.DataFrame(
                 columns=[
                     "estimator",
@@ -498,15 +704,7 @@ class FeatureSelector:
                     "features dropped",
                 ]
             )
-
-            # estimator name
-            if model.estimator.__module__.split(".")[1] == "sklearn":
-                estimator_module = model.estimator.__module__.split(".")[0]
-            else:
-                estimator_module = model.estimator.__module__.split(".")[1]
-
-            estimator_class = model.estimator.__name__
-            estimator_name = estimator_class
+            model, estimator_name = self.model_type_check(estimator=estimator, n_jobs=n_jobs)
 
             # iterate through scoring metrics
             for metric in scoring:
@@ -533,7 +731,7 @@ class FeatureSelector:
                         score_transform = metric
 
                     scores = cross_validate(
-                        estimator=model.model,
+                        estimator=model,
                         X=self.data[top],
                         y=self.target,
                         cv=n_folds,
@@ -578,7 +776,7 @@ class FeatureSelector:
         return self.cv_summary
 
     def feature_selector_results_plot(self, scoring, cv_summary=None, feature_selector_summary=None, top_sets=0,
-                                    show_features=False, show_scores=None, marker_on=True, title_scale=0.7,):
+                                    show_features=False, show_scores=None, marker_on=True, title_scale=0.7):
         """
         Documentation:
             Description:
@@ -838,3 +1036,31 @@ class FeatureSelector:
             ][estimator].index
 
         return self.cross_val_features_dict
+
+    def model_type_check(self, estimator, n_jobs):
+
+        #
+        if isinstance(estimator, str):
+            estimator = eval(estimator)
+        #
+        if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
+            model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
+            estimator_name =  model.estimator_name.__name__
+            # model = model.model
+        else:
+            model = clone(estimator)
+            # estimator_name =  model.__class__.__name__ + "_custom"
+            estimator_name =  self.retrieve_variable_name(estimator)
+
+        return model, estimator_name
+
+    def retrieve_variable_name(self, variable):
+        """
+        Gets the name of var. Does it from the out most frame inner-wards.
+        :param variable: variable to get name from.
+        :return: string
+        """
+        for fi in reversed(inspect.stack()):
+            names = [var_name for var_name, var_val in fi.frame.f_locals.items() if var_val is variable]
+            if len(names) > 0:
+                return names[0]
