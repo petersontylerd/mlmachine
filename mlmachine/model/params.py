@@ -20,7 +20,7 @@ all_space = {
     },
     "LogisticRegression": {
         "C": hp.loguniform("C", np.log(0.001), np.log(0.2)),
-        "penalty": hp.choice("penalty", ["l1", "l2"]),
+        "penalty": hp.choice("penalty", ["l2"]),
     },
     "XGBClassifier": {
         "colsample_bytree": hp.uniform("colsample_bytree", 0.5, 1.0),

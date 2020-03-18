@@ -812,7 +812,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
             & (estimator_summary["iter_loss"] < outlier_control * median)
         ]
 
-    color_list = style.color_gen(name=color_map, num=2)
+    color_list = style.color_gen(name=color_map, num=3)
 
     # create regression plot
     p = PrettierPlot(chart_scale=chart_scale)
@@ -829,13 +829,15 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
         y_units="ffff",
         line_color=color_list[0],
         dot_color=color_list[1],
-        alpha=1.0,
+        alpha=0.6,
+        line_width=0.4,
+        dot_size=10.0,
         ax=ax,
     )
     plt.show()
 
-def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_iter, chart_scale=17,
-                    color_map="viridis", title_scale=1.0, show_single_str_params=False):
+def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_iter, chart_scale=15,
+                    color_map="viridis", title_scale=1.2, show_single_str_params=False):
     """
     Documentation:
         definition:
@@ -892,7 +894,6 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
         theoretical_dist = ["none" if v is None else v for v in theoretical_dist]
         theoretical_dist = np.array(theoretical_dist)
 
-
         # clean up
         actual_dist = estimator_summary[param].tolist()
         actual_dist = ["none" if v is None else v for v in actual_dist]
@@ -913,7 +914,8 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
         # plot distributions for object params
         if any(isinstance(d, str) for d in theoretical_dist):
 
-            color_list = style.color_gen(name=color_map, num=len(actual_iter_df[param].unique()))
+            stripplot_color_list = style.color_gen(name=color_map, num=len(actual_iter_df[param].unique()) + 1)
+            bar_color_list = style.color_gen(name=color_map, num=3)
             unique_vals_theo, unique_counts_theo = np.unique(theoretical_dist, return_counts=True)
 
             if len(unique_vals_theo) > 1 or show_single_str_params:
@@ -927,7 +929,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
 
                 # theoretical plot
                 ax = p.make_canvas(
-                    title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator, param),
+                    title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator_class, param),
                     y_shift=0.8,
                     position=121,
                     title_scale=title_scale,
@@ -935,9 +937,10 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
                 p.facet_cat(
                     df=df,
                     feature="param",
-                    color_map=color_map,
+                    color_map=bar_color_list[:-1],
+                    # color_map=color_map,
                     bbox=(1.0, 1.15),
-                    alpha=0.8,
+                    alpha=1.0,
                     legend_labels=df.columns[1:].values,
                     x_units=None,
                     ax=ax,
@@ -955,9 +958,9 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
                     y=param,
                     data=estimator_summary,
                     jitter=0.3,
-                    alpha=0.5,
+                    alpha=1.0,
                     size=0.7 * chart_scale,
-                    palette=sns.color_palette(color_list),
+                    palette=sns.color_palette(stripplot_color_list[:-1]),
                     ax=ax,
                 ).set(xlabel=None, ylabel=None)
 
@@ -972,7 +975,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
             convert_dict = {"iteration": int, param: float}
 
             actual_iter_df = actual_iter_df.astype(convert_dict)
-            color_list = style.color_gen(name=color_map, num=2)
+            color_list = style.color_gen(name=color_map, num=3)
 
 
             p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
@@ -997,6 +1000,8 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
                 color=color_list[0],
                 y_units="ffff",
                 x_units=x_units,
+                line_width=0.4,
+                bw=0.4,
                 ax=ax,
             )
             p.kde_plot(
@@ -1004,6 +1009,8 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
                 color=color_list[1],
                 y_units="ffff",
                 x_units=x_units,
+                line_width=0.4,
+                bw=0.4,
                 ax=ax,
             )
 
@@ -1016,7 +1023,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
                 label_color[i] = color_list[ix]
 
             # create Patches
-            Patches = [Patch(color=v, label=k, alpha=0.8) for k, v in label_color.items()]
+            Patches = [Patch(color=v, label=k, alpha=1.0) for k, v in label_color.items()]
 
             # draw legend
             leg = plt.legend(
@@ -1054,8 +1061,10 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
                 y_units=y_units,
                 x_units="f",
                 line_color=color_list[0],
+                line_width=0.4,
                 dot_color=color_list[1],
-                alpha=1.0,
+                dot_size=10.0,
+                alpha=0.6,
                 ax=ax
             )
             plt.show()
