@@ -874,7 +874,7 @@ def compare_train_valid_levels(self, train_data, validation_data):
     if counter == 0:
         print("All levels in all category columns present in both datasets.")
 
-def missing_col_compare(self, validation_data, train_data=None):
+def missing_column_compare(self, validation_data, train_data=None):
     """
     Documentation:
         Description:

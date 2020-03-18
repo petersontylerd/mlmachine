@@ -50,7 +50,7 @@ from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone
-from sklearn.metrics import get_scorer
+from sklearn.metrics import get_scorer, make_scorer
 
 from xgboost import XGBClassifier, XGBRegressor
 from lightgbm import LGBMClassifier, LGBMRegressor
@@ -389,13 +389,21 @@ class FeatureSelector:
                     number of works to deploy upon execution, if applicable. if estimator does not
                     have an n_jobs parameter, this is ignored.
         """
-        # if scorers are specified using a list of strings, convert to a list of sklearn scorers
+        # if scorers are specified using a list
         if isinstance(scoring, list):
+            # if strings, convert to a list of sklearn scorers
             if all(isinstance(metric, str) for metric in scoring):
                 scoring = [get_scorer(metric) for metric in scoring]
+            # if list of callables, pass
+            elif all(callable(metric) for metric in scoring):
+                scoring = [make_scorer(metric) for metric in scoring]
+
         # if scorer is specified as a single string, convert to a list containing the associated sklearn scorer
         elif isinstance(scoring, str):
             scoring = [get_scorer(scoring)]
+
+        elif callable(scoring):
+            scoring = [make_scorer(scoring)]
 
         # iterate through estimators and scoring metrics
         results = []
@@ -470,13 +478,21 @@ class FeatureSelector:
                     number of works to deploy upon execution, if applicable. if estimator does not
                     have an n_jobs parameter, this is ignored.
         """
-        # if scorers are specified using a list of strings, convert to a list of sklearn scorers
+        # if scorers are specified using a list
         if isinstance(scoring, list):
+            # if strings, convert to a list of sklearn scorers
             if all(isinstance(metric, str) for metric in scoring):
                 scoring = [get_scorer(metric) for metric in scoring]
+            # if list of callables, pass
+            elif all(callable(metric) for metric in scoring):
+                scoring = [make_scorer(metric) for metric in scoring]
+
         # if scorer is specified as a single string, convert to a list containing the associated sklearn scorer
         elif isinstance(scoring, str):
             scoring = [get_scorer(scoring)]
+
+        elif callable(scoring):
+            scoring = [make_scorer(scoring)]
 
         # iterate through estimators and scoring metrics
         results = []
@@ -636,8 +652,9 @@ class FeatureSelector:
                 of features is reduced by one feature on each pass. the feature removed is the least important
                 feature of the remaining set. calculates both the training and test performance.
             Parameters:
-                scoring : list of strings
-                    list containing strings for one or more performance scoring metrics.
+                scoring : str or list
+                    scoring metric for corss-validation. if list is provided,
+                    algorithm is run for each scoring metric
                 feature_selector_summary : Pandas DataFrame or str, default=None
                     Pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
                     if none, use object's internal attribute specified during instantiation.
@@ -667,6 +684,22 @@ class FeatureSelector:
             raise AttributeError(
                 "no feature_selector_summary detected. execute one of the feature selector methods or load from .csv"
             )
+
+        # if scorers are specified using a list
+        if isinstance(scoring, list):
+            # if strings, convert to a list of sklearn scorers
+            if all(isinstance(metric, str) for metric in scoring):
+                scoring = [get_scorer(metric) for metric in scoring]
+            # if list of callables, pass
+            elif all(callable(metric) for metric in scoring):
+                scoring = [make_scorer(metric) for metric in scoring]
+
+        # if scorer is specified as a single string, convert to a list containing the associated sklearn scorer
+        elif isinstance(scoring, str):
+            scoring = [get_scorer(scoring)]
+
+        elif callable(scoring):
+            scoring = [make_scorer(scoring)]
 
         # add summary stats if needed
         if not "average" in feature_selector_summary.columns:
@@ -731,7 +764,8 @@ class FeatureSelector:
                         score_transform = metric
 
                     scores = cross_validate(
-                        estimator=model,
+                        estimator=model.custom_model if hasattr(model, "custom_model") else model,
+                        # estimator=model,
                         X=self.data[top],
                         y=self.target,
                         cv=n_folds,
@@ -743,21 +777,22 @@ class FeatureSelector:
                     if score_transform == "rmse":
                         training = np.mean(np.sqrt(np.abs(scores["train_score"])))
                         validation = np.mean(np.sqrt(np.abs(scores["test_score"])))
-                        metric = "root_mean_squared_error"
+                        metric_name = "root_mean_squared_error"
                     elif score_transform == "rmsle":
                         training = np.mean(np.sqrt(np.abs(scores["train_score"])))
                         validation = np.mean(np.sqrt(np.abs(scores["test_score"])))
-                        metric = "root_mean_squared_log_error"
+                        metric_name = "root_mean_squared_log_error"
                     else:
                         training = np.mean(scores["train_score"])
                         validation = np.mean(scores["test_score"])
+                        metric_name = metric._score_func.__name__
 
                     # append results
                     cv.loc[row_ix] = [
                         estimator_name,
                         training,
                         validation,
-                        metric,
+                        metric_name,
                         step_increment,
                     ]
                     step_increment += step
@@ -776,7 +811,8 @@ class FeatureSelector:
         return self.cv_summary
 
     def feature_selector_results_plot(self, scoring, cv_summary=None, feature_selector_summary=None, top_sets=0,
-                                    show_features=False, show_scores=None, marker_on=True, title_scale=0.7):
+                                    show_features=False, show_scores=None, marker_on=True, title_scale=0.7,
+                                    chart_scale=15):
         """
         Documentation:
             Description:
@@ -804,6 +840,9 @@ class FeatureSelector:
                 title_scale : float, default=1.0
                     controls the scaling up (higher value) and scaling down (lower value) of the size of
                     the main chart title, the x_axis title and the y_axis title.
+                chart_scale : float or int, default=15
+                    chart proportionality control. determines relative size of figure size, axis labels,
+                    chart title, tick labels, tick marks.
         """
         # load results summary if needed
         if isinstance(feature_selector_summary, str):
@@ -886,7 +925,7 @@ class FeatureSelector:
                 print(features_used)
 
             # create multi_line plot
-            p = PrettierPlot()
+            p = PrettierPlot(chart_scale=chart_scale)
             ax = p.make_canvas(
                 title="{}\nBest validation {} = {}\nFeatures dropped = {}".format(
                     estimator, scoring, score, num_dropped
@@ -1001,27 +1040,50 @@ class FeatureSelector:
         )
         return self.cross_val_features_df
 
-    def create_cross_val_features_dict(self, cross_val_features_df=None):
+    def create_cross_val_features_dict(self, scoring, cv_summary=None, feature_selector_summary=None):
         """
         Documentation:
             Description:
                 for each estimator, visualize the training and validation performance
                 for each feature set.
             Parameters:
-                cross_val_features_df : Pandas DataFrame, default=None
-                    Pandas DataFrame, or str of csv file location, containing summary of features used
-                    in each estimator to achieve best validation score. if none, use object's internal
-                    attribute specified during instantiation.
+                scoring : string
+                    scoring metric to visualize.
+                cv_summary : Pandas DataFrame or str, default=None
+                    Pandas DataFrame, or str of csv file location, containing cross_validation results.
+                    if none, use object's internal attribute specified during instantiation.
+                feature_selector_summary : Pandas DataFrame or str, default=None
+                    Pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
+                    if none, use object's internal attribute specified during instantiation.
         """
+
         # load results summary if needed
-        if isinstance(cross_val_features_df, str):
-            cross_val_features_df = pd.read_csv(cross_val_features_df, index_col=0)
-        elif isinstance(cross_val_features_df, pd.core.frame.DataFrame):
-            cross_val_features_df = cross_val_features_df
-        elif cross_val_features_df is None:
-            raise AttributeError(
-                "no cross_val_features_df detected. either execute method create_cross_val_features_df or load from .csv"
+        if isinstance(feature_selector_summary, str):
+            feature_selector_summary = pd.read_csv(
+                feature_selector_summary, index_col=0
             )
+        elif isinstance(feature_selector_summary, pd.core.frame.DataFrame):
+            feature_selector_summary = feature_selector_summary
+        elif feature_selector_summary is None:
+            raise AttributeError(
+                "no feature_selector_summary detected. either execute method feature_selector_suite or load from .csv"
+            )
+
+        # load cv summary if needed
+        if isinstance(cv_summary, str):
+            cv_summary = pd.read_csv(cv_summary, index_col=0)
+        elif isinstance(cv_summary, pd.core.frame.DataFrame):
+            cv_summary = cv_summary
+        elif cv_summary is None:
+            raise AttributeError(
+                "no cv_summary detected. either execute method feature_selector_suite or load from .csv"
+            )
+
+        cross_val_features_df = self.create_cross_val_features_df(
+                                                scoring=scoring,
+                                                cv_summary=cv_summary,
+                                                feature_selector_summary=feature_selector_summary
+                                            )
 
         # create empty dict with feature names as index
         self.cross_val_features_dict = {}
@@ -1046,20 +1108,14 @@ class FeatureSelector:
         if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
             model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
             estimator_name =  model.estimator_name.__name__
-            # model = model.model
         else:
             model = clone(estimator)
-            # estimator_name =  model.__class__.__name__ + "_custom"
             estimator_name =  self.retrieve_variable_name(estimator)
 
         return model, estimator_name
 
     def retrieve_variable_name(self, variable):
-        """
-        Gets the name of var. Does it from the out most frame inner-wards.
-        :param variable: variable to get name from.
-        :return: string
-        """
+
         for fi in reversed(inspect.stack()):
             names = [var_name for var_name, var_val in fi.frame.f_locals.items() if var_val is variable]
             if len(names) > 0:

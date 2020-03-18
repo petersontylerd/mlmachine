@@ -7,6 +7,8 @@ import warnings
 
 import numpy as np
 import pandas as pd
+pd.options.mode.chained_assignment = None
+
 from pandas.api.types import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -72,7 +74,7 @@ class Machine:
         PandasTransformer,
         unique_category_levels,
         compare_train_valid_levels,
-        missing_col_compare,
+        missing_column_compare,
         missing_summary,
         skew_summary,
     )

@@ -59,7 +59,7 @@ from prettierplot import style
 
 
 # set optimization parameters
-def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs):
+def objective(space, results_file, estimator_class, data, target, scoring, n_folds, n_jobs):
     """
     Documentation:
         Description:
@@ -71,7 +71,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
                 parameter of the model and optimization process draws trial values from the distribution.
             results_file : string
                 file destination for results summary csv.
-            model : string
+            estimator_class : string or sklearn-style class
                 the model to be fit.
             data : array
                 input dataset.
@@ -117,8 +117,10 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
     else:
         score_transform = scoring
 
+    model, estimator_name = model_type_check(estimator=estimator_class, n_jobs=n_jobs, params=space)
+
     cv = cross_val_score(
-        estimator=BasicModelBuilder(eval(model), space, n_jobs=n_jobs),
+        estimator=model.custom_model,
         X=data,
         y=target,
         verbose=False,
@@ -170,7 +172,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
         writer.writerow(
             [
                 ITERATION,
-                model,
+                estimator_name,
                 scoring,
                 loss,
                 mean_score,
@@ -185,7 +187,7 @@ def objective(space, results_file, model, data, target, scoring, n_folds, n_jobs
 
     return {
         "iteration": ITERATION,
-        "estimator": model,
+        "estimator": estimator_name,
         "scoring": scoring,
         "loss": loss,
         "mean_score": mean_score,
@@ -261,20 +263,20 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
         )
 
     # iterate through each model
-    for estimator in all_space.keys():
+    for estimator_class in all_space.keys():
         global ITERATION
         ITERATION = 0
 
         # establish feature space for hyper_parameter search
-        space = all_space[estimator]
+        space = all_space[estimator_class]
 
         # conditionally handle input data
         if isinstance(data, pd.core.frame.DataFrame):
 
-            # filter input data based on estimator / column_subset pairs
+            # filter input data based on estimator_class / column_subset pairs
             if columns is not None:
                 try:
-                    input_data = data[columns[estimator]]
+                    input_data = data[columns[estimator_class]]
                 except KeyError:
                     input_data = data.copy()
 
@@ -304,10 +306,10 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
                 "input target must be either a Pandas Series or a numpy ndarray"
             )
 
-        # override default arguments with next estimator and the cv parameters
+        # override default arguments with next estimator_class and the cv parameters
         objective.__defaults__ = (
             results_file,
-            estimator,
+            estimator_class,
             input_data,
             input_target,
             scoring,
@@ -317,8 +319,8 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
 
         # run optimization
         if show_progressbar:
-            print("#" * 100)
-            print("\nTuning {0}\n".format(estimator))
+            print("\n" + "#" * 100)
+            print("\nTuning {0}\n".format(estimator_class))
 
         best = fmin(
             fn=objective,
@@ -353,13 +355,13 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
                 and feature_importances methods.
     """
 
-    def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
+    def __init__(self, bayes_optim_summary, estimator_class, model_iter, n_jobs=4):
         self.bayes_optim_summary = bayes_optim_summary
-        self.estimator_name = estimator
+        self.estimator_class = estimator_class
         self.model_iter = model_iter
         self.n_jobs = n_jobs
         self.params = self.bayes_optim_summary[
-            (self.bayes_optim_summary["estimator"] == self.estimator_name)
+            (self.bayes_optim_summary["estimator"] == self.estimator_class)
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
 
@@ -367,11 +369,12 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator_name, str):
-            self.estimator_name = eval(self.estimator_name)
+        if isinstance(self.estimator_class, str):
+            self.estimator_name = self.estimator_class
+            self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_name).args
+        estimator_args = inspect.getfullargspec(self.estimator_class).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -380,7 +383,7 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
             self.params["n_jobs"] = self.n_jobs
 
         # instantiate model
-        self.custom_model = self.estimator_name(**self.params)
+        self.custom_model = self.estimator_class(**self.params)
 
     def train(self, X_train, y_train):
         self.custom_model.fit(X_train, y_train)
@@ -421,13 +424,13 @@ class BayesOptimRegressorBuilder(RegressorMixin):
                 and feature_importances methods.
     """
 
-    def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
+    def __init__(self, bayes_optim_summary, estimator_class, model_iter, n_jobs=4):
         self.bayes_optim_summary = bayes_optim_summary
-        self.estimator_name = estimator
+        self.estimator_class = estimator_class
         self.model_iter = model_iter
         self.n_jobs = n_jobs
         self.params = self.bayes_optim_summary[
-            (self.bayes_optim_summary["estimator"] == self.estimator_name)
+            (self.bayes_optim_summary["estimator"] == self.estimator_class)
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
 
@@ -435,11 +438,12 @@ class BayesOptimRegressorBuilder(RegressorMixin):
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator_name, str):
-            self.estimator_name = eval(self.estimator_name)
+        if isinstance(self.estimator_class, str):
+            self.estimator_name = self.estimator_class
+            self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_name).args
+        estimator_args = inspect.getfullargspec(self.estimator_class).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -448,7 +452,7 @@ class BayesOptimRegressorBuilder(RegressorMixin):
             self.params["n_jobs"] = self.n_jobs
 
         # instantiate model
-        self.custom_model = self.estimator_name(**self.params)
+        self.custom_model = self.estimator_class(**self.params)
 
     def train(self, X_train, y_train):
         self.custom_model.fit(X_train, y_train)
@@ -489,13 +493,13 @@ class BayesOptimModelBuilder(BaseEstimator):
                 and feature_importances methods.
     """
 
-    def __init__(self, bayes_optim_summary, estimator, model_iter, n_jobs=4):
+    def __init__(self, bayes_optim_summary, estimator_class, model_iter, n_jobs=4):
         self.bayes_optim_summary = bayes_optim_summary
-        self.estimator_name = estimator
+        self.estimator_class = estimator_class
         self.model_iter = model_iter
         self.n_jobs = n_jobs
         self.params = self.bayes_optim_summary[
-            (self.bayes_optim_summary["estimator"] == self.estimator_name)
+            (self.bayes_optim_summary["estimator"] == self.estimator_class)
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
         self._estimator_type = "classifier"
@@ -505,11 +509,12 @@ class BayesOptimModelBuilder(BaseEstimator):
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator_name, str):
-            self.estimator_name = eval(self.estimator_name)
+        if isinstance(self.estimator_class, str):
+            self.estimator_name = self.estimator_class
+            self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_name).args
+        estimator_args = inspect.getfullargspec(self.estimator_class).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -518,7 +523,7 @@ class BayesOptimModelBuilder(BaseEstimator):
             self.params["n_jobs"] = self.n_jobs
 
         # instantiate model
-        self.custom_model = self.estimator_name(**self.params)
+        self.custom_model = self.estimator_class(**self.params)
 
     def train(self, X_train, y_train):
         self.custom_model.fit(X_train, y_train)
@@ -556,19 +561,20 @@ class BasicRegressorBuilder(RegressorMixin):
                 and feature_importances methods.
     """
 
-    def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
+    def __init__(self, estimator_class, params=None, n_jobs=4, random_state=0):
 
-        self.estimator_name = estimator
+        self.estimator_class = estimator_class
         self.params = {} if params is None else params
         self.n_jobs = n_jobs
         self.random_state = random_state
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator_name, str):
-            self.estimator_name = eval(self.estimator_name)
+        if isinstance(self.estimator_class, str):
+            self.estimator_name = self.estimator_class
+            self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_name).args
+        estimator_args = inspect.getfullargspec(self.estimator_class).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -580,7 +586,7 @@ class BasicRegressorBuilder(RegressorMixin):
             self.params["random_state"] = self.random_state
 
         # instantiate model
-        self.custom_model = self.estimator_name(**self.params)
+        self.custom_model = self.estimator_class(**self.params)
 
     def train(self, X_train, y_train):
         self.custom_model.fit(X_train, y_train)
@@ -618,19 +624,20 @@ class BasicClassifierBuilder(ClassifierMixin):
                 and feature_importances methods.
     """
 
-    def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
+    def __init__(self, estimator_class, params=None, n_jobs=4, random_state=0):
 
-        self.estimator_name = estimator
+        self.estimator_class = estimator_class
         self.params = {} if params is None else params
         self.n_jobs = n_jobs
         self.random_state = random_state
 
         # convert estimator argument to sklearn api object if needed
-        if isinstance(self.estimator_name, str):
-            self.estimator_name = eval(self.estimator_name)
+        if isinstance(self.estimator_class, str):
+            self.estimator_name = self.estimator_class
+            self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_name).args
+        estimator_args = inspect.getfullargspec(self.estimator_class).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -642,7 +649,7 @@ class BasicClassifierBuilder(ClassifierMixin):
             self.params["random_state"] = self.random_state
 
         # instantiate model
-        self.custom_model = self.estimator_name(**self.params)
+        self.custom_model = self.estimator_class(**self.params)
 
     def train(self, X_train, y_train):
         self.custom_model.fit(X_train, y_train)
@@ -680,19 +687,20 @@ class BasicModelBuilder(BaseEstimator):
                 and feature_importances methods.
     """
 
-    def __init__(self, estimator, params=None, n_jobs=4, random_state=0):
+    def __init__(self, estimator_class, params=None, n_jobs=4, random_state=0):
 
-        self.estimator_name = estimator
+        self.estimator_class = estimator_class
         self.params = {} if params is None else params
         self.n_jobs = n_jobs
         self.random_state = random_state
 
         # convert estimator argument to sklearn api object if estimator passed as str
-        if isinstance(self.estimator_name, str):
-            self.estimator_name = eval(self.estimator_name)
+        if isinstance(self.estimator_class, str):
+            self.estimator_name = self.estimator_class
+            self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_name).args
+        estimator_args = inspect.getfullargspec(self.estimator_class).args
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -704,7 +712,7 @@ class BasicModelBuilder(BaseEstimator):
             self.params["random_state"] = self.random_state
 
         # instantiate model
-        self.custom_model = self.estimator_name(**self.params)
+        self.custom_model = self.estimator_class(**self.params)
 
     def train(self, X_train, y_train):
         self.custom_model.fit(X_train, y_train)
@@ -721,7 +729,7 @@ class BasicModelBuilder(BaseEstimator):
     def feature_importances_(self, x, y):
         return self.custom_model.fit(x, y).feature_importances_
 
-def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
+def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator_class):
     """
     Documentation:
         definition:
@@ -731,8 +739,8 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
             bayes_optim_summary : Pandas DataFrame
                 Pandas DataFrame containing results from bayesian optimization process
                 execution.
-            estimator : string
-                name of estimator to build. needs the format of [submodule].[estimator].
+            estimator_class : string or sklearn-style class
+                name of estimator to build.
         Returns:
             estimator_param_summary : Pandas DataFrame
                 Pandas DataFrame where each row is a record of the parameters used and the
@@ -740,7 +748,7 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
     """
 
     estimator_df = bayes_optim_summary[
-        bayes_optim_summary["estimator"] == estimator
+        bayes_optim_summary["estimator"] == estimator_class
     ].reset_index(drop=True)
 
     # create a new dataframe for storing parameters
@@ -759,7 +767,7 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator):
 
     return estimator_summary
 
-def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_outliers=True, outlier_control=1.5,
+def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, trim_outliers=True, outlier_control=1.5,
                     title_scale=0.7, color_map="viridis"):
     """
     Documentation:
@@ -773,8 +781,8 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
             bayes_optim_summary : Pandas DataFrame
                 Pandas DataFrame containing results from bayesian optimization process
                 execution.
-            estimator : string
-                name of estimator to build. needs the format of [submodule].[estimator].
+            estimator_class : string or sklearn-style class
+                name of estimator to build.
             chart_scale : float, default=15
                 control chart proportions. higher values scale up size of chart objects, lower
                 values scale down size of chart objects.
@@ -792,7 +800,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
                 colormap from which to draw plot colors.
     """
     estimator_summary = self.unpack_bayes_optim_summary(
-        bayes_optim_summary=bayes_optim_summary, estimator=estimator
+        bayes_optim_summary=bayes_optim_summary, estimator_class=estimator_class
     )
     if trim_outliers:
         mean = estimator_summary["iter_loss"].mean()
@@ -809,7 +817,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
     # create regression plot
     p = PrettierPlot(chart_scale=chart_scale)
     ax = p.make_canvas(
-        title="Loss by iteration - {}".format(estimator),
+        title="Loss by iteration - {}".format(estimator_class),
         y_shift=0.8,
         position=111,
         title_scale=title_scale,
@@ -826,7 +834,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator, chart_scale=15, trim_o
     )
     plt.show()
 
-def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, chart_scale=17,
+def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_iter, chart_scale=17,
                     color_map="viridis", title_scale=1.0, show_single_str_params=False):
     """
     Documentation:
@@ -839,8 +847,8 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
             bayes_optim_summary : Pandas DataFrame
                 Pandas DataFrame containing results from bayesian optimization process
                 execution.
-            estimator : string
-                name of estimator to build. needs the format of [submodule].[estimator].
+            estimator_class : string or sklearn-style class
+                name of estimator to build.
             all_space : dictionary of dictionaries
                 dictionary of nested dictionaries. outer key is a model, and the corresponding value is
                 a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
@@ -863,17 +871,14 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 i.e. there was only one choice for the optimization procedure to choose from during each iteration.
     """
     estimator_summary = self.unpack_bayes_optim_summary(
-        bayes_optim_summary=bayes_optim_summary, estimator=estimator
+        bayes_optim_summary=bayes_optim_summary, estimator_class=estimator_class
     )
     estimator_summary = estimator_summary.replace([None], "None")
-    # estimator_summary = estimator_summary.replace([True], "TRUE")
-    # estimator_summary = estimator_summary.replace([False], "FALSE")
-
     # return space belonging to estimator
-    estimator_space = all_space[estimator]
+    estimator_space = all_space[estimator_class]
 
     print("*" * 100)
-    print("* {}".format(estimator))
+    print("* {}".format(estimator_class))
     print("*" * 100)
 
     # iterate through each parameter
@@ -902,7 +907,6 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
         if isinstance(theoretical_dist[0], np.bool_):
             theoretical_dist = np.array(["TRUE" if i == True else "FALSE" for i in theoretical_dist.tolist()])
 
-            # estimator_summary = estimator_summary[[param,"iteration"]]
             estimator_summary = estimator_summary.replace([True], "TRUE")
             estimator_summary = estimator_summary.replace([False], "FALSE")
 
@@ -941,7 +945,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
                 #
                 ax = p.make_canvas(
-                    title="Selection by iteration\n* {0} - {1}".format(estimator, param),
+                    title="Selection by iteration\n* {0} - {1}".format(estimator_class, param),
                     y_shift=0.5,
                     position=122,
                     title_scale=title_scale,
@@ -973,7 +977,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
 
             p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
             ax = p.make_canvas(
-                title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator, param),
+                title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator_class, param),
                 y_shift=0.8,
                 position=121,
                 title_scale=title_scale,
@@ -1038,7 +1042,7 @@ def model_param_plot(self, bayes_optim_summary, estimator, all_space, n_iter, ch
                 y_units = "f"
 
             ax = p.make_canvas(
-                title="Selection by iteration\n* {0} - {1}".format(estimator, param),
+                title="Selection by iteration\n* {0} - {1}".format(estimator_class, param),
                 y_shift=0.8,
                 position=122,
                 title_scale=title_scale,
@@ -1094,3 +1098,25 @@ def sample_plot(self, sample_space, n_iter, chart_scale=15):
             x_units="fff" if np.nanmax(theoretical_dist) <= 5.0 else "ff",
             ax=ax,
         )
+
+def model_type_check(estimator, n_jobs, params=None):
+
+    #
+    if isinstance(estimator, str):
+        estimator = eval(estimator)
+    #
+    if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
+        model = BasicModelBuilder(estimator_class=estimator, n_jobs=n_jobs, params=params)
+        estimator_name = model.estimator_class.__name__
+    else:
+        model = clone(estimator)
+        estimator_name = retrieve_variable_name(estimator)
+
+    return model, estimator_name
+
+def retrieve_variable_name(variable):
+
+    for fi in reversed(inspect.stack()):
+        names = [var_name for var_name, var_val in fi.frame.f_locals.items() if var_val is variable]
+        if len(names) > 0:
+            return names[0]
