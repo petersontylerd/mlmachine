@@ -1,5 +1,5 @@
 # model/parameter space
-all_space = {
+estimator_parameter_space = {
     "LGBMClassifier": {
         "class_weight": hp.choice("class_weight", [none, "balanced"]),
         "colsample_bytree": hp.uniform("colsample_bytree", 0.5, 1.0),
@@ -81,7 +81,7 @@ all_space = {
 
 
 # model/parameter space
-all_space = {
+estimator_parameter_space = {
     "Lasso": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
     "Ridge": {"alpha": hp.uniform("alpha", 0.0000001, 20)},
     "ElasticNet": {

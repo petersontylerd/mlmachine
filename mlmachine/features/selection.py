@@ -1106,8 +1106,8 @@ class FeatureSelector:
             estimator = eval(estimator)
         #
         if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
-            model = BasicModelBuilder(estimator=estimator, n_jobs=n_jobs)
-            estimator_name =  model.estimator_name.__name__
+            model = BasicModelBuilder(estimator_class=estimator, n_jobs=n_jobs)
+            estimator_name = model.estimator_name
         else:
             model = clone(estimator)
             estimator_name =  self.retrieve_variable_name(estimator)

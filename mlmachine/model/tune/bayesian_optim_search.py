@@ -48,7 +48,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-
+from sklearn.base import clone
 
 from xgboost import XGBClassifier, XGBRegressor
 from lightgbm import LGBMClassifier, LGBMRegressor
@@ -199,7 +199,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
         "params": space,
     }
 
-def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None, n_folds=3,
+def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scoring, columns=None, n_folds=3,
                         n_jobs=4, iters=50, show_progressbar=False, results_file=None,):
     """
     Documentation:
@@ -207,7 +207,7 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
             perform bayesian hyper_parameter optimization across a set of models and parameter value
             distribution.
         Parameters:
-            all_space : dictionary of dictionaries
+            estimator_parameter_space : dictionary of dictionaries
                 dictionary of nested dictionaries. outer key is a model, and the corresponding value is
                 a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
                 pairs. the inner dictionary key specifies the parameter of the model to be tuned, and the
@@ -263,12 +263,12 @@ def exec_bayes_optim_search(self, all_space, data, target, scoring, columns=None
         )
 
     # iterate through each model
-    for estimator_class in all_space.keys():
+    for estimator_class in estimator_parameter_space.keys():
         global ITERATION
         ITERATION = 0
 
         # establish feature space for hyper_parameter search
-        space = all_space[estimator_class]
+        space = estimator_parameter_space[estimator_class]
 
         # conditionally handle input data
         if isinstance(data, pd.core.frame.DataFrame):
@@ -698,6 +698,8 @@ class BasicModelBuilder(BaseEstimator):
         if isinstance(self.estimator_class, str):
             self.estimator_name = self.estimator_class
             self.estimator_class = eval(self.estimator_class)
+        else:
+            self.estimator_name = self.estimator_class.__name__
 
         # capture available model arguments and set probabily and n_jobs where applicable
         estimator_args = inspect.getfullargspec(self.estimator_class).args
@@ -836,7 +838,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
     )
     plt.show()
 
-def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_iter, chart_scale=15,
+def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_parameter_space, n_iter, chart_scale=15,
                     color_map="viridis", title_scale=1.2, show_single_str_params=False):
     """
     Documentation:
@@ -851,7 +853,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
                 execution.
             estimator_class : string or sklearn-style class
                 name of estimator to build.
-            all_space : dictionary of dictionaries
+            estimator_parameter_space : dictionary of dictionaries
                 dictionary of nested dictionaries. outer key is a model, and the corresponding value is
                 a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
                 pairs. the inner dictionary key specifies the parameter of the model to be tuned, and the
@@ -876,8 +878,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, all_space, n_it
         bayes_optim_summary=bayes_optim_summary, estimator_class=estimator_class
     )
     estimator_summary = estimator_summary.replace([None], "None")
-    # return space belonging to estimator
-    estimator_space = all_space[estimator_class]
+    estimator_space = estimator_parameter_space[estimator_class]
 
     print("*" * 100)
     print("* {}".format(estimator_class))
@@ -1116,7 +1117,7 @@ def model_type_check(estimator, n_jobs, params=None):
     #
     if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
         model = BasicModelBuilder(estimator_class=estimator, n_jobs=n_jobs, params=params)
-        estimator_name = model.estimator_class.__name__
+        estimator_name = model.estimator_name
     else:
         model = clone(estimator)
         estimator_name = retrieve_variable_name(estimator)
