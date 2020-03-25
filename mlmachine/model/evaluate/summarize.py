@@ -184,7 +184,7 @@ def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_ty
     """
     results = {}
 
-    results["Estimator"] = model.estimator.__name__
+    results["Estimator"] = model.estimator_name
     results["Parameter set"] = model.model_iter
     results["Dataset type"] = data_type
     results["CV fold"] = fold
@@ -202,7 +202,7 @@ def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_ty
     ) / (len(y_true) - feature_count - 1)
     return results
 
-def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=3,
+def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=None,
                         random_state=1, regression_results_summary=None):
     """
     Documentation:
@@ -221,7 +221,7 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
                 validation data observations.
             y_valid : Pandas Series, default=None
                 validation data labels.
-            n_folds : int, default=3
+            n_folds : int, default=None
                 number of cross_validation folds to use when generating
                 cv roc graph.
             random_state : int, default=1
@@ -265,7 +265,7 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
         regression_results_summary = regression_results_summary.append(
             results, ignore_index=True
         )
-    else:
+    elif isinstance(n_folds, int):
         # if validation data is not provided, then perform k_fold cross validation on
         # training data
         cv = list(
@@ -294,4 +294,5 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
             regression_results_summary = regression_results_summary.append(
                 results, ignore_index=True
             )
+            
     return regression_results_summary

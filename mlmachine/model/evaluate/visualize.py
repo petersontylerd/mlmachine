@@ -38,7 +38,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, cm_labels=None,
+def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, labels=None,
                         n_folds=None, title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15):
     """
     Documentation:
@@ -56,7 +56,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 validation data observations.
             y_valid : Pandas Series, default=None
                 validation data labels.
-            cm_labels : list, default=None
+            labels : list, default=None
                 custom labels for confusion matrix axes. if left as none,
                 will default to 0, 1, 2...
             n_folds : int, default=None
@@ -75,7 +75,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     """
 
     print("*" * 55)
-    print("* Estimator: {}".format(model.estimator.__name__))
+    print("* Estimator: {}".format(model.estimator_name))
     print("* Parameter set: {}".format(model.model_iter))
     print("*" * 55)
 
@@ -87,7 +87,9 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     y_pred = model.fit(X_train, y_train).predict(X_train)
     print(
             classification_report(
-                y_train, y_pred, labels=np.unique(y_train.values)
+                y_train,
+                y_pred,
+                target_names=labels if labels is not None else np.unique(y_train.values),
             )
         )
 
@@ -97,7 +99,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     # confusion matrix
     ax = p.make_canvas(
         title="Confusion matrix - training data\nModel: {}\nParameter set: {}".format(
-            model.estimator.__name__, model.model_iter
+            model.estimator_name, model.model_iter
         ),
         y_shift=0.4,
         x_shift=0.25,
@@ -109,7 +111,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         estimator=model,
         X=X_train,
         y_true=y_train,
-        display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
+        display_labels=labels if labels is not None else np.unique(y_train.values),
         cmap=color_map,
         values_format=".0f",
         ax=ax,
@@ -118,7 +120,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     # ROC curve
     ax = p.make_canvas(
         title="ROC curve - training data\nModel: {}\nParameter set: {}".format(
-            model.estimator.__name__,
+            model.estimator_name,
             model.model_iter,
         ),
         x_label="False positive rate",
@@ -151,7 +153,9 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
 
         print(
             classification_report(
-                y_valid, y_pred, labels=np.unique(y_train.values)
+                y_valid,
+                y_pred,
+                target_names=labels if labels is not None else np.unique(y_train.values),
             )
         )
 
@@ -161,7 +165,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         # visualize results with confusion matrix
         ax = p.make_canvas(
             title="Confusion matrix - validation data\nModel: {}\nParameter set: {}".format(
-                model.estimator.__name__, model.model_iter
+                model.estimator_name, model.model_iter
             ),
             y_shift=0.4,
             x_shift=0.25,
@@ -173,7 +177,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             estimator=model,
             X=X_valid,
             y_true=y_valid,
-            display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
+            display_labels=labels if labels is not None else np.unique(y_train.values),
             cmap=color_map,
             values_format=".0f",
             ax=ax,
@@ -182,7 +186,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         # ROC curve
         ax = p.make_canvas(
             title="ROC curve - validation data\nModel: {}\nParameter set: {}".format(
-                model.estimator.__name__,
+                model.estimator_name,
                 model.model_iter,
             ),
             x_label="False positive rate",
@@ -231,7 +235,9 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             y_pred = model.fit(X_train_cv, y_train_cv).predict(X_valid_cv)
             print(
             classification_report(
-                    y_valid_cv, y_pred, labels=np.unique(y_train.values)
+                    y_valid_cv,
+                    y_pred,
+                    target_names=labels if labels is not None else np.unique(y_train.values),
                 )
             )
 
@@ -241,7 +247,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             # visualize results with confusion matrix
             ax = p.make_canvas(
                 title="Confusion matrix - CV Fold {}\nModel: {}\nParameter set: {}".format(
-                    i + 1, model.estimator.__name__, model.model_iter
+                    i + 1, model.estimator_name, model.model_iter
                 ),
                 y_shift=0.4,
                 x_shift=0.25,
@@ -253,7 +259,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 estimator=model,
                 X=X_valid_cv,
                 y_true=y_valid_cv,
-                display_labels=cm_labels if cm_labels is not None else np.unique(y_train.values),
+                display_labels=labels if labels is not None else np.unique(y_train.values),
                 cmap=color_map,
                 values_format=".0f",
                 ax=ax,
@@ -263,7 +269,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             ax = p.make_canvas(
                 title="ROC curve - CV Fold {}\nModel: {}\nParameter set: {}".format(
                     i + 1,
-                    model.estimator.__name__,
+                    model.estimator_name,
                     model.model_iter,
                 ),
                 x_label="False positive rate",
@@ -285,8 +291,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             plt.subplots_adjust(wspace=0.3)
             plt.show()
 
-
-def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=3, title_scale=1.0,
+def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=None, title_scale=1.0,
                     color_map="viridis", random_state=1, chart_scale=15):
     """
     Documentation:
@@ -321,7 +326,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     """
 
     print("*" * 55)
-    print("* Estimator: {}".format(model.estimator.__name__))
+    print("* Estimator: {}".format(model.estimator_name))
     print("* Parameter set: {}".format(model.model_iter))
     print("*" * 55)
 
@@ -338,7 +343,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     p = PrettierPlot(plot_orientation="wide_narrow")
     ax = p.make_canvas(
         title="Residual plot - training data\nModel: {}\nParameter set: {}".format(
-            model.estimator.__name__,
+            model.estimator_name,
             model.model_iter,
         ),
         x_label="Predicted values",
@@ -388,7 +393,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     ## univariate plot
     ax = p.make_canvas(
         title="Residual distribution - training data\nModel: {}\nParameter set: {}".format(
-            model.estimator.__name__,
+            model.estimator_name,
             model.model_iter,
         ),
         title_scale=title_scale,
@@ -431,7 +436,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         p = PrettierPlot(plot_orientation="wide_narrow")
         ax = p.make_canvas(
             title="Residual plot - training data\nModel: {}\nParameter set: {}".format(
-                model.estimator.__name__,
+                model.estimator_name,
                 model.model_iter,
             ),
             x_label="Predicted values",
@@ -457,7 +462,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         ## univariate plot
         ax = p.make_canvas(
             title="Residual distribution - training data\nModel: {}\nParameter set: {}".format(
-                model.estimator.__name__,
+                model.estimator_name,
                 model.model_iter,
             ),
             title_scale=title_scale,
@@ -520,7 +525,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             ax = p.make_canvas(
                 title="Residual plot - CV fold {}\nModel: {}\nParameter set: {}".format(
                     i + 1,
-                    model.estimator.__name__,
+                    model.estimator_name,
                     model.model_iter,
                 ),
                 x_label="Predicted values",
@@ -552,7 +557,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             ax = p.make_canvas(
                 title="Residual distribution - CV fold {}\nModel: {}\nParameter set: {}".format(
                     i + 1,
-                    model.estimator.__name__,
+                    model.estimator_name,
                     model.model_iter,
                 ),
                 title_scale=title_scale,
@@ -584,4 +589,6 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         print("\n" + "*" * 55)
         print("Summary")
 
+        display(regression_results_summary)
+    else:
         display(regression_results_summary)
