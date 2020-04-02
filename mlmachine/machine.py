@@ -62,7 +62,7 @@ class Machine:
         eda_missing_summary,
         eda_skew_summary,
         eda_transform_box_cox,
-        eda_transform_initial,
+        eda_transform_target,
         eda_transform_log1,
     )
     from .features.preprocessing import (
@@ -85,10 +85,6 @@ class Machine:
         outlier_IQR,
     )
     from .features.selection import FeatureSelector
-    from .features.transform import (
-        custom_binner,
-        equal_width_binner,
-    )
     from .model.evaluate.summarize import (
         binary_prediction_summary,
         regression_prediction_summary,
@@ -157,7 +153,7 @@ class Machine:
                 identify_as_nominal : list, default=None
                     preidentified nominal category features. columns given category dtype.
                 identify_as_ordinal : list, default=None
-                    preidentified ordinal category features. columns given category dtype. if
+                    preidentified ordinal category features. columns given category dtype. If
                     an ordinal_encodings dict is passed, the category column will be given the
                     specified order.
                 ordinal_encodings : dict, default=None
@@ -169,7 +165,7 @@ class Machine:
                 target : list, default=None
                     name of column containing dependent variable.
                 is_classification : boolean, default=None
-                    controls whether Machine is instantiated as a classification object or a
+                    Controls whether Machine is instantiated as a classification object or a
                     regression object.
             attributes:
                 data : Pandas DataFrame
@@ -634,10 +630,10 @@ class Machine:
                 and the 'target' variable into one Pandas DataFrame.
             Parameters:
                 data : Pandas DataFrame, default=None
-                    Pandas DataFrame containing independent variables. if left as none,
+                    Pandas DataFrame containing independent variables. If left as none,
                     the feature dataset provided to machine during instantiation is used.
                 target : Pandas Series, default=None
-                    Pandas Series containing dependent target variable. if left as none,
+                    Pandas Series containing dependent target variable. If left as none,
                     the target dataset provided to machine during instantiation is used.
             return:
                 df : Pandas DataFrame

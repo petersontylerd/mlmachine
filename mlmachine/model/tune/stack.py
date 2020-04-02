@@ -36,7 +36,7 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
             X_valid : array
                 validation dataset.
             n_folds : int, default=10
-                number of folds for performing cross_validation. function will generate this
+                Number of folds for performing cross_validation. function will generate this
                 many sets of out_of_fold predictions.
         Returns:
             oof_train : array
@@ -103,10 +103,10 @@ def model_stacker(
             X_valid : array
                 validation dataset.
             n_folkds : int
-                number of folds for performing cross_validation. function will generate this
+                Number of folds for performing cross_validation. function will generate this
                 many sets of out_of_fold predictions.
             n_jobs : int
-                number of works to use when training the model. this parameter will be
+                Number of workers to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             oof_train : array

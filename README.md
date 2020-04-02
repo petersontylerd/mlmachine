@@ -25,6 +25,17 @@ Examples can be viewed [here](https://github.com/petersontylerd/mlmachine/tree/m
 
 **Python Requirements**: 3.6, 3.7
 
+If you're using pyenv:
+
+If you are using Anadonda
+
+Create a new virtual environment:
+`conda create --name mlmachine-env python=3.7`
+
+Activate your new virtual environment:
+`conda activate mlmachine-env`
+
+Install mlmachine using pip to install mlmachine and all dependencies
 `pip install mlachine`
 
 ## Feedback

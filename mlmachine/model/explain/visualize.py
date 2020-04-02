@@ -247,7 +247,7 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
             feature_names : list
                 list of all feature names in the dataset.
             x_jitter : float, default=0.08
-                controls displacement of dots along x_axis.
+                Controlsdisplacement of dots along x_axis.
             dot_size : float, default=25
                 size of dots.
             alpha : float, default=0.7
@@ -343,7 +343,7 @@ def shap_summary_plot(self, obs_data, obs_shap_values, feature_names, alpha=0.7)
             feature_names : list
                 list of all feature names in the dataset.
             alpha : float, default=0.7
-                controls transparency of dots.
+                Controlstransparency of dots.
     """
     shap.summary_plot(
         shap_values = obs_shap_values,

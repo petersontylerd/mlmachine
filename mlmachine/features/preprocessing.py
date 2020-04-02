@@ -50,27 +50,32 @@ import copy
 class GroupbyImputer(TransformerMixin, BaseEstimator):
     """
     Documentation:
+
+        ---
         Description:
-            impute numberal columns with certain value, as specified by the strategy parameter. also
-            utilizes one or more additional context columns as a group by value to add more subtlety to
-            fill_value identification. imputes training data features, and stores impute values to be used
-            on validation and unseen data.
+            Impute numeric columns, as specified by the strategy parameter. GroupbyImputer utilizes one or
+            more additional context columns as a groupby value to add more subtlety to fill_value identification.
+            Imputes training data features, and stores impute values to be used on validation and unseen data.
+
+        ---
         Parameters:
             null_column : list
-                column with nulls to be imputed.
+                Column with nulls to impute.
             groupby_column : list
-                list of one or most columns to group by to add context to null column.
+                List of one or most columns to groupby to add context to null column.
             strategy : string, default='mean'
-                imputing stategy. takes values 'mean', 'median' and 'most_frequent'.
+                Imputing stategy. Accepts values 'mean', 'median' and 'most_frequent'.
             train : bool, default=True
-                tells class whether we are imputing training data or unseen data.
+                Tells class whether we are imputing training data or unseen data.
             train_value : dict, default=None
-                only used when train=False. value is a dictionary containing 'feature : value' pairs.
-                dictionary is retrieved from training data pipeline using named steps. the attribute is
+                Only used when train=False. Value is a dictionary containing 'feature : value' pairs.
+                Dictionary is retrieved from training data pipeline using named steps. The attribute is
                 called train_value_.
+
+        ---
         Returns:
             X : array
-                dataset where each column with missing values has been imputed with a value learned from a particular
+                Dataset where each column with missing values has been imputed with a value learned from a particular
                 strategy while also consider select columns as a group by variable.
     """
 
@@ -82,28 +87,39 @@ class GroupbyImputer(TransformerMixin, BaseEstimator):
         self.train_value = train_value
 
     def fit(self, X, y=None):
+
+        # if imputation strategy is set to "mean"
         if self.strategy == "mean":
+
+            # grouping by groupby_column, find mean of null_column
             self.train_value = (
                 X[X[self.null_column].notnull()]
                 .groupby(self.groupby_column)
                 .mean()[self.null_column]
             )
+            # calculate overall mean of null_column
             self.overall = X[X[self.null_column].notnull()][self.null_column].mean()
 
+        # if imputation strategy is set to "median"
         elif self.strategy == "median":
+            # grouping by groupby_column, find median of null_column
             self.train_value = (
                 X[X[self.null_column].notnull()]
                 .groupby(self.groupby_column)
                 .median()[self.null_column]
             )
+            # calculate overall median of null_column
             self.overall = X[X[self.null_column].notnull()][self.null_column].median()
-            self.overall = X[X[self.null_column].notnull()][self.null_column].median()
+
+        # if imputation strategy is set to "most_frequent"
         elif self.strategy == "most_frequent":
+            # grouping by groupby_column, find mode of null_column
             self.train_value = (
                 X[X[self.null_column].notnull()]
                 .groupby(self.groupby_column)[self.null_column]
                 .agg(lambda X: X.value_counts().index[0])
             )
+            # calculate overall mode of null_column
             self.overall = X[X[self.null_column].notnull()][self.null_column].mode()[0]
 
         self.train_value = self.train_value.reset_index()
@@ -113,6 +129,8 @@ class GroupbyImputer(TransformerMixin, BaseEstimator):
     def transform(self, X):
         # impute missing values based on train_value
         if isinstance(self.groupby_column, str):
+
+            # impute nulls with corresponding value
             X[self.null_column] = np.where(
                 X[self.null_column].isnull(),
                 X[self.groupby_column].map(
@@ -121,6 +139,7 @@ class GroupbyImputer(TransformerMixin, BaseEstimator):
                 X[self.null_column],
             )
 
+            # impute any remainig nulls with overall value
             X[self.null_column] = X[self.null_column].fillna(value=self.overall)
 
         return X[self.null_column]
@@ -128,10 +147,12 @@ class GroupbyImputer(TransformerMixin, BaseEstimator):
 class DataFrameSelector(BaseEstimator, TransformerMixin):
     """
     Documentation:
+
+        ---
         Description:
-            select a susbset set of features of a Pandas DataFrame as part of a
-            pipeline. capable of select and/or deselecting columns by name and by
-            data type.
+            Select a susbset set of features from Pandas DataFrame as part of a
+            pipeline. Capable of select and/or deselecting columns by name, Pandas
+            dtype and mlm dtype.
 
             Note - if there is a logical conflict between include and exclude
             parameters, the class will first prioritize the column parameters
@@ -139,19 +160,20 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
             logic cannot be resolved by this rule alone, exclusion parameters
             will be prioritized over inclusion parameters.
 
+        ---
         Parameters:
             include_columns : list
-                list of features to select from Pandas DataFrame.
+                List of features to select from Pandas DataFrame.
             include_pd_dtypes : list
-                list of strings describing pandas dtypes to select.
+                List of strings describing pandas dtypes to select.
             include_mlm_dtypes : list
-                list of strings describing mlmachine dtypes to select.
+                List of strings describing mlmachine dtypes to select.
             exclude_columns : list
-                list of features to deselect from Pandas DataFrame.
+                List of features to exclude from Pandas DataFrame.
             exclude_pd_dtypes : list
-                list of strings describing pandas dtypes to deselect.
+                List of strings describing pandas dtypes to exclude.
             exclude_mlm_dtypes : list
-                list of strings describing mlmachine dtypes to select.
+                List of strings describing mlmachine dtypes to exclude.
     """
 
     def __init__(self, include_columns=None, include_pd_dtypes=None, include_mlm_dtypes=None,
@@ -166,7 +188,7 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
 
-        # preserve mlm_dtypes if it exists
+        # preserve mlm_dtypes attribute on Pandas DataFrame, if it exists
         try:
             self.meta_mlm_dtypes = X.mlm_dtypes
             self.no_meta_mlm_dtypes = False
@@ -176,8 +198,13 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
             else:
                 pass
 
+        # capture all current columns in input Pandas DataFrame
         self.all_columns = X.columns.tolist()
+
+        # empty list to capture selected columns
         self.selected_columns = []
+
+        # empty list to capture excluded columns
         self.remove_columns = []
 
         ## selection
@@ -192,7 +219,7 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
                     X.select_dtypes(include=dtype).columns.tolist()
                 )
 
-        # select columns by mlmachine dtype
+        # select columns by mlm dtype
         if self.include_mlm_dtypes is not None:
             for dtype in self.include_mlm_dtypes:
                 self.selected_columns.extend(X.mlm_dtypes[dtype])
@@ -213,7 +240,7 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
                     X.select_dtypes(include=dtype).columns.tolist()
                 )
 
-        # deselect columns by pandas dtype
+        # deselect columns by mlm dtype
         if self.exclude_mlm_dtypes is not None:
             for dtype in self.exclude_mlm_dtypes:
                 self.remove_columns.extend(X.mlm_dtypes[dtype])
@@ -224,101 +251,116 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
         ## reconcile selections and removals
         # if the only input is to exclude, remove remove_columns from all_columns
         if len(self.remove_columns) > 0 and len(self.selected_columns) == 0:
+            # set final_column to all_columns minus the columns in remove_columns
             self.final_columns = list(
                 set(self.all_columns).difference(self.remove_columns)
             )
 
         # if the only input is to include, keep only the select_columns
         elif len(self.selected_columns) > 0 and len(self.remove_columns) == 0:
+            # set final_column to selected_columns
             self.final_columns = self.selected_columns
 
-        #
+        # if columns are selected by name and columns are excluded by name
         elif (
             self.include_columns is not None
             and (self.include_pd_dtypes is None and self.include_mlm_dtypes is None)
             and self.exclude_columns is not None
             and (self.exclude_pd_dtypes is None and self.exclude_mlm_dtypes is None)
         ):
+            # set final_column to selected_columns and remove all columns in remove_columns
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
 
-        #
+        # if columns are selected by name and columns are excluded by pandas dtype or mlm dtype
         elif (
             self.include_columns is not None
             and (self.include_pd_dtypes is None and self.include_mlm_dtypes is None)
             and self.exclude_columns is None
             and (self.exclude_pd_dtypes is not None or self.exclude_mlm_dtypes is not None)
         ):
+            # set final_column to selected_columns
             self.final_columns = self.selected_columns
 
-        #
+        # if columns are excluded by name and columns are selected by pandas dtype or mlm dtype
         elif (
             self.include_columns is None
             and (self.include_pd_dtypes is not None or self.include_mlm_dtypes is not None)
             and self.exclude_columns is not None
             and (self.exclude_pd_dtypes is None and self.exclude_mlm_dtypes is None)
         ):
+            # set final_column to selected_columns and remove all columns in remove_columns
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
 
         #
+        # if columns are selected by pandas dtype or mlm dtype, and  columns are excluded by pandas dtype or mlm dtype
         elif (
             self.include_columns is None
             and (self.include_pd_dtypes is not None or self.include_mlm_dtypes is not None)
             and self.exclude_columns is None
             and (self.exclude_pd_dtypes is not None or self.exclude_mlm_dtypes is not None)
         ):
+            # set final_column to selected_columns and remove all columns in remove_columns
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
 
-        #
+        # if columns are selected by pandas dtype or mlm dtype
         elif (
             self.include_columns is not None
             and (self.include_pd_dtypes is not None or self.include_mlm_dtypes is not None)
             and self.exclude_columns is not None
             and (self.exclude_pd_dtypes is None and self.exclude_mlm_dtypes is None)
         ):
+            # set final_column to selected_columns and remove all columns in remove_columns
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
 
-        #
+        # if columns are selected by name, and selected by pandas dtype or mlm dtype, and columns are excluded
+        # by pandas dtype or mlm dtype
         elif (
             self.include_columns is not None
             and (self.include_pd_dtypes is not None or self.include_mlm_dtypes is not None)
             and self.exclude_columns is None
             and (self.exclude_pd_dtypes is not None or self.exclude_mlm_dtypes is not None)
         ):
+            # set final_column to selected_columns
             self.final_columns = self.selected_columns
 
-        #
+        # if columns are excluded by name, and selected by pandas dtype or mlm dtype, and columns are excluded
+        # by pandas dtype or mlm dtype
         elif (
             self.include_columns is None
             and (self.include_pd_dtypes is not None or self.include_mlm_dtypes is not None)
             and self.exclude_columns is not None
             and (self.exclude_pd_dtypes is not None or self.exclude_mlm_dtypes is not None)
         ):
+            # set final_column to selected_columns and remove all columns in remove_columns
             self.final_columns = self.selected_columns
             self.final_columns = [column for column in self.final_columns if column not in self.remove_columns]
 
-        #
+        # if columns are selected by name and excluded by name, and excluded by pandas dtype or mlm dtype
         elif (
             self.include_columns is not None
             and (self.include_pd_dtypes is None and self.include_mlm_dtypes is None)
             and self.exclude_columns is not None
             and (self.exclude_pd_dtypes is not None or self.exclude_mlm_dtypes is not None)
         ):
+            # set final_column to selected_columns
             self.final_columns = self.selected_columns
 
-        #
+        # if columns are selected by name and excluded by name, and selected by pandas dtype or mlm dtype, and
+        # excluded by pandas dtype or mlm dtype
         elif (
             self.include_columns is not None
             and (self.include_pd_dtypes is not None or self.include_mlm_dtypes is not None)
             and self.exclude_columns is not None
             and (self.exclude_pd_dtypes is not None or self.exclude_mlm_dtypes is not None)
         ):
+            # set final_column to selected_columns
             self.final_columns = self.selected_columns
 
-        #
+        # if all parameters are left to default to None
         elif (
             self.include_columns is None
             and self.include_pd_dtypes is None
@@ -327,6 +369,8 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
             and self.exclude_pd_dtypes is None
             and self.exclude_mlm_dtypes is None
         ):
+
+            # set final_column to all_columns
             self.final_columns = self.all_columns
 
         return self
@@ -337,36 +381,42 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
 class PandasTransformer(TransformerMixin, BaseEstimator):
     """
     Documentation:
+
+        ---
         Description:
             Wrapper that ensures sklearn transformers will play nicely with Pandas.
             Pipelines will output a Pandas DataFrame with column names and original
             index values rather than a two dimensional numpy array.
-        Parameters:
-            attributeNames : list
-                List of features to select from DataFrame to be passed into the
-                wrapped transformer..
+
+        ---
+        Parameters
+            transformer : sklearn transformer
+                Transformer to apply to dataset
     """
     def __init__(self, transformer):
         self.transformer = transformer
 
     def fit(self, X, y=None):
+
         # capture original column names and dtypes
         self.original_columns = X.columns
         self.dtypes = X[self.original_columns].dtypes
 
-        # create object containing fitted class
+        # create object containing fitted transformer
         self.est = self.transformer.fit(X)
 
         # if the class is a OneHotEncoder instance
         if isinstance(self.est, _encoders.OneHotEncoder):
+
+            # capture feature names learned by OneHotEncoder
             names = self.est.get_feature_names()
 
+            # transform names into readable column names
             prefixes = list(map(lambda x:str.replace(x, "x", ""), names))
             prefixes = sorted(list(set([x.split("_")[0] for x in prefixes])), key=int)
             prefixes = ["x" + x + "_" for x in prefixes]
 
-            # repalce "x0_, x1_..." prefix with original column anme
-            # prefixes = sorted(list(set([x.split("_")[0] for x in names])))
+            # add "_{category name}" suffix to all column names
             for a,b in zip(self.original_columns, prefixes):
                 names = list(map(lambda x: str.replace(x, b, a + "_"), names))
             self.original_columns = names
@@ -406,7 +456,11 @@ class PandasTransformer(TransformerMixin, BaseEstimator):
         # if the class is a KBinsDiscretizer instance
         elif isinstance(self.est, KBinsDiscretizer):
             names = []
+
+            # capture number of bins learned by KBinsDiscretizer
             bins = self.est.n_bins
+
+            # add "_binned_{# of bins}" suffix to all column names
             for col in self.original_columns:
                 names.append(col + "_binned_" + str(bins))
 
@@ -415,6 +469,8 @@ class PandasTransformer(TransformerMixin, BaseEstimator):
         # if the class is a OrdinalEncoder instance
         elif isinstance(self.est, OrdinalEncoder):
             names = []
+
+            # add "_ordinal_encoded" suffix to all column names
             for col in self.original_columns:
                 names.append(col + "_ordinal_encoded")
 
@@ -424,6 +480,7 @@ class PandasTransformer(TransformerMixin, BaseEstimator):
         elif isinstance(self.est, CountEncoder):
             names = []
 
+            # add "_count_encoded" suffix to all column names
             for col in self.original_columns:
                 names.append(col + "_count_encoded")
 
@@ -434,6 +491,7 @@ class PandasTransformer(TransformerMixin, BaseEstimator):
             names = []
             self.original_columns = self.est.get_feature_names()
 
+            # add "_binary_encoded" suffix to all column names
             for col in self.original_columns:
                 names.append(col + "_binary_encoded")
 
@@ -443,6 +501,7 @@ class PandasTransformer(TransformerMixin, BaseEstimator):
         elif isinstance(self.est, QuantileTransformer):
             names = []
 
+            # add "_quantile_{distribution type}" suffix to all column names
             for col in self.original_columns:
                 names.append(col + "_quantile_" + self.est.output_distribution)
 
@@ -452,17 +511,22 @@ class PandasTransformer(TransformerMixin, BaseEstimator):
     def transform(self, X, y=None, copy=None):
         self.index = X.index
 
+        # peform apply learned transformation to input dataset
         X = self.est.transform(X)
+
+        # if data is sparse, convert to dense
         if sparse.issparse(X):
             X = X.todense()
 
-        # create new Pandas DataFrame
+        # create new Pandas DataFrame with new column names
         X = pd.DataFrame(X, columns=self.original_columns, index=self.index)
         return X
 
 class PandasFeatureUnion(FeatureUnion):
     """
     Documentation:
+
+        ---
         Description:
             Modified version of sklearn's FeatureUnion class that outputs a Pandas DataFrame rather
             than a two dimensional array.
@@ -577,6 +641,32 @@ class PandasFeatureUnion(FeatureUnion):
         return Xs
 
 class KFoldEncoder(BaseEstimator, TransformerMixin):
+    """
+    Documentation:
+
+        ---
+        Description:
+            Perform KFold encoding using the provided cross-validation object and encoder. KFold
+            encoding prevents leakage when using encoders that incorporate the target data. KFoldEncoder
+            applies a procedure where the encoder fits to the training data and then applies the encoding
+            on the held out dataset. This process repeats for each fold, per the setup of the cross-validation
+            object, until all observations have been encoded in this manner.
+
+        ---
+        Parameters
+            target : Pandas Series
+                Pandas Series containing target values
+            cv : sklearn cross-validation object
+                Object to use when applying cross-validation to dataset
+            encoder : encoder class
+                Class to use when encoding features
+            transform_train : boolean, default=False
+                Controls whether KFoldEncoder's transform method runs in training mode or impute mode.
+                Defaults to False so that when KFoldEncoder is first utilized, it runs in training mode
+                so that it learns the encoding values. Once these values are learned, transform_train is
+                automatically set to True so that subsequent calls of the transform method apply the
+                previously learned encoding values.
+    """
     def __init__(self, target, cv, encoder):
         self.target = target
         self.cv = cv
@@ -659,22 +749,29 @@ class KFoldEncoder(BaseEstimator, TransformerMixin):
 class DualTransformer(TransformerMixin, BaseEstimator):
     """
     Documentation:
-        Description:
-            performs yeo-johnson transformation on all specified features. also performs Box-Cox transformation. if
-            the minimum value in a feature is 0, Box-Cox + 1 transformation is performed. if the minimum value in a
-            is less than 0, Box-Cox + 1 + the minimum value is performed. if the minimum value is greaterthan 0,
-            standard Box-Cox transformation is performed. each transformation process automatically determines
-            the optimal lambda value. these values are stored for transformation of validation data.
 
-            note - this method adds additional columns rather than updating existing columns inplace.
+        ---
+        Description:
+            Performs Yeo-Johnson transformation on all specified features. Also performs Box-Cox transformation.
+            If the minimum value is greater than 0, standard Box-Cox transformation is performed. If the minimum
+            value in a feature is 0, Box-Cox + 1 transformation is performed. If the minimum value in a feature is
+            less than 0, Box-Cox + 1 + absolute value of the minimum value is performed. Each transformation
+            process automatically determines the optimal lambda value. These values are stored for transformation
+            of validation data.
+
+            This method adds additional columns rather than updating existing columns in-place.
+
+        ---
         Parameters:
             yeojohnson : bool, default=True
-                conditional controls whether yeo-johnson transformation is applied to input data.
+                Conditional controlling whether yeo-johnson transformation is applied to input data.
             boxcox : bool, default=True
-                conditional controls whether Box-Cox transformation is applied to input data.
+                Conditional controlling whether Box-Cox transformation is applied to input data.
+
+        --
         Returns:
             X : array
-                yeo-johnson, and potentially Box-Cox (or Box-Cox + 1) transformed input data.
+                Yeo-Johnson and Box-Coxtransformed input data.
     """
 
     def __init__(self, yeojohnson=True, boxcox=True):
@@ -682,46 +779,68 @@ class DualTransformer(TransformerMixin, BaseEstimator):
         self.boxcox = boxcox
 
     def fit(self, X, y=None):
+
+        # capture original column names
         self.original_columns = X.columns
 
-        ## yeo-johnson
+        ## Yeo-Johnson
         if self.yeojohnson:
 
+            # empty dicitonary for capturing feature/lambda pairs
             self.yj_lambdas_dict_ = {}
 
-            # collect lambas using sklearn implementation
+            # collect lambas using sklearn PowerTransformer
             yj = PowerTransformer(method="yeo-johnson")
             yj_lambdas = yj.fit(X).lambdas_
 
-            # cycle through columns, add transformed columns, store lambdas
+            # cycle through columns, add transformed column name and associated lambdas
             for ix, col in enumerate(X.columns):
                 self.yj_lambdas_dict_[col] = yj_lambdas[ix]
 
         ## Box-Cox
         if self.boxcox:
 
+            # empty dicitonaries for capturing feature/lambda pairs
             self.bc_lambdas_dict_ = {}
             self.bc_zero_lambdas_dict_ = {}
             self.bc_neg_lambdas_dict_ = {}
 
             for col in X.columns:
+
                 # if minimum feature value is 0, do Box-Cox + 1
                 feature_minimum = np.min(X[col].values)
                 if feature_minimum == 0:
+
+                    # perform Box-Cox transformation and return lambda
                     _, lmbda = stats.boxcox(X[col].values + 1, lmbda=None)
+
+                    # add transformed column name and associated lambda to dictionary
                     self.bc_zero_lambdas_dict_[col] = lmbda
-                # otherwise do standard Box-Cox
+
+                # if minimum feature value is greater than 0, do standard Box-Cox
                 elif feature_minimum > 0:
+
+                    # perform Box-Cox transformation and return lambda
                     _, lmbda = stats.boxcox(X[col].values, lmbda=None)
+
+                    # add transformed column name and associated lambda to dictionary
                     self.bc_lambdas_dict_[col] = lmbda
+
+                # if minimum feature value is less than 0, do Box-Cox + 1 + absolute value of minimum
                 else:
+
+                    # perform Box-Cox transformation and return lambda
                     _, lmbda = stats.boxcox(X[col].values + np.abs(feature_minimum) + 1, lmbda=None)
+
+                    # add transformed column name and associated lambda to dictionary
                     self.bc_neg_lambdas_dict_[col] = lmbda
         return self
 
     def transform(self, X):
         # yeo-johnson
         if self.yeojohnson:
+
+            # apply learned Yeo-Johnson transformation
             for col in self.yj_lambdas_dict_.keys():
                 X[col + "_YeoJohnson"] = stats.yeojohnson(
                     X[col].values, lmbda=self.yj_lambdas_dict_[col]
@@ -729,6 +848,8 @@ class DualTransformer(TransformerMixin, BaseEstimator):
 
         # Box-Cox
         if self.boxcox:
+
+            # apply learned Box-Cox transformation
             for col in self.bc_zero_lambdas_dict_.keys():
                 try:
                     X[col + "_BoxCox"] = stats.boxcox(
@@ -737,6 +858,7 @@ class DualTransformer(TransformerMixin, BaseEstimator):
                 except ValueError:
                     X[col + "_BoxCox"] = 0.
 
+            # apply learned Box-Cox transformation
             for col in self.bc_neg_lambdas_dict_.keys():
                 try:
                     X[col + "_BoxCox"] = stats.boxcox(
@@ -745,6 +867,7 @@ class DualTransformer(TransformerMixin, BaseEstimator):
                 except ValueError:
                     X[col + "_BoxCox"] = 0.
 
+            # apply learned Box-Cox transformation
             for col in self.bc_lambdas_dict_.keys():
                 try:
                     X[col + "_BoxCox"] = stats.boxcox(
@@ -757,28 +880,36 @@ class DualTransformer(TransformerMixin, BaseEstimator):
 def skew_summary(self, data=None, columns=None):
     """
     Documentation:
+
+        ---
         Description:
-            displays Pandas DataFrame summarizing the skew of each number variable. also summarizes
-            the percent of a column that has a value of zero.
+            Displays Pandas DataFrame summarizing the skew of each numeric variable. Also calculates
+            the percent of a column that is zero.
+
+        ---
         Parameters:
             data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. if left as none,
-                the feature dataset provided to machine during instantiation is used.
+                Pandas DataFrame containing independent variables. If left as none,
+                The feature dataset provided to Machine during instantiation is used.
             columns : list of strings, default=None
-                list containing string names of columns. if left as none, the value associated
+                List containing string names of columns. If left as none, the value associated
                 with self.data.mlm_dtypes["continuous"] will be used as the column list.
     """
-    # use data/mlm_dtypes["continuous"] columns provided during instantiation if left unspecified
+    # use data columns provided during instantiation if None
     if data is None:
         data = self.data
+    # use mlm_dtypes["continuous"] columns provided during instantiation if None
     if columns is None:
         columns = self.data.mlm_dtypes["continuous"]
 
+    # calculate skew for each column, dropping nulls and sorting on skew descending
     skewness = (
         data[columns]
         .apply(lambda X: stats.skew(X.dropna()))
         .sort_values(ascending=False)
     )
+
+    # store results in DataFrame
     skewness = pd.DataFrame({"Skew": skewness})
 
     # add column describing percent of values that are zero
@@ -798,23 +929,32 @@ def skew_summary(self, data=None, columns=None):
 def missing_summary(self, data=None):
     """
     Documentation:
+
+        ---
         Description:
-            displays Pandas DataFrame summarizing the missingness of each variable.
+            Displays Pandas DataFrame summarizing the missingness of each variable.
+
+        ---
         Parameters:
             data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. if left as none,
-                the feature dataset provided to machine during instantiation is used.
+                Pandas DataFrame containing independent variables. If left as none,
+                the feature dataset provided to Machine during instantiation is used.
     """
-    # use data/target provided during instantiation if left unspecified
+    # use data provided during instantiation if None
     if data is None:
         data = self.data
 
-    # calcule missing data statistics
+    # calculate missing data statistics
     total_missing = data.isnull().sum()
     percent_missing = data.isnull().sum() / len(data) * 100
+
+    # create DataFrame using missingness data
     percent_missing = pd.DataFrame(
         {"Total missing": total_missing, "Percent missing": percent_missing}
     )
+
+    # limit DataFrame to rows where "Percent missing" is greater than 0, sort descending
+    # by "Percent missing"
     percent_missing = percent_missing[
         ~(percent_missing["Percent missing"].isna())
         & (percent_missing["Percent missing"] > 0)
@@ -825,16 +965,19 @@ def missing_summary(self, data=None):
 def unique_category_levels(self, data=None):
     """
     Documentation:
+
+        ---
         Description:
-            displays Pandas DataFrame summarizing the skew of each number variable. also summarizes
-            the percent of a column that has a value of zero.
+            Print the unique values within each category column as define by mlm_dtypes["category"].
+
+        ---
         Parameters:
             data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. if left as none,
-                the feature dataset provided to machine during instantiation is used.
+                Pandas DataFrame containing independent variables. If left as none,
+                the feature dataset provided to Machine during instantiation is used.
     """
 
-    # use data/mlm_dtypes["continuous"] columns provided during instantiation if left unspecified
+    # use data/ columns provided during instantiation if None
     if data is None:
         data = self.data
 
@@ -845,23 +988,36 @@ def unique_category_levels(self, data=None):
 def compare_train_valid_levels(self, train_data, validation_data):
     """
     Documentation:
+
+        ---
         Description:
-            displays Pandas DataFrame summarizing the skew of each number variable. also summarizes
+            displays Pandas DataFrame summarizing the skew of each number variable. Also summarizes
             the percent of a column that has a value of zero.
+
+        ---
         Parameters:
             train_data : Pandas DataFrame
                 Pandas DataFrame containing training data.
             validation_data : Pandas DataFrame
                 Pandas DataFrame containing validation data.
     """
+    # creat counter to track how many features have differing amounts of unique values
+    # between the input training and validation datasets
     counter = 0
     for col in train_data.mlm_dtypes["category"]:
+
+        # capture unique feature values in both training and validation datasets
         train_values = train_data[col].unique()
         valid_values = validation_data[col].unique()
 
+        # determine if categories exist in the training data and not the validation data
         train_diff = set(train_values) - set(valid_values)
+
+        # determine if categories exist in the validation data and not the training data
         valid_diff = set(valid_values) - set(train_values)
 
+        # if there is a discrepancy in the presence of category values in the training
+        # and/or validation datasets, print summary information
         if len(train_diff) > 0 or len(valid_diff) > 0:
             print("\n\n*** " + col)
             print("Value present in training data, not in validation data")
@@ -877,27 +1033,41 @@ def compare_train_valid_levels(self, train_data, validation_data):
 def missing_column_compare(self, validation_data, train_data=None):
     """
     Documentation:
+
+        ---
         Description:
-            compares the columns that contain missing data in the training dataset
-            to the columns that contain missing data in the validation dataset. prints
+            Compares the columns that contain missing data in the training dataset
+            to the columns that contain missing data in the validation dataset. Prints
             a summary of the disjunction.
+
+        ---
         Parameters:
             validation_data : Pandas DataFrame
                 Pandas DataFrame containing validation data.
             train_data : Pandas DataFrame, default=None
-                Pandas DataFrame containing training data. If no value is passed, method
-                will default to using the objects data attribute.
+                Pandas DataFrame containing training data. If no value is passed, Method
+                will default to using the Machine object's data attribute.
     """
-    # use data/target provided during instantiation if left unspecified
+    # use data provided during instantiation if None
     if train_data is None:
         train_data = self.data
 
+    # return DataFrame describing number of values missing within each feature in the
+    # training data
     train_missing = train_data.isnull().sum()
+
+    # limit to feature that have greater than 0 missing values
     train_missing = train_missing[train_missing > 0].index
 
+    # return DataFrame describing number of values missing within each feature in the
+    # validation data
     validation_missing = validation_data.isnull().sum()
+
+    # limit to feature that have greater than 0 missing values
     validation_missing = validation_missing[validation_missing > 0].index
 
+    # print bi-direction summary of which columns are missing in the training dataset
+    # versus the validation dataset
     print("Feature has missing values in validation data, not training data.")
     print(set(validation_missing) - set(train_missing))
     print("")

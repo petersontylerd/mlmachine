@@ -34,24 +34,34 @@ from sklearn.model_selection import (
 def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
     """
     Documentation:
+
+        ---
         Description:
-            aggregate best model(s) for each estimator as determined by bayesian optimization
+            Aggregate best model(s) for each estimator as determined by bayesian optimization
             hyperparamter tuning process.
-        paramaters:
+
+        ---
+        Paramaters:
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
+                Pandas DataFrame containing results from bayesian optimization process.
             num_models : int, default=1
-                number of top models to return per estimator.
+                Number of top models to return per estimator.
+
+        ---
         Returns:
-            results : dictionary
-                dictionary containing string: list key/value pairs, where the string is the
-                name of a algorithm class and the list contains the integer(s) associated with
+            models : dictionary
+                Dictionary containing string: list key/value pairs, where the string is the
+                name of an estimator and the list contains the integer(s) associated with
                 the best model(s) as identified in the hyperparameter optimization summary.
     """
 
     models = {}
+
+    # iterate through unique estimators in bayes_optim_summary
     for estimator in bayes_optim_summary["estimator"].unique():
+
+        # subset bayes_optim_summary by current estimator and keep N rows, where
+        # N = num_models. sort by loss and capture only "iteration" values
         est_df = bayes_optim_summary[
             bayes_optim_summary["estimator"] == estimator
         ].sort_values(
@@ -67,46 +77,70 @@ def top_bayes_optim_models(self, bayes_optim_summary, num_models=1):
 def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None):
     """
     Documentation:
+
+        ---
         Description:
-            creates a Pandas DataFrame where each row corresponds to an observation, the model's prediction
-            for that observation, and the probabilities associated with the prediction.
-        paramaters:
+            Creates a Pandas DataFrame where each row corresponds to an observation, the model's prediction
+            for that observation, the true label, and the probabilities associated with the prediction.
+
+        ---
+        Paramaters:
             model : model object
-                instantiated model object.
+                Instantiated model object.
             X_train : Pandas DataFrame
-                training data observations.
+                Training data observations.
             y_train : Pandas Series
-                training data labels.
+                Training target data.
             X_valid : Pandas DataFrame, default=None
-                validation data observations.
+                Validation data observations.
             y_valid : Pandas Series, default=None
-                validation data labels.
+                Validation target data.
+
+        ---
         Returns:
             df : Pandas DataFrame
                 Pandas DataFrame containing prediction summary data.
     """
+    # fit model on training data
     model.fit(X_train.values, y_train.values)
 
+    # if no validation data is provided
     if X_valid is None:
+
+        # capture probabilites based on training data
         probas = model.predict_proba(X_train)
+
+        # organize probabilities in dictionary
         data = {
             "Label": y_train,
             "Prediction": probas.argmax(axis=1),
             "Positive": probas[:,0],
             "Negative": probas[:,1],
         }
+
+        # capture data in a DataFrame
         df = pd.DataFrame(data, index=y_train.index)
+
+        # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Positive"] - df["Negative"])
         df["Incorrect"] = np.abs(df["Label"] - df["Prediction"])
+
     else:
+        # capture probabilites based on validation data
         probas = model.predict_proba(X_valid)
+
+        # organize probabilities in dictionary
         data = {
             "Label": y_valid,
             "Prediction": probas.argmax(axis=1),
             "Positive": probas[:,0],
             "Negative": probas[:,1],
         }
+
+        # capture data in a DataFrame
         df = pd.DataFrame(data, index=y_valid.index)
+
+        # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Positive"] - df["Negative"])
         df["Incorrect"] = np.abs(df["Label"] - df["Prediction"])
 
@@ -117,40 +151,66 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
 def regression_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None):
     """
     Documentation:
+
+        ---
         Description:
-            creates a Pandas DataFrame where each row corresponds to an observation, the model's prediction
-            for that observation, and the probabilities associated with the prediction.
-        paramaters:
+            Creates a Pandas DataFrame where each row corresponds to an observation, the model's prediction
+            for that observation, and the true label.
+
+        ---
+        Paramaters:
             model : model object
-                instantiated model object.
+                Instantiated model object.
             X_train : Pandas DataFrame
-                training data observations.
+                Training target data.
             y_train : Pandas Series
-                training data labels.
+                Training data labels.
             X_valid : Pandas DataFrame, default=None
-                validation data observations.
+                Validation data observations.
             y_valid : Pandas Series, default=None
-                validation data labels.
+                Validation target data.
+
+        ---
         Returns:
             df : Pandas DataFrame
                 Pandas DataFrame containing prediction summary data.
     """
+    # fit model on training data
+    model.fit(X_train.values, y_train.values)
+
+    # if no validation data is provided
     if X_valid is None:
+
+        # generate predictions using training data
         preds = model.predict(X_train)
+
+        # organize data in a dictionary
         data = {
             "Label": y_train,
             "Prediction": preds,
         }
+
+        # capture data in a DataFrame
         df = pd.DataFrame(data, index=y_train.index)
+
+        # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Label"] - df["Prediction"])
         df["Percent difference"] =  ((df['Prediction'] - df['Label']) / df['Label']) * 100
+
     else:
+        # generate predictions using validation data
         preds = model.predict(X_valid)
+
+        # organize data in a dictionary
         data = {
             "Label": y_valid,
             "Prediction": preds,
         }
+
+        # capture data in a DataFrame
         df = pd.DataFrame(data, index=y_valid.index)
+
+        # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Label"] - df["Prediction"])
         df["Percent difference"] =  ((df['Prediction'] - df['Label']) / df['Label']) * 100
 
@@ -161,35 +221,46 @@ def regression_prediction_summary(self, model, X_train, y_train, X_valid=None, y
 def regression_stats(self, model, y_true, y_pred, feature_count, fold=0, data_type="training"):
     """
     Documentation:
+
+        ---
         Description:
-            create a dictionary containing information regarding model information and various metrics
+            Create a dictionary containing information regarding model information and various metrics
             describing the model's performance.
-        paramaters:
+
+        ---
+        Paramaters:
             model : model object
-                instantiated model object.
-            y_true : Pandas DataFrame or array
+                Instantiated model object.
+            y_true : Pandas Series or array
                 True labels.
             y_pred : Pandas Series or array
-                predicted labels.
+                Predicted labels.
             feature_count : int
-                number of features in the observation data. used to calculate adjusted r_squared.
+                Number of features in the observation data. Used to calculate adjusted R-squared.
             fold : int, default=0
-                indicator for which cross_validation fold the performance is associated with. if 0,
+                Indicator for which cross-validation fold the performance is associated with. If 0,
                 it is assumed that the evaluation is on an entire dataset (either the full training
                 dataset or the full validation dataset), as opposed to a fold.
+            data_type : str, default="training"
+                String describing type of dataset
+
+        ---
         Returns:
             results : dictionary
-                dictionary containing string: float key/value pairs, where the string is the
+                Dictionary containing string: float key/value pairs, where the string is the metric name
+                and the value is the metric score
 
     """
     results = {}
 
+    # model information
     results["Estimator"] = model.estimator_name
     results["Parameter set"] = model.model_iter
     results["Dataset type"] = data_type
     results["CV fold"] = fold
     results["N"] = len(y_true)
 
+    # model performance
     results["Explained Variance"] = explained_variance_score(y_true, y_pred)
     results["Mean squared log error"] = mean_squared_log_error(y_true, y_pred)
     results["Mean absolute error"] = mean_absolute_error(y_true, y_pred)
@@ -206,44 +277,56 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
                         random_state=1, regression_results_summary=None):
     """
     Documentation:
+
+        ---
         Description:
-            creates a Pandas DataFrame where each row captures various summary statistics pertaining to a model's performance.
-            captures performance data for training and validation datasets. if no validation set is provided, then
-            cross_validation is performed on the training dataset.
-        paramaters:
+            Creates a Pandas DataFrame where each row captures various summary statistics pertaining to a
+            model's performance. Captures performance data for training and validation datasets. If no
+            validation set is provided, then cross-validation is performed on the training dataset.
+
+        ---
+        Paramaters:
             model : model object
-                instantiated model object.
+                Instantiated model object.
             X_train : Pandas DataFrame
-                training data observations.
+                Training data observations.
             y_train : Pandas Series
-                training data labels.
+                Training target data.
             X_valid : Pandas DataFrame, default=None
-                validation data observations.
+                Validation data observations.
             y_valid : Pandas Series, default=None
-                validation data labels.
+                Validation target data.
             n_folds : int, default=None
-                number of cross_validation folds to use when generating
+                Number of cross-validation folds to use when generating
                 cv roc graph.
             random_state : int, default=1
-                random number seed.
+                Random number seed.
             regression_results_summary : Pandas DataFrame, default=None
-                Pandas DataFrame containing various summary statistics pertaining to model performance. if none, returns summary
-                Pandas DataFrame for the input model. if regression_results_summary DataFrame is provided from a previous run, the new
-                performance results are appended to the provivded summary.
+                Pandas DataFrame containing various summary statistics pertaining to model performance. If
+                None, returns summary Pandas DataFrame for the input model. If regression_results_summary
+                DataFrame is provided from a previous run, the new performance results are appended to the
+                provivded summary.
+
+        ---
         Returns:
             regression_results_summary : Pandas DataFrame
-                dataframe containing various summary statistics pertaining to model performance.
+                Dataframe containing various summary statistics pertaining to model performance.
     """
+    # fit model on training data
     model.fit(X_train.values, y_train.values)
 
     ## training dataset
+    # generate predictions using training data
     y_pred = model.predict(X_train.values)
+
+    # return regression_stats results for training data and predictions
     results = self.regression_stats(
         model=model,
         y_true=y_train.values,
         y_pred=y_pred,
         feature_count=X_train.shape[1],
     )
+
     # create shell results DataFrame and append
     if regression_results_summary is None:
         regression_results_summary = pd.DataFrame(columns=list(results.keys()))
@@ -254,7 +337,11 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
     ## validation dataset
     # if validation data is provided...
     if X_valid is not None:
+
+        # generate predictions using validation data
         y_pred = model.predict(X_valid.values)
+
+        # return regression_stats results for validation data and predictions
         results = self.regression_stats(
             model=model,
             y_true=y_valid.values,
@@ -262,11 +349,13 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
             feature_count=X_train.shape[1],
             data_type="validation",
         )
+
+        # append results to DataFrame
         regression_results_summary = regression_results_summary.append(
             results, ignore_index=True
         )
     elif isinstance(n_folds, int):
-        # if validation data is not provided, then perform k_fold cross validation on
+        # if validation data is not provided, then perform KFold cross-validation on
         # training data
         cv = list(
             KFold(
@@ -274,15 +363,19 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
             ).split(X_train, y_train)
         )
 
+        # iterate through KFolds
         for i, (train_ix, valid_ix) in enumerate(cv):
             X_train_cv = X_train.iloc[train_ix]
             y_train_cv = y_train.iloc[train_ix]
             X_valid_cv = X_train.iloc[valid_ix]
             y_valid_cv = y_train.iloc[valid_ix]
 
+            # fit model on training observations and make predictions with holdout observations
             y_pred = model.fit(X_train_cv.values, y_train_cv.values).predict(
                 X_valid_cv.values
             )
+
+            # return regression_stats results for holdout data and predictions
             results = self.regression_stats(
                 model=model,
                 y_true=y_valid_cv,
@@ -291,8 +384,10 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
                 data_type="validation",
                 fold=i + 1,
             )
+
+            # append results to DataFrame
             regression_results_summary = regression_results_summary.append(
                 results, ignore_index=True
             )
-            
+
     return regression_results_summary

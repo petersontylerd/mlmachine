@@ -45,11 +45,11 @@ class PowerGridSearcher:
                 cv : int, default=5
                     the of folds to perform in cross_validation.
                 verbose : int, default=0
-                    controls amount of information printed to console during fit.
+                    Controlsamount of information printed to console during fit.
                 n_jobs : int, default=1
-                    number of works to deploy upon execution, if applicable.
+                    Number of workers to deploy upon execution, if applicable.
                 scoring : string (sklearn evaluation metric), default=None
-                    number of works to deploy upon execution, if applicable.
+                    Number of workers to deploy upon execution, if applicable.
                 refit : bool, default=True
                     dictates whether method is refit with the best model upon grid seach completion.
             Returns:
@@ -91,11 +91,11 @@ class PowerGridSearcher:
                 cv : int, default=5
                     the of folds to perform in cross_validation.
                 verbose : int, default=0
-                    controls amount of information printed to console during fit.
+                    Controlsamount of information printed to console during fit.
                 n_jobs : int, default=1
-                    number of works to deploy upon execution, if applicable.
+                    Number of workers to deploy upon execution, if applicable.
                 scoring : string (sklearn evaluation metric), default=None
-                    number of works to deploy upon execution, if applicable.
+                    Number of workers to deploy upon execution, if applicable.
                 refit : bool, default=True
                     dictates whether method is refit with the best model upon grid seach completion.
                 n_iter : int, default=15

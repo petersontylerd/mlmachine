@@ -42,38 +42,41 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                         n_folds=None, title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15):
     """
     Documentation:
+
+        ---
         Description:
-            generate a panel of reports and visualizations summarizing the
+            Generate a panel of reports and visualizations summarizing the
             performance of a classification model.
-        paramaters:
+
+        ---
+        Parameters:
             model : model object
-                instantiated model object.
+                Instantiated model object.
             X_train : Pandas DataFrame
-                training data observations.
+                Training data observations.
             y_train : Pandas Series
-                training data labels.
+                Training target data.
             X_valid : Pandas DataFrame, default=None
-                validation data observations.
+                Validation data observations.
             y_valid : Pandas Series, default=None
-                validation data labels.
+                Validation target data.
             labels : list, default=None
-                custom labels for confusion matrix axes. if left as none,
+                Custom labels for confusion matrix axes. If left as none,
                 will default to 0, 1, 2...
             n_folds : int, default=None
-                number of cross_validation folds to use when generating
-                cv roc graph. If validation data is provided through X_valid/y_valid,
-                n_folds is ignored
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
-                colormap from which to draw plot colors.
+                Number of cross-validation folds to use. If validation data is provided through
+                X_valid/y_valid, n_folds is ignored.
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
+                Color map applied to plots.
             title_scale : float, default=1.0
-                controls the scaling up (higher value) and scaling down (lower value) of the size of
-                the main chart title, the x_axis title and the y_axis title.
+                Controls the scaling up (higher value) and scaling down (lower value) of the size
+                of the main chart title, the x_axis title and the y_axis title.
             random_state : int, default=1
                 random number seed.
             chart_scale : int or float, default=15
-                controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
+                Controls size and proportions of chart and chart elements. Higher value creates
+                larger plots and increases visual elements proportionally.
     """
-
     print("*" * 55)
     print("* Estimator: {}".format(model.estimator_name))
     print("* Parameter set: {}".format(model.model_iter))
@@ -83,8 +86,10 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     print("Training data evaluation\n")
 
     ## training panel
-    # generate predictions
+    # fit model on training data and generate predictions using training data
     y_pred = model.fit(X_train, y_train).predict(X_train)
+
+    # print and generate classification_report using training data
     print(
             classification_report(
                 y_train,
@@ -93,10 +98,10 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             )
         )
 
-    # create canvas
+    # create prettierplot object
     p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
-    # confusion matrix
+    # add canvas to prettierplot object
     ax = p.make_canvas(
         title="Confusion matrix - training data\nModel: {}\nParameter set: {}".format(
             model.estimator_name, model.model_iter
@@ -107,6 +112,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         title_scale=title_scale,
     )
 
+    # add confusion plot to canvas
     plot_confusion_matrix(
         estimator=model,
         X=X_train,
@@ -117,7 +123,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         ax=ax,
     )
 
-    # ROC curve
+    # add canvas to prettierplot object
     ax = p.make_canvas(
         title="ROC curve - training data\nModel: {}\nParameter set: {}".format(
             model.estimator_name,
@@ -127,9 +133,9 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         y_label="True positive rate",
         y_shift=0.35,
         position=122,
-        # position=111 if X_valid is not None else 121,
         title_scale=title_scale,
     )
+    # add ROC curve to canvas
     p.roc_curve_plot(
         model=model,
         X_train=X_train,
@@ -140,17 +146,15 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     plt.subplots_adjust(wspace=0.3)
     plt.show()
 
-    # if cross-validation
+    # if validation data is provided
     if X_valid is not None:
         print("\n" + "*" * 55)
         print("Validation data evaluation\n")
 
-        # generate colors
-        # color_list = style.color_gen(color_map, num=len(cv))
-
-        # generate predictions
+        # fit model on training data and generate predictions using validation data
         y_pred = model.fit(X_train, y_train).predict(X_valid)
 
+        # print and generate classification_report using training data
         print(
             classification_report(
                 y_valid,
@@ -159,10 +163,10 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             )
         )
 
-        # create canvas
+        # create prettierplot object
         p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
-        # visualize results with confusion matrix
+        # add canvas to prettierplot object
         ax = p.make_canvas(
             title="Confusion matrix - validation data\nModel: {}\nParameter set: {}".format(
                 model.estimator_name, model.model_iter
@@ -173,6 +177,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             title_scale=title_scale,
         )
 
+        # add confusion matrix to canvas
         plot_confusion_matrix(
             estimator=model,
             X=X_valid,
@@ -183,7 +188,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             ax=ax,
         )
 
-        # ROC curve
+        # add canvas to prettierplot object
         ax = p.make_canvas(
             title="ROC curve - validation data\nModel: {}\nParameter set: {}".format(
                 model.estimator_name,
@@ -196,6 +201,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             # position=111 if X_valid is not None else 121,
             title_scale=title_scale,
         )
+        # add ROC curve to canvas
         p.roc_curve_plot(
             model=model,
             X_train=X_train,
@@ -208,11 +214,12 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         plt.subplots_adjust(wspace=0.3)
         plt.show()
 
+    # if n_folds are provided, indicating cross-validation
     elif isinstance(n_folds, int):
         print("\n" + "*" * 55)
         print("Cross validation evaluation\n")
 
-        # cross_validated roc curve
+        # generate cross-validation indices
         cv = list(
             StratifiedKFold(
                 n_splits=n_folds, shuffle=True, random_state=random_state
@@ -222,6 +229,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         # generate colors
         color_list = style.color_gen(color_map, num=len(cv))
 
+        # iterate through cross-validation indices
         for i, (train_ix, valid_ix) in enumerate(cv):
             print("\n" + "*" * 55)
             print("CV Fold {}\n".format(i + 1))
@@ -231,8 +239,10 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             X_valid_cv = X_train.iloc[valid_ix]
             y_valid_cv = y_train.iloc[valid_ix]
 
-            # generate predictions
+            # fit model on training data and generate predictions using holdout observations
             y_pred = model.fit(X_train_cv, y_train_cv).predict(X_valid_cv)
+
+            # print and generate classification_report using holdout observations
             print(
             classification_report(
                     y_valid_cv,
@@ -241,10 +251,10 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 )
             )
 
-            # create canvas
+            # create prettierplot object
             p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
-            # visualize results with confusion matrix
+            # add canvas to prettierplot object
             ax = p.make_canvas(
                 title="Confusion matrix - CV Fold {}\nModel: {}\nParameter set: {}".format(
                     i + 1, model.estimator_name, model.model_iter
@@ -255,6 +265,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 title_scale=title_scale,
             )
 
+            # add confusion matrix to canvas
             plot_confusion_matrix(
                 estimator=model,
                 X=X_valid_cv,
@@ -265,7 +276,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 ax=ax,
             )
 
-            # ROC curve
+            # add canvas to prettierplot object
             ax = p.make_canvas(
                 title="ROC curve - CV Fold {}\nModel: {}\nParameter set: {}".format(
                     i + 1,
@@ -276,9 +287,10 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 y_label="True positive rate",
                 y_shift=0.35,
                 position=122,
-                # position=111 if X_valid is not None else 121,
                 title_scale=title_scale,
             )
+            
+            # add ROC curve to canvas
             p.roc_curve_plot(
                 model=model,
                 X_train=X_train_cv,
@@ -298,31 +310,32 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         Description:
             creates a set of residual plots and pandas DataFrames, where each row captures various summary statistics
             pertaining to a model's performance. generates residual plots and captures performance data for training
-            and validation datasets. if no validation set is provided, then cross_validation is performed on the
+            and validation datasets. If no validation set is provided, then cross_validation is performed on the
             training dataset.
-        paramaters:
+        Parameters:
             model : model object
-                instantiated model object.
+                Instantiated model object.
             X_train : Pandas DataFrame
-                training data observations.
+                Training data observations.
             y_train : Pandas Series
-                training data labels.
+                Training target data.
             X_valid : Pandas DataFrame, default=None
-                validation data observations.
+                Validation data observations.
             y_valid : Pandas Series, default=None
-                validation data labels.
-            n_folds : int, default=3
-                number of cross_validation folds to use when generating
-                cv roc graph.
-            random_state : int, default=1
-                random number seed.
+                Validation target data.
+            n_folds : int, default=None
+                Number of cross-validation folds to use. If validation data is provided through
+                X_valid/y_valid, n_folds is ignored.
             title_scale : float, default=1.0
-                controls the scaling up (higher value) and scaling down (lower value) of the size of
+                Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
             color_map : string specifying built_in matplotlib colormap, default="viridis"
-                colormap from which to draw plot colors.
+                Color map applied to plots.
+            random_state : int, default=1
+                random number seed.
             chart_scale : int or float, default=15
-                controls chart size and proportions. higher value creates larger plots and increases visual elements proportionally.
+                Controls size and proportions of chart and chart elements. Higher value creates larger plots
+                and increases visual elements proportionally.
     """
 
     print("*" * 55)
@@ -333,14 +346,18 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     print("\n" + "*" * 55)
     print("Training data evaluation")
 
+    # fit model on training data
     model.fit(X_train.values, y_train.values)
 
     ## training dataset
+    # generate predictions using training data and calculate residuals
     y_pred = model.predict(X_train.values)
     residuals = y_pred - y_train.values
 
-    # residual plot
+    # create prettierplot object
     p = PrettierPlot(plot_orientation="wide_narrow")
+    
+    # add canvas to prettierplot object
     ax = p.make_canvas(
         title="Residual plot - training data\nModel: {}\nParameter set: {}".format(
             model.estimator_name,
@@ -353,7 +370,8 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         position=121,
     )
 
-    # x units
+    # dynamically size precision of x-units based on magnitude of maximum
+    # predicted values
     if -1 <= np.nanmax(y_pred) <= 1:
         x_units = "fff"
     elif -100 <= np.nanmax(y_pred) <= 100:
@@ -361,7 +379,8 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     else:
         x_units = "f"
 
-    # y units
+    # dynamically size precision of y-units based on magnitude of maximum
+    # predicted values
     if -0.1 <= np.nanmax(residuals) <= 0.1:
         y_units = "ffff"
     elif -1 <= np.nanmax(residuals) <= 1:
@@ -371,12 +390,13 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     else:
         y_units = "f"
 
-    # x rotation
+    # x tick label rotation
     if -10000 < np.nanmax(y_pred) < 10000:
         x_rotate = 0
     else:
         x_rotate = 45
 
+    # add 2-dimensional scatter plot to canvas
     p.scatter_2d(
         x=y_pred,
         y=residuals,
@@ -386,11 +406,13 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         x_units=x_units,
         ax=ax,
     )
+
+    # plot horizontal line at y=0
     plt.hlines(
         y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2
     )
 
-    ## univariate plot
+    # add canvas to prettierplot object
     ax = p.make_canvas(
         title="Residual distribution - training data\nModel: {}\nParameter set: {}".format(
             model.estimator_name,
@@ -400,6 +422,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         position=122,
     )
 
+    # add distribution plot to canvas
     p.dist_plot(
         residuals,
         fit=stats.norm,
@@ -410,13 +433,14 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     )
     plt.show()
 
-    # training data results summary
+    # generate regression_stats using training data and predictions
     results = self.regression_stats(
         model=model,
         y_true=y_train.values,
         y_pred=y_pred,
         feature_count=X_train.shape[1],
     )
+    
     # create shell results DataFrame and append
     regression_results_summary = pd.DataFrame(columns=list(results.keys()))
     regression_results_summary = regression_results_summary.append(
@@ -429,11 +453,14 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         print("\n" + "*" * 55)
         print("Training data evaluation")
 
+        # generate predictions with validation data and calculate residuals
         y_pred = model.predict(X_valid.values)
         residuals = y_pred - y_valid.values
 
-        # residual plot
+        # create prettierplot object
         p = PrettierPlot(plot_orientation="wide_narrow")
+        
+        # add canvas to prettierplot object
         ax = p.make_canvas(
             title="Residual plot - training data\nModel: {}\nParameter set: {}".format(
                 model.estimator_name,
@@ -446,6 +473,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             position=121,
         )
 
+        # add 2-dimensional scatter plot to canvas
         p.scatter_2d(
             x=y_pred,
             y=residuals,
@@ -455,11 +483,13 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             x_units=x_units,
             ax=ax,
         )
+
+        # plot horizontal line at y=0
         plt.hlines(
             y=0, xmin=np.min(y_pred), xmax=np.max(y_pred), color=style.style_grey, lw=2
         )
 
-        ## univariate plot
+        # add canvas to prettierplot object
         ax = p.make_canvas(
             title="Residual distribution - training data\nModel: {}\nParameter set: {}".format(
                 model.estimator_name,
@@ -469,6 +499,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             position=122,
         )
 
+        # add distribution plot to canvas
         p.dist_plot(
             residuals,
             fit=stats.norm,
@@ -479,8 +510,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         )
         plt.show()
 
-        # validation data results summary
-        y_pred = model.predict(X_valid.values)
+        # generate regression_stats using validation data and predictions
         results = self.regression_stats(
             model=model,
             y_true=y_valid.values,
@@ -488,40 +518,45 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             feature_count=X_train.shape[1],
             data_type="validation",
         )
+        
+        # append results to regression_results_summary
         regression_results_summary = regression_results_summary.append(
             results, ignore_index=True
         )
         display(regression_results_summary)
 
+    # if n_folds are provided, indicating cross-validation
     elif isinstance(n_folds, int):
-        # if validation data is not provided, then perform k_fold cross validation on
-        # training data
+        
+        # generate cross-validation indices
         cv = list(
             KFold(
                 n_splits=n_folds, shuffle=True, random_state=random_state
             ).split(X_train, y_train)
         )
 
-        # generate colors
-        # color_list = style.color_gen(color_map, num=len(cv))
-
         print("\n" + "*" * 55)
         print("Cross validation evaluation")
 
-        # residual plot
-
+        # iterate through cross-validation indices
         for i, (train_ix, valid_ix) in enumerate(cv):
             X_train_cv = X_train.iloc[train_ix]
             y_train_cv = y_train.iloc[train_ix]
             X_valid_cv = X_train.iloc[valid_ix]
             y_valid_cv = y_train.iloc[valid_ix]
 
+            # fit model on training data and generate predictions using holdout observations
             y_pred = model.fit(X_train_cv.values, y_train_cv.values).predict(
                 X_valid_cv.values
             )
+            
+            # calculate residuals
             residuals = y_pred - y_valid_cv.values
 
+            # create prettierplot object
             p = PrettierPlot(plot_orientation="wide_narrow")
+            
+            # add canvas to prettierplot object
             ax = p.make_canvas(
                 title="Residual plot - CV fold {}\nModel: {}\nParameter set: {}".format(
                     i + 1,
@@ -535,6 +570,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
                 title_scale=title_scale,
             )
 
+            # add 2-dimensional scatter plot to canvas
             p.scatter_2d(
                 x=y_pred,
                 y=residuals,
@@ -545,6 +581,8 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
                 x_units=x_units,
                 ax=ax,
             )
+            
+            # plot horizontal line at y=0
             plt.hlines(
                 y=0,
                 xmin=np.min(y_pred),
@@ -553,7 +591,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
                 lw=2,
             )
 
-            ## univariate plot
+            # add canvas to prettierplot object
             ax = p.make_canvas(
                 title="Residual distribution - CV fold {}\nModel: {}\nParameter set: {}".format(
                     i + 1,
@@ -564,6 +602,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
                 position=122,
             )
 
+            # add distribution plot to canvas
             p.dist_plot(
                 residuals,
                 fit=stats.norm,
@@ -574,7 +613,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             )
             plt.show()
 
-            # cv fold results summary
+            # generate regression_stats using holdout observations and predictions
             results = self.regression_stats(
                 model=model,
                 y_true=y_valid_cv,
@@ -583,6 +622,8 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
                 data_type="validation",
                 fold=i + 1,
             )
+            
+            # append results to regression_results_summary
             regression_results_summary = regression_results_summary.append(
                 results, ignore_index=True
             )

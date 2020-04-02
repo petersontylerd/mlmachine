@@ -67,7 +67,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
             process.
         Parameters:
             space : dictionary
-                dictionary containg 'parameter : value distribution' key/value pairs. the key specifies the
+                dictionary containg 'parameter : value distribution' key/value pairs. The key specifies the
                 parameter of the model and optimization process draws trial values from the distribution.
             results_file : string
                 file destination for results summary csv.
@@ -78,7 +78,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
             target : array
                 input dataset labels.
             scoring : string (sklearn evaluation method)
-                evaluation method for scoring model performance. the following metrics are supported:
+                evaluation method for scoring model performance. The following metrics are supported:
                     - "accuracy"
                     - "f1_macro"
                     - "f1_micro"
@@ -86,13 +86,13 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
                     - "roc_auc"
                     - "root_mean_squared_error"
                     - "root_mean_squared_log_error"
-                please note that "root_mean_squared_log_error" is not implemented in sklearn. if "root_mean_squared_log_error" is specified, model
+                please note that "root_mean_squared_log_error" is not implemented in sklearn. If "root_mean_squared_log_error" is specified, model
                 is optimized using "neg_mean_squared_error" and then the square root is taken of the
                 absolute value of the results, effectively creating the "root_mean_squared_log_error" score to be minimized.
             n_folds : int
-                number of folds for cross_validation.
+                Number of folds for cross_validation.
             n_jobs : int
-                number of works to deploy upon execution, if applicable.
+                Number of workers to deploy upon execution, if applicable.
         Returns:
             results : dictionary
                 dictionary containing details for each individual trial. details include model type,
@@ -210,7 +210,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
             estimator_parameter_space : dictionary of dictionaries
                 dictionary of nested dictionaries. outer key is a model, and the corresponding value is
                 a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
-                pairs. the inner dictionary key specifies the parameter of the model to be tuned, and the
+                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
             model : string
                 the model to be fit.
@@ -221,7 +221,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
             scoring : string (sklearn evaluation method)
                 evaluation method for scoring model performance. takes values "neg_mean_squared_error",
                  "accuracy", and "root_mean_squared_log_error". please note that "root_mean_squared_log_error"
-                 is not an actual sklearn evaluation method. if "root_mean_squared_log_error" is specified, model
+                 is not an actual sklearn evaluation method. If "root_mean_squared_log_error" is specified, model
                  is optimized using "neg_mean_squared_error" and then the square root is taken of the absolute value
                  of the results, effectively creating the "root_mean_squared_log_error" score to be minimized.
             columns : dict, default=None
@@ -229,13 +229,13 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
                 and the list contains string of column names. enables utilization of different features sets for
                 each estimator.
             n_folds : int, default=3
-                number of folds for cross_validation.
+                Number of folds for cross_validation.
             n_jobs : int, default - 4
-                number of works to deploy upon execution, if applicable.
+                Number of workers to deploy upon execution, if applicable.
             show_progressbar : boolean, default=False
-                controls whether to print progress bar to console during training.
+                Controls whether to print progress bar to console during training.
             results_file : string, default=None
-                file destination for results summary csv. if none, defaults to
+                file destination for results summary csv. If none, defaults to
                 ./bayes_optimization_summary_{data}_{time}.csv.
     """
     if results_file is None:
@@ -347,7 +347,7 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
                 numberal identifier for a specific parameter set used in a training
                 iteration.
             n_jobs : int, default=4
-                number of works to use when training the model. this parameter will be
+                Number of workers to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             model : model object
@@ -416,7 +416,7 @@ class BayesOptimRegressorBuilder(RegressorMixin):
                 numberal identifier for a specific parameter set used in a training
                 iteration.
             n_jobs : int, default=4
-                number of works to use when training the model. this parameter will be
+                Number of workers to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             model : model object
@@ -485,7 +485,7 @@ class BayesOptimModelBuilder(BaseEstimator):
                 numberal identifier for a specific parameter set used in a training
                 iteration.
             n_jobs : int, default=4
-                number of works to use when training the model. this parameter will be
+                Number of workers to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             model : model object
@@ -549,11 +549,11 @@ class BasicRegressorBuilder(RegressorMixin):
             estimator : sklearn model, as either an uncalled object or a string.
                 model to instantiate.
             params : dictionary, default=None
-                dictionary containing 'parameter : value' pairs. if no dictionary is provided,
+                dictionary containing 'parameter : value' pairs. If no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
             n_jobs : int, default=4
-                number of works to use when training the model. this parameter will be
+                Number of workers to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             model : model object
@@ -612,11 +612,11 @@ class BasicClassifierBuilder(ClassifierMixin):
             estimator : sklearn model, as either an uncalled object or a string.
                 model to instantiate.
             params : dictionary, default=None
-                dictionary containing 'parameter : value' pairs. if no dictionary is provided,
+                dictionary containing 'parameter : value' pairs. If no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
             n_jobs : int, default=4
-                number of works to use when training the model. this parameter will be
+                Number of workers to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             model : model object
@@ -675,11 +675,11 @@ class BasicModelBuilder(BaseEstimator):
             estimator : sklearn model, as either an uncalled object or a string.
                 model to instantiate.
             params : dictionary, default=None
-                dictionary containing 'parameter : value' pairs. if no dictionary is provided,
+                dictionary containing 'parameter : value' pairs. If no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
             n_jobs : int, default=4
-                number of works to use when training the model. this parameter will be
+                Number of workers to use when training the model. this parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             model : model object
@@ -792,11 +792,11 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
                 this removes extremely high (poor) results by trimming values that observations where
                 the loss is greater than 2 standard deviations away from the mean.
             outlier_control : float: default=1.5
-                controls enforcement of outlier trimming. value is multiplied by median, and the resulting
+                Controlsenforcement of outlier trimming. value is multiplied by median, and the resulting
                 product is the cap placed on loss values. values higher than this cap will be excluded.
                 lower values of outlier_control apply more extreme filtering of loss values.
             title_scale : float, default=0.7
-                controls the scaling up (higher value) and scaling down (lower value) of the size of
+                Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
             color_map : string specifying built_in matplotlib colormap, default="viridis"
                 colormap from which to draw plot colors.
@@ -856,22 +856,22 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             estimator_parameter_space : dictionary of dictionaries
                 dictionary of nested dictionaries. outer key is a model, and the corresponding value is
                 a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
-                pairs. the inner dictionary key specifies the parameter of the model to be tuned, and the
+                pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
             n_iter : int
                 number of iterations to draw from theoretical distribution in order to visualize the
                 theoretical distribution. higher number leader to more robust distribution but can take
                 considerably longer to create.
             chart_scale : float, default=10
-                controls proportions of visualizations. larger values scale visual up in size, smaller values
+                Controlsproportions of visualizations. larger values scale visual up in size, smaller values
                 scale visual down in size.
             color_map : string specifying built_in matplotlib colormap, default="viridis"
                 colormap from which to draw plot colors.
             title_scale : float, default=0.7
-                controls the scaling up (higher value) and scaling down (lower value) of the size of
+                Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
             show_single_str_params : boolean, default=False
-                controls whether to display visuals for string attributes where the is only one unique value,
+                Controls whether to display visuals for string attributes where the is only one unique value,
                 i.e. there was only one choice for the optimization procedure to choose from during each iteration.
     """
     estimator_summary = self.unpack_bayes_optim_summary(
@@ -1079,7 +1079,7 @@ def sample_plot(self, sample_space, n_iter, chart_scale=15):
             tuning.
         Parameters:
             sample_space : dictionary
-                dictionary of 'param name : hyperopt distribution object' key/value pairs. the name can
+                dictionary of 'param name : hyperopt distribution object' key/value pairs. The name can
                 be arbitrarily chosen, and the value is a defined hyperopt distribution.
             n_iter : int
                 number of iterations to draw from theoretical distribution in order to visualize the

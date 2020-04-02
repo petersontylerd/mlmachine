@@ -5,6 +5,7 @@
 
 Welcome to mlmachine's documentation!
 =====================================
+mlmachine is a Python library that organizes and accelerates notebook-based machine learning experiments.
 
 .. toctree::
    :maxdepth: 2
