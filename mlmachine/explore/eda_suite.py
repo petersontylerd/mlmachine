@@ -40,7 +40,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             level_count_cap : int, default=50
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap, then no visualization panel is produced.
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             legend_labels : list, default=None
                 Class labels displayed in plot legend.
@@ -276,7 +276,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         Parameters:
             feature : string
                 Feature to visualize.
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             outliers_out_of_scope : boolean, float or int, default=None
                 Truncates the x-axis upper limit so that outliers are out of scope of the visualization.
@@ -582,7 +582,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
         Parameters:
             feature : string
                 Feature to visualize.
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
@@ -705,7 +705,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             level_count_cap : int, default=50
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap then the feature is skipped.
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates

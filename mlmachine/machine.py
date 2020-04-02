@@ -128,50 +128,56 @@ class Machine:
         oof_generator,
     )
 
-    def __init__(self, data, remove_features=[], identify_as_boolean=None, identify_as_continuous=None,identify_as_count=None,
+    def __init__(self, data, remove_features=[], identify_as_boolean=None, identify_as_continuous=None, identify_as_count=None,
                 identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None,
                 identify_as_string=None, target=None, is_classification=None):
         """
         Documentation:
+
+            ---
             Description:
-                __init__ handles initial processing of main data set. returns
-                data frame of independent variables, series containing dependent variable
-                and a dictionary that categorizes features by data type.
+                __init__ handles initial processing of main data set. Creates DataFrame of independent
+                variables, Pandas Series containing dependent variable and a dictionary that categorizes
+                features by mlm data type.
+
+            ---
             Parameters:
                 data : Pandas DataFrame
-                    input data provided as a Pandas DataFrame.
+                    Input data provided as a Pandas DataFrame.
                 remove_features : list, default=[]
-                    features to be completely removed from dataset.
+                    Features to be completely removed from dataset.
                 identify_as_boolean : list, default=None
-                    preidentified boolean features. columns given boolean dtype.
+                    Preidentified boolean features. Columns given boolean dtype.
                 identify_as_continuous : list, default=None
-                    preidentified continuous features. columns given float64 dtype.
+                    Preidentified continuous features. Columns given float64 dtype.
                 identify_as_count : list, default=None
-                    preidentified count features. columns given int64 dtype.
+                    Preidentified count features. Columns given int64 dtype.
                 identify_as_date : list, default=None
-                    preidentified date features. columns given datetime64[ns] dtype.
+                    Preidentified date features. Columns given datetime64[ns] dtype.
                 identify_as_nominal : list, default=None
-                    preidentified nominal category features. columns given category dtype.
+                    Preidentified nominal category features. Columns given category dtype.
                 identify_as_ordinal : list, default=None
-                    preidentified ordinal category features. columns given category dtype. If
+                    Preidentified ordinal category features. Columns given category dtype. If
                     an ordinal_encodings dict is passed, the category column will be given the
                     specified order.
                 ordinal_encodings : dict, default=None
-                    dictionary where the key is the ordinal column name provided as a
+                    Dictionary where the key is the ordinal column name provided as a
                     string, and the associated value is a list containing the preferred
                     order of the values.
                 identify_as_string : list, default=None
-                    preidentified string features. columns given string dtype.
+                    Preidentified string features. Columns given string dtype.
                 target : list, default=None
-                    name of column containing dependent variable.
+                    Name of column containing dependent variable.
                 is_classification : boolean, default=None
                     Controls whether Machine is instantiated as a classification object or a
                     regression object.
-            attributes:
+
+            ---
+            Attributes:
                 data : Pandas DataFrame
-                    independent variables returned as a Pandas DataFrame
+                    Independent variables returned as a Pandas DataFrame.
                 target : Pandas Series
-                    dependent variable returned as a Pandas Series
+                    Dependent variable returned as a Pandas Series.
         """
         self.remove_features = remove_features
         self.target = data[target].squeeze() if target is not None else None
@@ -196,20 +202,22 @@ class Machine:
         if self.identify_as_ordinal is not None and self.ordinal_encodings is None:
             warnings.warn("Recommendation - Ordinal column names passed to 'identify_as_ordinal' variable but, no ordinal encoding instructions pass to 'ordinal_encodings' variable. It is recommended to pass a dictionary containing ordinal column names as keys and lists containing the preferred order of encoding as values", UserWarning)
 
-        # execute method feature_by_type_capture
+        # execute method capture_mlm_dtypes
         self.data = PreserveMetaData(self.data)
         self.capture_mlm_dtypes()
 
-        # encode the target column if there is one
+        # encode the target column if is_classification == True
         if self.target is not None and self.is_classification:
             self.encode_target()
 
     def capture_mlm_dtypes(self):
         """
         Documentation:
+
+            --
             Description:
-                determine feature type for each feature as being object, number
-                or bool.
+                Determine mlm dtype for each feature. Add determination to mlm_dtypes attribute
+                and set Pandas dtype in DataFrame accordingly.
         """
         ### populate mlm_dtypes dictionary with feature type label for each feature
         self.data.mlm_dtypes = {}
@@ -329,10 +337,13 @@ class Machine:
             except TypeError:
                 pass
 
+            # identify how many values in feature are zero or one
             zeros_and_ones = (self.data[column].eq(0) | self.data[column].eq(1)).sum()
+            
+            # count number of unique values in feature
             unique_values = len(np.unique(self.data[column].dropna()))
 
-            #
+            # if feature is detected to have an object or categorical dtype
             if is_object_dtype(self.data[column]) \
                 or is_string_dtype(self.data[column]) \
                 or is_categorical_dtype(self.data[column]):
@@ -340,47 +351,47 @@ class Machine:
                 self.data.mlm_dtypes["nominal"].append(column)
                 self.data[column] = self.data[column].astype("category")
 
-            #
+            # if feature is detected to have a datetime64 dtype
             elif is_datetime64_any_dtype(self.data[column]):
 
                 self.data.mlm_dtypes["date"].append(column)
                 self.data[column] = self.data[column].astype("datetime64[ns]")
 
-            #
+            # if feature is detected to have a bool dtype
             elif is_bool_dtype(self.data[column]):
 
                 self.data.mlm_dtypes["boolean"].append(column)
                 self.data[column] = self.data[column].astype("boolean")
 
-            #
+            # if feature is detected to have a string dtype
             elif is_string_dtype(self.data[column]):
 
                 self.data.mlm_dtypes["string"].append(column)
                 self.data[column] = self.data[column].astype("string")
 
-            #
+            # if feature is detected to have a numeric dtype
             elif is_numeric_dtype(self.data[column]):
 
-                #
+                # if the values have a significant spread, assume continuous mlm dtype
                 if value_std/value_mean > 2 and value_std > 5:
                     self.data.mlm_dtypes["continuous"].append(column)
                     self.data[column] = self.data[column].astype("float64")
 
-                # if column contains only 0's and 1's, then boolean
+                # if feature contains only 0's and 1's, then assume boolean mlm dtype
                 elif self.data[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones == self.data.shape[0]:
 
                     self.data.mlm_dtypes["boolean"].append(column)
                     self.data[column] = self.data[column].astype("boolean")
 
-                #
+                # if feature does not contain only 0's and 1's, then assume count mlm dtype
                 elif self.data[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones != self.data.shape[0]:
 
                     self.data.mlm_dtypes["count"].append(column)
                     self.data[column] = self.data[column].astype("int64")
 
-                #
+                # otherwise, set as continuous
                 else:
                     self.data.mlm_dtypes["continuous"].append(column)
                     self.data[column] = self.data[column].astype("float64")
@@ -391,23 +402,27 @@ class Machine:
                 self.data.mlm_dtypes["nominal"].append(column)
                 self.data[column] = self.data[column].astype("category")
 
-        ### sort lists within dictionary
+        # sort lists within dictionary
         self.data.mlm_dtypes = {x: sorted(self.data.mlm_dtypes[x]) for x in self.data.mlm_dtypes.keys()}
 
-        ###
+        # create helper keys that combine all category and numeric mlm dtypes
         self.data.mlm_dtypes["category"] = self.data.mlm_dtypes["boolean"] + self.data.mlm_dtypes["nominal"] + self.data.mlm_dtypes["ordinal"]
         self.data.mlm_dtypes["number"] = self.data.mlm_dtypes["continuous"] + self.data.mlm_dtypes["count"]
 
     def update_dtypes(self, columns_to_drop=None):
         """
         Documentation:
+
+            ---
             Description:
-                update mlm_dtypes dictionary to include new columns. ensures new object columns
-                in dataset have the dtype "category". optionally drops specific columns from the dataset
-                and mlm_dtypes.
+                Update mlm_dtypes dictionary to include new columns. Ensures new object columns
+                in dataset have the dtype "category". Optionally drops specific columns from the dataset
+                and mlm_dtypes dictionary.
+
+            ---
             Parameters:
                 columns_to_drop : list, default=None
-                    columns to drop from output dataset(s)/
+                    Columns to drop from output dataset
         """
         ### updates to mlm_dtypes with new columns and drop any specified removals
         # capture current columns
@@ -594,12 +609,16 @@ class Machine:
     def encode_target(self, reverse=False):
         """
         Documentation:
+
+            ---
             Description:
-                encode object target column and store as a Pandas Series, where
-                the name is the name of the feature in the original dataset.
+                Encode categorical target column and store as a Pandas Series, where
+                the Series name is the name of the feature in the original dataset.
+
+            ---
             Parameters:
                 reverse : bool, default=False
-                    reverses encoding of target variables back to original variables.
+                    Reverses encoding of target variables back to original labels.
         """
         # encode label
         self.le_ = LabelEncoder()
@@ -625,26 +644,33 @@ class Machine:
     def recombine_data(self, data=None, target=None):
         """
         Documentation:
+
+            ---
             Description:
-                helper function for recombining the features in the 'data' variable
-                and the 'target' variable into one Pandas DataFrame.
+                Helper function for recombining the features in the 'data' attribute
+                and the 'target' attribute into one Pandas DataFrame.
+
+            ---
             Parameters:
                 data : Pandas DataFrame, default=None
                     Pandas DataFrame containing independent variables. If left as none,
-                    the feature dataset provided to machine during instantiation is used.
+                    the feature dataset provided to Machine during instantiation is used.
                 target : Pandas Series, default=None
                     Pandas Series containing dependent target variable. If left as none,
-                    the target dataset provided to machine during instantiation is used.
-            return:
+                    the target dataset provided to Machine during instantiation is used.
+            ---
+            Returns:
                 df : Pandas DataFrame
                     Pandas DataFrame containing combined independent and dependent variables.
         """
-        # use data/target provided during instantiation if left unspecified
+        # use data provided during instantiation if None
         if data is None:
             data = self.data
+        # use target provided during instantiation if None
         if target is None:
             target = self.target
 
+        # merge data and target on index
         df = data.merge(target, left_index=True, right_index=True)
         return df
 
@@ -660,32 +686,41 @@ class PreserveMetaData(pd.DataFrame):
 
 def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
     """
-    Description:
-        intakes a single dataset and returns a training dataset and a validation dataset
-        stored in pandas DataFrames.
-    Parameters:
-        data: Pandas DataFrame or array
-            dataset to be deconstructed into train and test sets.
-        target_col : string
-            name of target column in data parameter
-        valid_size : float, default=0.2
-            proportion of dataset to be set aside as "unseen" test data.
-        random_state : int
-            random number seed
-    Returns:
-        df_train : Pandas DataFrame
-            training dataset to be passed into mlmachine pipeline
-        df_valid : Pandas DataFrame
-            validation dataset to be passed into mlmachine pipeline
+    Documentation:
+
+        ---
+        Description:
+            Intakes a single dataset and returns a training dataset and a validation dataset
+            stored in separate Pandas DataFrames.
+
+        ---
+        Parameters:
+            data: Pandas DataFrame or array
+                Dataset to be deconstructed into train and test sets.
+            target_col : string
+                Name of target column in dataset
+            valid_size : float, default=0.2
+                Proportion of dataset to be set aside as "unseen" test data.
+            random_state : int, default=1
+                Random number seed
+
+        ---
+        Returns:
+            df_train : Pandas DataFrame
+                Training dataset.
+            df_valid : Pandas DataFrame
+                Validation dataset.
     """
     if isinstance(data, pd.DataFrame):
         y = data[target_col]
         x = data.drop([target_col], axis=1)
 
+    # perform train/test split
     X_train, X_valid, y_train, y_valid = train_test_split(
         x, y, test_size=valid_size, random_state=1, stratify=y
     )
 
+    # merge training data and associated targets
     df_train = X_train.merge(y_train, left_index=True, right_index=True)
     df_valid = X_valid.merge(y_valid, left_index=True, right_index=True)
 

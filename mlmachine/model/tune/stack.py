@@ -24,34 +24,34 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
     """
     Documentation:
         Description:
-            generates out_of_fold (oof) predictions using provided model, training dataset
+            Generates out-of-fold (OOF) predictions using provided model, training dataset
             and corresponding labels, and a validation dataset.
         Parameters:
             model : sklearn model or pipeline
-                model to be fit.
+                Model to be fit.
             X_train : array
-                training dataset.
+                Training data observations.
             y_train : array
-                training dataset labels.
+                Training target data.
             X_valid : array
-                validation dataset.
+                Validation data observations.
             n_folds : int, default=10
-                Number of folds for performing cross_validation. function will generate this
-                many sets of out_of_fold predictions.
+                Number of folds for performing cross-validation. Function will generate this
+                many sets of out-of-fold predictions.
         Returns:
             oof_train : array
-                array containing observation data to be passed to the meta_learner. oof_train
-                is updated throughout the cross_validation process with observations that are
+                Array containing observation data to be passed to the meta_learner. oof_train
+                is updated throughout the cross-validation process with observations that are
                 identified as test observations in each fold.
             oof_valid : array
-                array containing average of all out_of_fold predictions. to be passed to the
-                meta_learner.
+                Array containing average of all out-of-fold predictions. This is the object to
+                pass to the meta_learner.
     """
     # row counts
     n_train = X_train.shape[0]
     n_valid = X_valid.shape[0]
 
-    # kfold train/test index generator
+    # KFold train/test index generator
     kf = KFold(n_splits=n_folds)
 
     # create shell arrays for holding results
@@ -59,9 +59,10 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
     oof_valid = np.zeros((n_valid,))
     oof_valid_scores = np.empty((n_folds, n_valid))
 
-    # iterate through all kfolds to train model, capture scores
+    # iterate through all KFolds to train model, capture scores
     for i, (train_ix, test_ix) in enumerate(kf.split(X_train)):
-        # set train/test observations based on k_fold indices
+        
+        # set train/test observations based on KFold indices
         X_train_fold = X_train[train_ix]
         y_train_fold = y_train[train_ix]
         x_test_fold = X_train[test_ix]
@@ -83,38 +84,35 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
     return oof_train.reshape(-1, 1), oof_valid.reshape(-1, 1)
 
 
-def model_stacker(
-    self, models, bayes_optim_summary, X_train, y_train, X_valid, n_folds, n_jobs
-):
+def model_stacker(self, models, bayes_optim_summary, X_train, y_train, X_valid, n_folds, n_jobs):
     """
     Documentation:
         Description:
-            stacking helper.
+            Stacking helper function.
         Parameters:
             models : dictionary
-                dictionary of 'x : y' pairs  to be fit.
+                Dictionary of 'x: y' pairs  to be fit.
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
+                Pandas DataFrame containing results from bayesian optimization process.
             X_train : array
-                training dataset.
+                Training data observations.
             y_train : array
-                labels for training dataset.
+                Training target data.
             X_valid : array
-                validation dataset.
-            n_folkds : int
-                Number of folds for performing cross_validation. function will generate this
-                many sets of out_of_fold predictions.
+                Validation data observations.
+            n_folds : int
+                Number of folds for performing cross-validation. Function will generate this
+                many sets of out-of-fold predictions.
             n_jobs : int
-                Number of workers to use when training the model. this parameter will be
+                Number of workers to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
         Returns:
             oof_train : array
-                out_of_fold training data observations.
+                Out-of-fold training data observations.
             oof_valid : array
-                out_of_fold validation data observations.
+                Out-of-fold validation data observations.
             columns : list
-                list containing estimator names.
+                List containing estimator names.
     """
     columns = []
 
@@ -128,7 +126,7 @@ def model_stacker(
 
             model = self.BayesOptimModelBuilder(
                 bayes_optim_summary=bayes_optim_summary,
-                estimator=estimator,
+                estimator_class=estimator,
                 model_iter=model_iter,
                 n_jobs=n_jobs,
             )

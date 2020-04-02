@@ -34,44 +34,49 @@ from sklearn.metrics import (
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
-import shap
+import SHAP
 
 
 def single_shap_value_tree(self, obs_ix, model, data):
     """
     Documentation:
+
+        ---
         Description:
-            generate elements necessary for creating a shap force plot for
-            a single observation. works with tree_based models, including:
+            Generate elements necessary for creating a SHAP force plot for a single
+            observation. Works with tree_based models, including:
                 - RandomForestClassifier (package: sklearn)
                 - GradientBoostingClassifier (package: sklearn)
                 - ExtraTreesClassifier (package: sklearn)
-                - lightgbm.lgbm_classifier (package: lightgbm)
-                - xgboost.xgb_classifier (package: xgboost)
-        paramaters:
+                - LGBMClassifier (package: lightgbm)
+                - XGBClassifier (package: xgboost)
+
+        ---
+        Parameters:
             obs_ix : int
-                index of observation to be analyzed.
+                Index of observation to analyze.
             model : model object
-                instantiated model object.
+                Instantiated model object.
             data : Pandas DataFrame
-                dataset from which to slice indiviudal observation.
+                Dataset from which to slice individual observation's features.
+
+        ---
         Returns:
             obs_data : array
-                feature values for the specified observation.
+                Feature values for the specified observation.
             base_value : float
-                expected value associated with positive class.
+                Expected prediction value.
             obs_shap_values : array
-                data array containing the shap values for the specified
+                Data array containing the SHAP values for the specified
                 observation.
     """
-    # collect observation feature values, model expected value and observation
-    # shap values
+    # collect observation feature values, explainer object and observation SHAP values
     obs_data = data.loc[obs_ix].values.reshape(1, -1)
-    explainer = shap.TreeExplainer(model.model)
+    explainer = SHAP.TreeExplainer(model.model)
     obs_shap_values = explainer.shap_values(obs_data)
 
-    # different types of models generate differently formatted shap values
-    # and expected values
+    # accommodate the fact that different types of models generate differently
+    # formatted SHAP values and expected values
     if isinstance(obs_shap_values, list):
         obs_shap_values = obs_shap_values[1]
     else:
@@ -88,31 +93,34 @@ def single_shap_value_tree(self, obs_ix, model, data):
 def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=True, cmap="viridis"):
     """
     Documentation:
+
+        ---
         Description:
-            generate a shap force plot for a single observation.
-            works with tree_based models, including:
+            Generate a SHAP force plot for a single observation. Works with tree-based models,
+            including:
                 - RandomForestClassifier (package: sklearn)
                 - GradientBoostingClassifier (package: sklearn)
                 - ExtraTreesClassifier (package: sklearn)
                 - LGBMClassifier (package: lightgbm)
                 - XGBClassifier (package: xgboost)
-        paramaters:
+
+        ---
+        Parameters:
             obs_ix : int
-                index of observations to be visualized.
+                Index of observation to visualize.
             model : model object
-                instantiated model object.
+                Instantiated model object.
             data : Pandas DataFrame
-                dataset from which to slice indiviudal observation.
+                Dataset from which to slice indiviudal observation's features.
             target : Pandas Series, default=None
-                True labels for observations. this is optional to allow explainations
-                for observations without labels.
+                True label for observation.
             classification : bool, default=True
-                bool argument indicating whether the supervised learning
-                task is classification or regression.
+                Bool argument indicating whether the supervised learning task is classification
+                task or regression task.
             cmap : string, colormap, default=viridis
-                colormap to use on force plot.
+                Colormap applied to plot.
     """
-    # create shap value objects
+    # return observation features values, expected value, and observation SHAP values
     obs_data, base_value, obs_shap_values = self.single_shap_value_tree(obs_ix=obs_ix, model=model, data=data)
 
     # display summary information about prediction
@@ -129,10 +137,8 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
             print('True label: {:.6f}'.format(target.loc[obs_ix]))
 
     # display force plot
-    shap.force_plot(
+    SHAP.force_plot(
         base_value=base_value,
-        # shap_values=obs_shap_values,
-        # features=obs_data,
         shap_values=np.around(obs_shap_values.astype(np.double),3),
         features=np.around(obs_data.astype(np.double),3),
         feature_names=data.columns.tolist(),
@@ -149,42 +155,49 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
 def multi_shap_value_tree(self, obs_ixs, model, data):
     """
     Documentation:
+
+        ---
         Description:
-            generate elements necessary for creating a shap force plot for
-            multiple observations simultaneously. works with tree_based
-            models, including:
+            Generate elements necessary for creating a SHAP force plot for multiple
+            observations simultaneously. Works with tree-based models, including:
                 - RandomForestClassifier (package: sklearn)
                 - GradientBoostingClassifier (package: sklearn)
                 - ExtraTreesClassifier (package: sklearn)
-                - lightgbm.lgbm_classifier (package: lightgbm)
-                - xgboost.xgb_classifier (package: xgboost)
-        paramaters:
+                - LGBMClassifier (package: lightgbm)
+                - XGBClassifier (package: xgboost)
+
+        ---
+        Parameters:
             obs_ixs : array or list
-                index values of observations to be analyzed.
+                Index values of observation to be analyze.
             model : model object
-                instantiated model object.
+                Instantiated model object.
             data : Pandas DataFrame
-                dataset from which to slice indiviudal observations.
+                Dataset from which to slice indiviudal observations' feature values.
+        
+        ---
         Returns:
             obs_data : array
-                feature values for the specified observations.
+                Feature values for the specified observations.
             base_value : float
-                expected value associated with positive class.
+                Expected predicted value.
             obs_shap_values : array
-                data array containing the shap values for the specified
+                data array containing the SHAP values for the specified
                 observations.
     """
+
+    # collect observation feature values, explainer object and observation SHAP values
     obs_data = data.loc[obs_ixs].values
-    explainer = shap.TreeExplainer(model.model)
+    explainer = SHAP.TreeExplainer(model.model)
     obs_shap_values = explainer.shap_values(obs_data)
 
-    #
+    # accommodate the fact that different types of models generate differently
+    # formatted SHAP values and expected values
     if isinstance(obs_shap_values, list):
         obs_shap_values = obs_shap_values[1]
     else:
         obs_shap_values = obs_shap_values
 
-    #
     if isinstance(explainer.expected_value, np.floating):
         base_value = explainer.expected_value
     else:
@@ -196,26 +209,31 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
 def multi_shap_viz_tree(self, obs_ixs, model, data):
     """
     Documentation:
+        
+        ---
         Description:
-            generate a shap force plot for multiple  observations simultaneously.
-            works with tree_based models, including:
+            Generate a SHAP force plot for multiple observations simultaneously. Works with
+            tree-based models, including:
                 - RandomForestClassifier (package: sklearn)
                 - GradientBoostingClassifier (package: sklearn)
                 - ExtraTreesClassifier (package: sklearn)
-                - lightgbm.lgbm_classifier (package: lightgbm)
-                - xgboost.xgb_classifier (package: xgboost)
-        paramaters:
+                - LGBMClassifier (package: lightgbm)
+                - XGBClassifier (package: xgboost)
+
+        ---
+        Parameters:
             obs_ixs : array or list
-                index values of observations to be analyzed.
+                Index values of observations to analyze.
             model : model object
-                instantiated model object.
+                Instantiated model object.
             data : Pandas DataFrame
-                dataset from which to slice observations.
+                Dataset from which to slice observations' feature values.
     """
+    # return observation features values, expected value, and observation SHAP values
     obs_data, base_value, obs_shap_values = self.multi_shap_value_tree(obs_ixs=obs_ixs, model=model, data=data)
 
     # generate force plot
-    visual = shap.force_plot(
+    visual = SHAP.force_plot(
         base_value = base_value,
         shap_values = obs_shap_values,
         features = obs_data,
@@ -228,36 +246,41 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
                         x_jitter=0.08, dot_size=25, alpha=0.7, show=True, ax=None):
     """
     Documentation:
+        
+        ---
         Description:
-            generate a shap dependence plot for a pair of features. one feature is
+            Generate a SHAP dependence plot for a pair of features. One feature is
             represented in a scatter plot, with each observation's actual value on the
-            x_axis and the corresponding shap value for the observation on the y_axis.
+            x-axis and the corresponding SHAP value for the observation on the y-axis.
             the second feature applies a hue to the scattered feature based on the
             individual values of the second feature.
-        paramaters:
+        
+        ---
+        Parameters:
             obs_data : array
-                feature values for the specified observations.
+                Feature values for the specified observations.
             obs_shap_values : array
-                data array containing the shap values for the specified
-                observations.
+                Data array containing the SHAP values for the specified observations.
             scatter_feature : string
-                name of feature to scatter on plot area.
+                Name of feature to scatter on plot area.
             color_feature : string
-                name of feature to apply color to dots in scatter plot.
+                Name of feature to use when applying color to dots on scatter plot.
             feature_names : list
-                list of all feature names in the dataset.
+                List of all feature names in the dataset.
             x_jitter : float, default=0.08
-                Controlsdisplacement of dots along x_axis.
+                Controls displacement of dots along x-axis.
             dot_size : float, default=25
-                size of dots.
+                Size of dots.
             alpha : float, default=0.7
-                transparency of dots.
+                Transparency of dots.
+            show : boolean, default=True
+                Conditional controlling whether to display plot automatically when
+                calling function.
             ax : axes object, default=None
-                axis on which to place visual.
+                Axis on which to place visual.
     """
-
     # generate force plot
-    shap.dependence_plot(
+    SHAP.dependence_plot(
             ind = scatter_feature,
             shap_values = obs_shap_values,
             features = obs_data,
@@ -277,32 +300,32 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
         plt.show()
 
 
-def shap_dependence_grid(self, obs_data, obs_shap_values, grid_features, all_features, dot_size, alpha):
+def shap_dependence_grid(self, obs_data, obs_shap_values, grid_features, all_features, dot_size=25, alpha=0.7):
     """
     Documentation:
         Description:
-            generate a shap dependence plot for a pair of features. one feature is
+            Generate a SHAP dependence plot for a pair of features. One feature is
             represented in a scatter plot, with each observation's actual value on the
-            x_axis and the corresponding shap value for the observation on the y_axis.
-            the second feature applies a hue to the scattered feature based on the
+            x-axis and the corresponding SHAP value for the observation on the y-axis.
+            The second feature applies a hue to the scattered feature based on the
             individual values of the second feature.
-        paramaters:
+        Parameters:
             obs_data : array
                 feature values for the specified observations.
             obs_shap_values : array
-                data array containing the shap values for the specified
+                Data array containing the SHAP values for the specified
                 observations.
             grid_features : list
-                names of features to display on grid.
+                Names of features to display on grid.
             all_features : list
-                list containing names for all features for which shap values were
+                List containing names for all features for which SHAP values were
                 calculated.
             dot_size : float, default=25
-                size of dots.
+                Size of dots.
             alpha : float, default=0.7
-                transparency of dots.
+                Transparency of dots.
     """
-
+    # create subplot grid    
     fig, ax = plt.subplots(
         ncols=len(grid_features),
         nrows=len(grid_features),
@@ -310,6 +333,7 @@ def shap_dependence_grid(self, obs_data, obs_shap_values, grid_features, all_fea
         figsize=(len(grid_features) * 3.5, len(grid_features) * 2.5),
     )
 
+    # iterate through column feature and row feature pairs
     for col_ix, col_feature in enumerate(grid_features):
         for row_ix, row_feature in enumerate(grid_features):
             self.shap_dependence_plot(
@@ -333,19 +357,20 @@ def shap_summary_plot(self, obs_data, obs_shap_values, feature_names, alpha=0.7)
     """
     Documentation:
         Description:
-            generate a shap summary plot for multiple  observations.
-        paramaters:
+            Generate a SHAP summary plot for multiple observations.
+        Parameters:
             obs_data : array
-                feature values for the specified observations.
+                Feature values for the specified observations.
             obs_shap_values : array
-                data array containing the shap values for the specified
+                Data array containing the SHAP values for the specified
                 observations.
             feature_names : list
-                list of all feature names in the dataset.
+                List of all feature names in the dataset.
             alpha : float, default=0.7
-                Controlstransparency of dots.
+                Controls transparency of dots.
     """
-    shap.summary_plot(
+    # generate SHAP summary plot
+    SHAP.summary_plot(
         shap_values = obs_shap_values,
         features = obs_data,
         feature_names = feature_names,

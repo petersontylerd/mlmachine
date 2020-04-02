@@ -111,7 +111,7 @@ class FeatureSelector:
             Parameters:
                 sequential_scoring : str, sklearn scoring function, or list of these objects, default=None
                     Scoring metric for sequential feature selector algorithms. If list is provided,
-                    algorithm is run for each scoring metric. If none, accuracy is used for classifiers
+                    algorithm is run for each scoring metric. If None, accuracy is used for classifiers
                     and r2 is used for regressors.
                 sequential_n_folds : int, default=0
                     Number of folds to use in cross-validation procedure for sequential feature selector
@@ -1185,10 +1185,10 @@ class FeatureSelector:
                     Scoring metric to visualize.
                 feature_selector_summary : Pandas DataFrame or str
                     Pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
-                    If none, use object's internal attribute specified during instantiation.
+                    If None, use object's internal attribute specified during instantiation.
                 cv_summary : Pandas DataFrame or str, default=None
                     Pandas DataFrame, or str of csv file location, containing cross_validation results.
-                    If none, use object's internal attribute specified during instantiation.
+                    If None, use object's internal attribute specified during instantiation.
         """
 
         # load feature selector summary
@@ -1257,7 +1257,7 @@ class FeatureSelector:
         if isinstance(estimator, str):
             estimator = eval(estimator)
 
-        # if estimator is an api object, pass through BsicModelBuilder
+        # if estimator is an api object, pass through BasicModelBuilder
         if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
             model = BasicModelBuilder(estimator_class=estimator, n_jobs=n_jobs)
             estimator_name = model.estimator_name

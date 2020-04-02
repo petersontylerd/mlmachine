@@ -58,27 +58,31 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-# set optimization parameters
 def objective(space, results_file, estimator_class, data, target, scoring, n_folds, n_jobs):
     """
     Documentation:
+
+        ---
         Description:
-            customizable objective function to be minimized in the bayesian hyper_parameter optimization
+            Customizable objective function to minimize in the bayesian hyper-parameter optimization
             process.
+
+        ---
         Parameters:
             space : dictionary
-                dictionary containg 'parameter : value distribution' key/value pairs. The key specifies the
-                parameter of the model and optimization process draws trial values from the distribution.
+                Dictionary containg 'parameter: value distribution' key/value pairs. The key specifies
+                the parameter of the esto,atpr and the optimization process draws trial values from
+                that distribution.
             results_file : string
-                file destination for results summary csv.
-            estimator_class : string or sklearn-style class
-                the model to be fit.
+                File destination for results summary csv.
+            estimator_class : str or sklearn api object
+                The model to be fit.
             data : array
-                input dataset.
+                Training data observations.
             target : array
-                input dataset labels.
-            scoring : string (sklearn evaluation method)
-                evaluation method for scoring model performance. The following metrics are supported:
+                Training target data.
+            scoring : str
+                Evaluation method for scoring model performance. The following metrics are supported:
                     - "accuracy"
                     - "f1_macro"
                     - "f1_micro"
@@ -86,17 +90,21 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
                     - "roc_auc"
                     - "root_mean_squared_error"
                     - "root_mean_squared_log_error"
-                please note that "root_mean_squared_log_error" is not implemented in sklearn. If "root_mean_squared_log_error" is specified, model
-                is optimized using "neg_mean_squared_error" and then the square root is taken of the
-                absolute value of the results, effectively creating the "root_mean_squared_log_error" score to be minimized.
+                Note that "root_mean_squared_log_error" is not implemented in sklearn. If
+                "root_mean_squared_log_error" is specified, model is optimized using
+                "neg_mean_squared_error" and then the square root is taken of the absolute
+                value of the results, effectively creating the "root_mean_squared_log_error"
+                score to minimize.
             n_folds : int
-                Number of folds for cross_validation.
+                Number of folds for cross-validation.
             n_jobs : int
                 Number of workers to deploy upon execution, if applicable.
+
+        ---
         Returns:
             results : dictionary
-                dictionary containing details for each individual trial. details include model type,
-                iteration, parameter values, run time, and cross_validation summary statistics.
+                Dictionary containing details for each individual trial. Details include model type,
+                iteration, parameter values, run time, and cross-validation summary statistics.
     """
     global ITERATION
     ITERATION += 1
@@ -117,8 +125,10 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
     else:
         score_transform = scoring
 
+    # create model, estimator name to be used as column header in DataFrame
     model, estimator_name = model_type_check(estimator=estimator_class, n_jobs=n_jobs, params=space)
 
+    # execute cross-validation scoring
     cv = cross_val_score(
         estimator=model.custom_model,
         X=data,
@@ -128,6 +138,8 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
         cv=n_folds,
         scoring=scoring,
     )
+
+    # log runtime
     run_time = timer() - start
 
     # calculate loss based on scoring method
@@ -200,44 +212,59 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
     }
 
 def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scoring, columns=None, n_folds=3,
-                        n_jobs=4, iters=50, show_progressbar=False, results_file=None,):
+                        n_jobs=4, iters=50, show_progressbar=False, results_file=None):
     """
     Documentation:
-        definition:
-            perform bayesian hyper_parameter optimization across a set of models and parameter value
-            distribution.
+
+        ---
+        Definition:
+            Perform bayesian hyper-parameter optimization across a set of models and parameter value
+            distributions.
+
+        ---
         Parameters:
             estimator_parameter_space : dictionary of dictionaries
-                dictionary of nested dictionaries. outer key is a model, and the corresponding value is
-                a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
+                Dictionary of nested dictionaries. Outer key is a model, and the corresponding value is
+                a dictionary. Each nested dictionary contains 'parameter: value distribution' key/value
                 pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
-            model : string
-                the model to be fit.
             data : array
-                input dataset.
+                Train data observations.
             target : array
-                input dataset labels.
-            scoring : string (sklearn evaluation method)
-                evaluation method for scoring model performance. takes values "neg_mean_squared_error",
-                 "accuracy", and "root_mean_squared_log_error". please note that "root_mean_squared_log_error"
-                 is not an actual sklearn evaluation method. If "root_mean_squared_log_error" is specified, model
-                 is optimized using "neg_mean_squared_error" and then the square root is taken of the absolute value
-                 of the results, effectively creating the "root_mean_squared_log_error" score to be minimized.
-            columns : dict, default=None
-                dictionary containing str/list key/value pairs, where the str is the name of the estimator
-                and the list contains string of column names. enables utilization of different features sets for
-                each estimator.
+                Training target data.
+            scoring : str
+                Evaluation method for scoring model performance. The following metrics are supported:
+                    - "accuracy"
+                    - "f1_macro"
+                    - "f1_micro"
+                    - "neg_mean_squared_error"
+                    - "roc_auc"
+                    - "root_mean_squared_error"
+                    - "root_mean_squared_log_error"
+                Note that "root_mean_squared_log_error" is not implemented in sklearn. If
+                "root_mean_squared_log_error" is specified, model is optimized using
+                "neg_mean_squared_error" and then the square root is taken of the absolute
+                value of the results, effectively creating the "root_mean_squared_log_error"
+                score to minimize.
+            columns : dict or list, default=None
+                If list of feature names is provided, all estimators use the same feature set. If dictionary
+                provided, dictionary should contain 'estimator: feature names' key/value pairs. The estimator
+                key is a string representing an estimator class, and the associated list is the list of features
+                to use with that estimator. The dictionary-approach enables utilization of different features
+                sets for each estimator.
             n_folds : int, default=3
-                Number of folds for cross_validation.
+                Number of folds for cross-validation.
             n_jobs : int, default - 4
                 Number of workers to deploy upon execution, if applicable.
+            iters : int, default=50
+                Number of iterations to run process.
             show_progressbar : boolean, default=False
                 Controls whether to print progress bar to console during training.
             results_file : string, default=None
-                file destination for results summary csv. If none, defaults to
+                file destination for results summary csv. If None, defaults to
                 ./bayes_optimization_summary_{data}_{time}.csv.
     """
+    # set results logging destination
     if results_file is None:
         results_file = "bayes_optimization_summary_{}_{}.csv".format(
             scoring, strftime("%y%m%d%H%M", gmtime())
@@ -262,31 +289,40 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
             ]
         )
 
-    # iterate through each model
+    # iterate through each estimator
     for estimator_class in estimator_parameter_space.keys():
+
+        # set iteration count to zero
         global ITERATION
         ITERATION = 0
 
-        # establish feature space for hyper_parameter search
+        # establish feature space for hyper-parameter search for current estimator
         space = estimator_parameter_space[estimator_class]
 
         # conditionally handle input data
         if isinstance(data, pd.core.frame.DataFrame):
 
-            # filter input data based on estimator_class / column_subset pairs
-            if columns is not None:
+            # if column subset is provided as a dictionary
+            if isinstance(columns, dict):
                 try:
                     input_data = data[columns[estimator_class]]
                 except KeyError:
                     input_data = data.copy()
 
-                # use underlying numpy ndarray
-                input_data = input_data.values
+            # if column subset is provided as a list
+            if isinstance(columns, list):
+                try:
+                    input_data = data[columns]
+                except KeyError:
+                    input_data = data.copy()
 
             elif columns is None:
-                # use underlying numpy ndarray
-                input_data = data.values
+                pass
+
+            # use underlying numpy ndarray
+            input_data = data.values
         elif isinstance(data, np.ndarray):
+
             # create a copy of the underlying data array
             input_data = data.copy()
         else:
@@ -296,9 +332,11 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
 
         # conditionally handle input target
         if isinstance(target, pd.core.series.Series):
+
             # use underlying numpy ndarray
             input_target = target.values
         elif isinstance(target, np.ndarray):
+
             # create a copy of the underlying data array
             input_target = target.copy()
         else:
@@ -322,6 +360,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
             print("\n" + "#" * 100)
             print("\nTuning {0}\n".format(estimator_class))
 
+        # minimize the objective function
         best = fmin(
             fn=objective,
             space=space,
@@ -334,25 +373,29 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
 class BayesOptimClassifierBuilder(ClassifierMixin):
     """
     Documentation:
+
+        ---
         Description:
-            helper class for instantiating an input model type with a provided
-            parameter set.
+            Helper class for instantiating a classifier model with a provided parameter set as stored
+            on the bayesian optimization log file.
+
+        ---
         Parameters:
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
-            estimator : string or sklearn api object
-                name of estimator to build. needs the format of [submodule].[estimator].
+                Pandas DataFrame containing results from bayesian optimization process.
+            estimator_class : str or sklearn api object
+                Name of estimator to build.
             model_iter : int
-                numberal identifier for a specific parameter set used in a training
+                Numeric identifier for a specific parameter set used in a training
                 iteration.
             n_jobs : int, default=4
-                Number of workers to use when training the model. this parameter will be
+                Number of workers to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
+
+        ---
         Returns:
             model : model object
-                model instantiated using parameter set. model possesses train, predict, fit
-                and feature_importances methods.
+                Model instantiated using parameter set.
     """
 
     def __init__(self, bayes_optim_summary, estimator_class, model_iter, n_jobs=4):
@@ -365,7 +408,7 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
 
-        # turn string into dict
+        # turn string representation of dictionary into dictionary
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
@@ -403,25 +446,29 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
 class BayesOptimRegressorBuilder(RegressorMixin):
     """
     Documentation:
+
+        ---
         Description:
-            helper class for instantiating an input model type with a provided
-            parameter set.
+            Helper class for instantiating a regression model with a provided parameter set as stored
+            on the bayesian optimization log file.
+
+        ---
         Parameters:
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
-            estimator : string or sklearn api object
-                name of estimator to build. needs the format of [submodule].[estimator].
+                Pandas DataFrame containing results from bayesian optimization process.
+            estimator_class : str or sklearn api object
+                Name of estimator to build.
             model_iter : int
-                numberal identifier for a specific parameter set used in a training
+                Numeric identifier for a specific parameter set used in a training
                 iteration.
             n_jobs : int, default=4
-                Number of workers to use when training the model. this parameter will be
+                Number of workers to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
+
+        ---
         Returns:
             model : model object
-                model instantiated using parameter set. model possesses train, predict, fit
-                and feature_importances methods.
+                Model instantiated using parameter set.
     """
 
     def __init__(self, bayes_optim_summary, estimator_class, model_iter, n_jobs=4):
@@ -434,7 +481,7 @@ class BayesOptimRegressorBuilder(RegressorMixin):
             & (self.bayes_optim_summary["iteration"] == self.model_iter)
         ]["params"].values[0]
 
-        # turn string into dict
+        # turn string representation of dictionary into dictionary
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
@@ -472,25 +519,29 @@ class BayesOptimRegressorBuilder(RegressorMixin):
 class BayesOptimModelBuilder(BaseEstimator):
     """
     Documentation:
+
+        ---
         Description:
-            helper class for instantiating an input model type with a provided
-            parameter set.
+            Helper class for instantiating a generic model with a provided parameter set as stored
+            on the bayesian optimization log file.
+
+        ---
         Parameters:
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
-            estimator : string or sklearn api object
-                name of estimator to build. needs the format of [submodule].[estimator].
+                Pandas DataFrame containing results from bayesian optimization process.
+            estimator_class : str or sklearn api object
+                Name of estimator to build.
             model_iter : int
-                numberal identifier for a specific parameter set used in a training
+                Numeric identifier for a specific parameter set used in a training
                 iteration.
             n_jobs : int, default=4
-                Number of workers to use when training the model. this parameter will be
+                Number of workers to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
+
+        ---
         Returns:
             model : model object
-                model instantiated using parameter set. model possesses train, predict, fit
-                and feature_importances methods.
+                Model instantiated using parameter set.
     """
 
     def __init__(self, bayes_optim_summary, estimator_class, model_iter, n_jobs=4):
@@ -505,7 +556,7 @@ class BayesOptimModelBuilder(BaseEstimator):
         self._estimator_type = "classifier"
 
 
-        # turn string into dict
+        # turn string representation of dictionary into dictionary
         self.params = ast.literal_eval(self.params)
 
         # convert estimator argument to sklearn api object if needed
@@ -543,22 +594,27 @@ class BayesOptimModelBuilder(BaseEstimator):
 class BasicRegressorBuilder(RegressorMixin):
     """
     Documentation:
+
+        ---
         Description:
-            helper class for instantiating an input model type.
+            Helper class for instantiating a regressor model with a provided parameter set.
+
+        ---
         Parameters:
-            estimator : sklearn model, as either an uncalled object or a string.
-                model to instantiate.
+            estimator_class : str or sklearn api object
+                Model to instantiate.
             params : dictionary, default=None
-                dictionary containing 'parameter : value' pairs. If no dictionary is provided,
+                Dictionary containing 'parameter: value' pairs. If no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
             n_jobs : int, default=4
-                Number of workers to use when training the model. this parameter will be
+                Number of workers to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
+
+        ---
         Returns:
             model : model object
-                model instantiated using parameter set. model possesses train, predict, fit
-                and feature_importances methods.
+                Model instantiated using parameter set.
     """
 
     def __init__(self, estimator_class, params=None, n_jobs=4, random_state=0):
@@ -606,18 +662,24 @@ class BasicRegressorBuilder(RegressorMixin):
 class BasicClassifierBuilder(ClassifierMixin):
     """
     Documentation:
+
+        ---
         Description:
-            helper class for instantiating an input model type.
+            Helper class for instantiating a classifier model with a provided parameter set.
+
+        ---
         Parameters:
-            estimator : sklearn model, as either an uncalled object or a string.
+            estimator_class : str or sklearn api object
                 model to instantiate.
             params : dictionary, default=None
                 dictionary containing 'parameter : value' pairs. If no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
             n_jobs : int, default=4
-                Number of workers to use when training the model. this parameter will be
+                Number of workers to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
+
+        ---
         Returns:
             model : model object
                 model instantiated using parameter set. model possesses train, predict, fit
@@ -669,22 +731,27 @@ class BasicClassifierBuilder(ClassifierMixin):
 class BasicModelBuilder(BaseEstimator):
     """
     Documentation:
+
+        ---
         Description:
-            helper class for instantiating an input model type.
+            Helper class for instantiating a generic model with a provided parameter set.
+
+        ---
         Parameters:
-            estimator : sklearn model, as either an uncalled object or a string.
-                model to instantiate.
+            estimator_class : str or sklearn api object
+                Model to instantiate.
             params : dictionary, default=None
-                dictionary containing 'parameter : value' pairs. If no dictionary is provided,
+                Dictionary containing 'parameter : value' pairs. If no dictionary is provided,
                 then an empty dictionary is created by default, which instantiates the model with
                 its default parameter values.
             n_jobs : int, default=4
-                Number of workers to use when training the model. this parameter will be
+                Number of workers to use when training the model. This parameter will be
                 ignored if the model does not have this parameter.
+
+        ---
         Returns:
             model : model object
-                model instantiated using parameter set. model possesses train, predict, fit
-                and feature_importances methods.
+                Model instantiated using parameter set.
     """
 
     def __init__(self, estimator_class, params=None, n_jobs=4, random_state=0):
@@ -734,36 +801,41 @@ class BasicModelBuilder(BaseEstimator):
 def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator_class):
     """
     Documentation:
-        definition:
-            unpack bayesian optimization results summary data for a specified estimator
+
+        ---
+        Definition:
+            Unpack bayesian optimization results summary data for a specified estimator
             into a Pandas DataFrame where there is one column for each parameter.
+
+        ---
         Parameters:
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
-            estimator_class : string or sklearn-style class
-                name of estimator to build.
+                Pandas DataFrame containing results from bayesian optimization process.
+            estimator_class : str or sklearn api object
+                Name of estimator to build.
+
+        ---
         Returns:
             estimator_param_summary : Pandas DataFrame
                 Pandas DataFrame where each row is a record of the parameters used and the
                 loss recorded in an iteration.
     """
-
+    # subset bayes_optim_summary to specified estimator_class
     estimator_df = bayes_optim_summary[
         bayes_optim_summary["estimator"] == estimator_class
     ].reset_index(drop=True)
 
-    # create a new dataframe for storing parameters
+    # create a new dataframe for storing estimator_class's parameters
     estimator_summary = pd.DataFrame(
         columns=list(ast.literal_eval(estimator_df.loc[0, "params"]).keys()),
         index=list(range(len(estimator_df))),
     )
 
-    # add the results with each parameter a different column
+    # append parameter set to estimator_summary
     for i, params in enumerate(estimator_df["params"]):
         estimator_summary.loc[i, :] = list(ast.literal_eval(params).values())
 
-    # add columns for loss and iter number
+    # add columns for loss and iteration number
     estimator_summary["iter_loss"] = estimator_df["loss"]
     estimator_summary["iteration"] = estimator_df["iteration"]
 
@@ -773,37 +845,43 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
                     title_scale=0.7, color_map="viridis"):
     """
     Documentation:
-        definition:
-            visualize how the bayesian optimization loss change over time across all iterations.
-            extremely poor results are removed from visualized dataset by two filters.
-                1) loss values worse than [loss mean + (2 x loss std)]
-                2) los values worse than [median * outliers_control]. 'outlier_control' is a parameter
+
+        ---
+        Definition:
+            Visualize how the bayesian optimization loss changes over time across all iterations.
+            Extremely poor results are removed from visualized dataset by two filters.
+                1) Loss values worse than [loss mean + (2 x loss standard deviation)]
+                2) Loss values worse than [median * outliers_control]. 'outlier_control' is a parameter
                    that can be set during function execution.
+
+        ---
         Parameters:
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
-            estimator_class : string or sklearn-style class
-                name of estimator to build.
+                Pandas DataFrame containing results from bayesian optimization process.
+            estimator_class : str or sklearn api object
+                Name of estimator to visualize.
             chart_scale : float, default=15
-                control chart proportions. higher values scale up size of chart objects, lower
+                Control chart proportions. Higher values scale up size of chart objects, lower
                 values scale down size of chart objects.
-            trim_outliers : bool, default=True
-                this removes extremely high (poor) results by trimming values that observations where
-                the loss is greater than 2 standard deviations away from the mean.
+            trim_outliers : boolean, default=True
+                Remove extremely high (poor) results by trimming values where the loss is greater
+                than 2 standard deviations away from the mean.
             outlier_control : float: default=1.5
-                Controlsenforcement of outlier trimming. value is multiplied by median, and the resulting
-                product is the cap placed on loss values. values higher than this cap will be excluded.
-                lower values of outlier_control apply more extreme filtering of loss values.
+                Controls enforcement of outlier trimming. Value is multiplied by median, and the resulting
+                product is the cap placed on loss values. Values higher than this cap will be excluded.
+                Lower values of outlier_control apply more extreme filtering to loss values.
             title_scale : float, default=0.7
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
-                colormap from which to draw plot colors.
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
+                Color map applied to plots.
     """
+    # unpack bayes_optim_summary parameters for an estimator_class
     estimator_summary = self.unpack_bayes_optim_summary(
         bayes_optim_summary=bayes_optim_summary, estimator_class=estimator_class
     )
+
+    # apply outlier trimming
     if trim_outliers:
         mean = estimator_summary["iter_loss"].mean()
         median = estimator_summary["iter_loss"].median()
@@ -814,16 +892,21 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
             & (estimator_summary["iter_loss"] < outlier_control * median)
         ]
 
+    # create color list based on color_map
     color_list = style.color_gen(name=color_map, num=3)
 
-    # create regression plot
+    # create prettierplot object
     p = PrettierPlot(chart_scale=chart_scale)
+
+    # add canvas to prettierplot object
     ax = p.make_canvas(
         title="Loss by iteration - {}".format(estimator_class),
         y_shift=0.8,
         position=111,
         title_scale=title_scale,
     )
+
+    # add regression plot to canvas
     p.reg_plot(
         x="iteration",
         y="iter_loss",
@@ -842,42 +925,49 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                     color_map="viridis", title_scale=1.2, show_single_str_params=False):
     """
     Documentation:
-        definition:
-            visualize hyper_parameter optimization over the iterations. compares theoretical
-            distribution to the distribution of values that were actually chosen. for parameters
-            with a number range of values, this function also visualizes how the parameter
-            value changes over time.
+
+        ---
+        Definition:
+            Visualize hyperparameter optimization over all iterations. Compares theoretical distribution to
+            the distribution of values that were actually chosen, and visualizes how parameter value
+            selections changes over time.
+
+        ---
         Parameters:
             bayes_optim_summary : Pandas DataFrame
-                Pandas DataFrame containing results from bayesian optimization process
-                execution.
-            estimator_class : string or sklearn-style class
-                name of estimator to build.
+                Pandas DataFrame containing results from bayesian optimization process.
+            estimator_class : str or sklearn api object
+                Name of estimator to visualize.
             estimator_parameter_space : dictionary of dictionaries
-                dictionary of nested dictionaries. outer key is a model, and the corresponding value is
-                a dictionary. each nested dictionary contains 'parameter : value distribution' key/value
+                Dictionary of nested dictionaries. Outer key is an estimator, and the corresponding value is
+                a dictionary. Each nested dictionary contains 'parameter: value distribution' key/value
                 pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
             n_iter : int
-                number of iterations to draw from theoretical distribution in order to visualize the
-                theoretical distribution. higher number leader to more robust distribution but can take
+                Number of iterations to draw from theoretical distribution in order to visualize the
+                theoretical distribution. Higher number leader to more robust distribution but can take
                 considerably longer to create.
-            chart_scale : float, default=10
-                Controlsproportions of visualizations. larger values scale visual up in size, smaller values
+            chart_scale : float, default=15
+                Controls proportions of visualizations. larger values scale visual up in size, smaller values
                 scale visual down in size.
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
-                colormap from which to draw plot colors.
-            title_scale : float, default=0.7
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
+                Color map applied to plots.
+            title_scale : float, default=1.2
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
             show_single_str_params : boolean, default=False
-                Controls whether to display visuals for string attributes where the is only one unique value,
+                Controls whether to display visuals for string attributes where there is only one unique value,
                 i.e. there was only one choice for the optimization procedure to choose from during each iteration.
     """
+    # unpack bayes_optim_summary parameters for an estimator_class
     estimator_summary = self.unpack_bayes_optim_summary(
         bayes_optim_summary=bayes_optim_summary, estimator_class=estimator_class
     )
+
+    # override None with string representation
     estimator_summary = estimator_summary.replace([None], "None")
+
+    # subset estimator_parameter_space to space for the specified estimator_class
     estimator_space = estimator_parameter_space[estimator_class]
 
     print("*" * 100)
@@ -886,74 +976,93 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
 
     # iterate through each parameter
     for param in estimator_space.keys():
-        # create data to represent theoretical distribution
+
+        # sample from theoretical distribution for n_iters
         theoretical_dist = []
         for _ in range(n_iter):
             theoretical_dist.append(sample(estimator_space)[param])
 
-        # clean up
+        ## override None with string representation
+        # theoretical distribution
         theoretical_dist = ["none" if v is None else v for v in theoretical_dist]
         theoretical_dist = np.array(theoretical_dist)
 
-        # clean up
+        # actual distribution
         actual_dist = estimator_summary[param].tolist()
         actual_dist = ["none" if v is None else v for v in actual_dist]
         actual_dist = np.array(actual_dist)
 
+        # limit estimator_summary to "iteration" and current "param" columns
         actual_iter_df = estimator_summary[["iteration", param]]
 
+        # identify how many values in param column are zero or one
         zeros_and_ones = (actual_iter_df[param].eq(True) | actual_iter_df[param].eq(False)).sum()
-        if zeros_and_ones == actual_iter_df.shape[0]:
-            actual_iter_df = actual_iter_df.replace({True: 'TRUE', False: 'FALSE'})
 
+        # param column only contains zeros and ones, store string representations of "TRUE" and "FALSE"
+        if zeros_and_ones == actual_iter_df.shape[0]:
+            actual_iter_df = actual_iter_df.replace({True: "TRUE", False: "FALSE"})
+
+        # if theoreitcal distribution has dtype -- np.bool_, store string representations of "TRUE" and "FALSE"
         if isinstance(theoretical_dist[0], np.bool_):
             theoretical_dist = np.array(["TRUE" if i == True else "FALSE" for i in theoretical_dist.tolist()])
 
             estimator_summary = estimator_summary.replace([True], "TRUE")
             estimator_summary = estimator_summary.replace([False], "FALSE")
 
-        # plot distributions for object params
+        # if theoretical distribution contains str data, then treat this as an object/category parameter
         if any(isinstance(d, str) for d in theoretical_dist):
 
+            # generate color list for stripplot
             stripplot_color_list = style.color_gen(name=color_map, num=len(actual_iter_df[param].unique()) + 1)
+
+            # generate color list for bar chart
             bar_color_list = style.color_gen(name=color_map, num=3)
+
+            # identify unique values and associated count in theoretical distribution
             unique_vals_theo, unique_counts_theo = np.unique(theoretical_dist, return_counts=True)
 
+            # if theoretical distribution only has one unique value and show_single_str_params is set to True
             if len(unique_vals_theo) > 1 or show_single_str_params:
 
-                # actual plot
+                # identify unique values and associated count in actual distribution
                 unique_vals_actual, unique_counts_actual = np.unique(actual_dist, return_counts=True)
 
+                # store data in DataFrame
                 df = pd.DataFrame({"param": unique_vals_actual, "Theorical": unique_counts_theo, "Actual": unique_counts_actual})
 
+                # create prettierplot object
                 p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
 
-                # theoretical plot
+                # add canvas to prettierplot object
                 ax = p.make_canvas(
                     title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator_class, param),
                     y_shift=0.8,
                     position=121,
                     title_scale=title_scale,
                 )
+
+                # add faceted bar chart to canvas
                 p.facet_cat(
                     df=df,
                     feature="param",
                     color_map=bar_color_list[:-1],
                     # color_map=color_map,
-                    bbox=(1.0, 1.15),
+                    box=(1.0, 1.15),
                     alpha=1.0,
                     legend_labels=df.columns[1:].values,
                     x_units=None,
                     ax=ax,
                 )
 
-                #
+                # add canvas to prettierplot object
                 ax = p.make_canvas(
                     title="Selection by iteration\n* {0} - {1}".format(estimator_class, param),
                     y_shift=0.5,
                     position=122,
                     title_scale=title_scale,
                 )
+
+                # add stripply to canvas
                 sns.stripplot(
                     x="iteration",
                     y=param,
@@ -965,21 +1074,24 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                     ax=ax,
                 ).set(xlabel=None, ylabel=None)
 
-                # tick label font size
+                # set tick label font size
                 ax.tick_params(axis="both", colors=style.style_grey, labelsize=1.2 * chart_scale)
 
                 plt.show()
 
-        # plot distributions for number params
+        # otherwise treat it as a numeric parameter
         else:
-            # using dictionary to convert specific columns
+            # cast "iteration" as an int and the param values as float
             convert_dict = {"iteration": int, param: float}
-
             actual_iter_df = actual_iter_df.astype(convert_dict)
+
+            # create color map
             color_list = style.color_gen(name=color_map, num=3)
 
-
+            # create prettierplot object
             p = PrettierPlot(chart_scale=chart_scale, plot_orientation = "wide_narrow")
+
+            # add canvas to prettierplot object
             ax = p.make_canvas(
                 title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator_class, param),
                 y_shift=0.8,
@@ -987,8 +1099,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 title_scale=title_scale,
             )
 
-            ### dynamic tick label sizing
-            # x units
+            # dynamically set x-unit precision based on max value
             if -1.0 <= np.nanmax(theoretical_dist) <= 1.0:
                 x_units = "fff"
             elif 1.0 < np.nanmax(theoretical_dist) <= 5.0:
@@ -996,6 +1107,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             elif np.nanmax(theoretical_dist) > 5.0:
                 x_units = "f"
 
+            # add kernsel density plot for theoretical distribution to canvas
             p.kde_plot(
                 theoretical_dist,
                 color=color_list[0],
@@ -1005,6 +1117,8 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 bw=0.4,
                 ax=ax,
             )
+
+            # add kernsel density plot for actual distribution to canvas
             p.kde_plot(
                 actual_dist,
                 color=color_list[1],
@@ -1019,7 +1133,6 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             # create labels
             label_color = {}
             legend_labels = ["Theoretical", "Actual"]
-            # color_list = color_list[::-1]
             for ix, i in enumerate(legend_labels):
                 label_color[i] = color_list[ix]
 
@@ -1040,8 +1153,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             for text in leg.get_texts():
                 plt.setp(text, color="grey")
 
-            ### dynamic tick label sizing
-            # y units
+            # dynamically set y-unit precision based on max value
             if -1.0 <= np.nanmax(actual_iter_df[param]) <= 1.0:
                 y_units = "fff"
             elif 1.0 < np.nanmax(actual_iter_df[param]) <= 5.0:
@@ -1049,12 +1161,15 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             elif np.nanmax(actual_iter_df[param]) > 5.0:
                 y_units = "f"
 
+            # add canvas to prettierplot object
             ax = p.make_canvas(
                 title="Selection by iteration\n* {0} - {1}".format(estimator_class, param),
                 y_shift=0.8,
                 position=122,
                 title_scale=title_scale,
             )
+
+            # add regression plot to canvas
             p.reg_plot(
                 x="iteration",
                 y=param,
@@ -1073,34 +1188,47 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
 def sample_plot(self, sample_space, n_iter, chart_scale=15):
     """
     Documentation:
-        definition:
-            visualizes a single hyperopt theoretical distribution. useful for helping to determine a
+
+        ---
+        Definition:
+            Visualizes a single hyperopt theoretical distribution. Useful for helping to determine a
             distribution to use when setting up hyperopt distribution objects for actual parameter
             tuning.
+
+        ---
         Parameters:
             sample_space : dictionary
-                dictionary of 'param name : hyperopt distribution object' key/value pairs. The name can
+                Dictionary of 'param name: hyperopt distribution object' key/value pairs. The name can
                 be arbitrarily chosen, and the value is a defined hyperopt distribution.
             n_iter : int
-                number of iterations to draw from theoretical distribution in order to visualize the
-                theoretical distribution. higher number leader to more robust distribution but can take
+                Number of iterations to draw from theoretical distribution in order to visualize the
+                theoretical distribution. Higher number leads to more robust distribution but can take
                 considerably longer to create.
-    """
+            chart_scale : float, default=15
+                Controls proportions of visualizations. larger values scale visual up in size, smaller values
+                scale visual down in size.
 
+    """
     # iterate through each parameter
     for param in sample_space.keys():
-        # create data to represent theoretical distribution
+
+        # sample from theoretical distribution for n_iters
         theoretical_dist = []
         for _ in range(n_iter):
             theoretical_dist.append(sample(sample_space)[param])
         theoretical_dist = np.array(theoretical_dist)
 
+        # create prettierplot object
         p = PrettierPlot(chart_scale=chart_scale)
+
+        # add canvas to prettierplot object
         ax = p.make_canvas(
             title="actual vs. theoretical plot\n* {}".format(param),
             y_shift=0.8,
             position=111,
         )
+
+        # add kernel density plot to canvas
         p.kde_plot(
             theoretical_dist,
             color=style.style_grey,
@@ -1110,14 +1238,32 @@ def sample_plot(self, sample_space, n_iter, chart_scale=15):
         )
 
 def model_type_check(estimator, n_jobs, params=None):
+    """
+    Documentation:
 
-    #
+        ---
+        Description:
+            Detects type of estimator and create model object. Also returns
+            the name of the estimator.
+
+        ---
+        Parameters:
+            estimator : str, sklearn api object, or instantiated model
+                Estimator to build.
+            n_jobs : int, default=1
+                Number of workers to deploy upon execution, if applicable. If estimator does not
+                have an n_jobs parameter, this is ignored.
+    """
+    # if estimator is passed as str, eval str to create estimator
     if isinstance(estimator, str):
         estimator = eval(estimator)
-    #
+
+    # if estimator is an api object, pass through BsicModelBuilder
     if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
         model = BasicModelBuilder(estimator_class=estimator, n_jobs=n_jobs, params=params)
         estimator_name = model.estimator_name
+
+    # otherwise clone the instantiated model that was passed
     else:
         model = clone(estimator)
         estimator_name = retrieve_variable_name(estimator)

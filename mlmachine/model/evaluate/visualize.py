@@ -289,7 +289,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 position=122,
                 title_scale=title_scale,
             )
-            
+
             # add ROC curve to canvas
             p.roc_curve_plot(
                 model=model,
@@ -329,7 +329,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             title_scale : float, default=1.0
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
-            color_map : string specifying built_in matplotlib colormap, default="viridis"
+            color_map : string specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             random_state : int, default=1
                 random number seed.
@@ -356,7 +356,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
 
     # create prettierplot object
     p = PrettierPlot(plot_orientation="wide_narrow")
-    
+
     # add canvas to prettierplot object
     ax = p.make_canvas(
         title="Residual plot - training data\nModel: {}\nParameter set: {}".format(
@@ -440,7 +440,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         y_pred=y_pred,
         feature_count=X_train.shape[1],
     )
-    
+
     # create shell results DataFrame and append
     regression_results_summary = pd.DataFrame(columns=list(results.keys()))
     regression_results_summary = regression_results_summary.append(
@@ -459,7 +459,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
 
         # create prettierplot object
         p = PrettierPlot(plot_orientation="wide_narrow")
-        
+
         # add canvas to prettierplot object
         ax = p.make_canvas(
             title="Residual plot - training data\nModel: {}\nParameter set: {}".format(
@@ -518,7 +518,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             feature_count=X_train.shape[1],
             data_type="validation",
         )
-        
+
         # append results to regression_results_summary
         regression_results_summary = regression_results_summary.append(
             results, ignore_index=True
@@ -527,7 +527,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
 
     # if n_folds are provided, indicating cross-validation
     elif isinstance(n_folds, int):
-        
+
         # generate cross-validation indices
         cv = list(
             KFold(
@@ -549,13 +549,13 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             y_pred = model.fit(X_train_cv.values, y_train_cv.values).predict(
                 X_valid_cv.values
             )
-            
+
             # calculate residuals
             residuals = y_pred - y_valid_cv.values
 
             # create prettierplot object
             p = PrettierPlot(plot_orientation="wide_narrow")
-            
+
             # add canvas to prettierplot object
             ax = p.make_canvas(
                 title="Residual plot - CV fold {}\nModel: {}\nParameter set: {}".format(
@@ -581,7 +581,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
                 x_units=x_units,
                 ax=ax,
             )
-            
+
             # plot horizontal line at y=0
             plt.hlines(
                 y=0,
@@ -622,7 +622,7 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
                 data_type="validation",
                 fold=i + 1,
             )
-            
+
             # append results to regression_results_summary
             regression_results_summary = regression_results_summary.append(
                 results, ignore_index=True
