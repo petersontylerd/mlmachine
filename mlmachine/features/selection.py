@@ -638,7 +638,7 @@ class FeatureSelector:
 
         # rename, sort correlation coefficient descending, and drop target row
         feature_selector_summary = feature_selector_summary.rename(columns={self.target.name: "correlation_to_target"})
-        feature_selector_summary = feature_selector_summary.sort_values(correlation_to_target, ascending=False)
+        feature_selector_summary = feature_selector_summary.sort_values("correlation_to_target", ascending=False)
         feature_selector_summary = feature_selector_summary.drop(self.target.name, axis=0)
 
         # optionally overwrite values with rank
