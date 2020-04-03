@@ -167,7 +167,7 @@ _**pyenv**_
 
 Create a new virtual environment:
 
-`$ pyenv virtualenv 3.7 mlmachine-env`
+`$ pyenv virtualenv 3.7.5 mlmachine-env`
 
 Activate your new virtual environment:
 
