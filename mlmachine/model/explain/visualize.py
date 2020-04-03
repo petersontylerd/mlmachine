@@ -34,7 +34,7 @@ from sklearn.metrics import (
 from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
-import SHAP
+import shap
 
 
 def single_shap_value_tree(self, obs_ix, model, data):
