@@ -73,7 +73,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
                 Dictionary containg 'parameter: value distribution' key/value pairs. The key specifies
                 the parameter of the esto,atpr and the optimization process draws trial values from
                 that distribution.
-            results_file : string
+            results_file : str
                 File destination for results summary csv.
             estimator_class : str or sklearn api object
                 The model to be fit.
@@ -260,7 +260,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
                 Number of iterations to run process.
             show_progressbar : boolean, default=False
                 Controls whether to print progress bar to console during training.
-            results_file : string, default=None
+            results_file : str, default=None
                 file destination for results summary csv. If None, defaults to
                 ./bayes_optimization_summary_{data}_{time}.csv.
     """
@@ -873,7 +873,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
             title_scale : float, default=0.7
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
-            color_map : string specifying built-in matplotlib colormap, default="viridis"
+            color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
     """
     # unpack bayes_optim_summary parameters for an estimator_class
@@ -950,7 +950,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             chart_scale : float, default=15
                 Controls proportions of visualizations. larger values scale visual up in size, smaller values
                 scale visual down in size.
-            color_map : string specifying built-in matplotlib colormap, default="viridis"
+            color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             title_scale : float, default=1.2
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
@@ -1136,7 +1136,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             for ix, i in enumerate(legend_labels):
                 label_color[i] = color_list[ix]
 
-            # create Patches
+            # create legend Patches
             Patches = [Patch(color=v, label=k, alpha=1.0) for k, v in label_color.items()]
 
             # draw legend

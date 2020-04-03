@@ -23,7 +23,7 @@ def eda_missing_summary(self, data=None, color=style.style_grey, display_df=Fals
             data : Pandas DataFrame, default=None
                 Pandas DataFrame containing independent variables. If left as none,
                 the feature dataset provided to Machine during instantiation is used.
-            color : string or color code, default=style.style_grey
+            color : str or color code, default=style.style_grey
                 Bar color.
             display_df : boolean, default=False
                 Controls whether to display summary data in Pandas DataFrame in addition to chart.
@@ -83,7 +83,7 @@ def eda_skew_summary(self, data=None, color=style.style_grey, display_df=False, 
             data : Pandas DataFrame, default=None
                 Pandas DataFrame containing independent variables. If left as none,
                 the feature dataset provided to Machine during instantiation is used.
-            color : string, color code, default=style.style_grey
+            color : str, color code, default=style.style_grey
                 Bar color.
             display_df : boolean, default=False
                 Controls whether to display summary data in Pandas DataFrame along with chart.
@@ -137,7 +137,7 @@ def eda_transform_target(self, data, name, chart_scale=15):
         Parameters:
             data : Pandas Series
                 Target variable data object.
-            name : string
+            name : str
                 Name of target variable.
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value
@@ -195,7 +195,7 @@ def eda_transform_log1(self, data, name, chart_scale=15):
         Parameters:
             data : Pandas Series
                 Target variable data object.
-            name : string
+            name : str
                 Name of target variable.
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
@@ -253,7 +253,7 @@ def eda_transform_box_cox(self, data, name, lmbda, chart_scale=15):
         Parameters:
             data : Pandas Series
                 Target variable data object.
-            name : string
+            name : str
                 Name of target variable.
             lmbda : float
                 Box-Cox transformation parameter.

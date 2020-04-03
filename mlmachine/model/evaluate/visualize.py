@@ -66,13 +66,13 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             n_folds : int, default=None
                 Number of cross-validation folds to use. If validation data is provided through
                 X_valid/y_valid, n_folds is ignored.
-            color_map : string specifying built-in matplotlib colormap, default="viridis"
+            color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             title_scale : float, default=1.0
                 Controls the scaling up (higher value) and scaling down (lower value) of the size
                 of the main chart title, the x_axis title and the y_axis title.
             random_state : int, default=1
-                random number seed.
+                Random number seed.
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
@@ -329,10 +329,10 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
             title_scale : float, default=1.0
                 Controls the scaling up (higher value) and scaling down (lower value) of the size of
                 the main chart title, the x_axis title and the y_axis title.
-            color_map : string specifying built-in matplotlib colormap, default="viridis"
+            color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             random_state : int, default=1
-                random number seed.
+                Random number seed.
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates larger plots
                 and increases visual elements proportionally.

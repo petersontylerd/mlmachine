@@ -117,7 +117,7 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
             classification : bool, default=True
                 Bool argument indicating whether the supervised learning task is classification
                 task or regression task.
-            cmap : string, colormap, default=viridis
+            cmap : str, colormap, default=viridis
                 Colormap applied to plot.
     """
     # return observation features values, expected value, and observation SHAP values
@@ -261,9 +261,9 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
                 Feature values for the specified observations.
             obs_shap_values : array
                 Data array containing the SHAP values for the specified observations.
-            scatter_feature : string
+            scatter_feature : str
                 Name of feature to scatter on plot area.
-            color_feature : string
+            color_feature : str
                 Name of feature to use when applying color to dots on scatter plot.
             feature_names : list
                 List of all feature names in the dataset.

@@ -160,7 +160,7 @@ class PowerGridSearcher:
 
             ---
             Parameters:
-                sort_by : string (columns of score summary), default="mean_score"
+                sort_by : str (columns of score summary), default="mean_score"
                     Column on which to sort score summary.
 
             ---

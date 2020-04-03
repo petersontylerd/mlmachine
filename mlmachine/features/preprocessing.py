@@ -63,7 +63,7 @@ class GroupbyImputer(TransformerMixin, BaseEstimator):
                 Column with nulls to impute.
             groupby_column : list
                 List of one or most columns to groupby to add context to null column.
-            strategy : string, default='mean'
+            strategy : str, default='mean'
                 Imputing stategy. Accepts values 'mean', 'median' and 'most_frequent'.
             train : bool, default=True
                 Tells class whether we are imputing training data or unseen data.

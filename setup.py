@@ -1,8 +1,10 @@
 import setuptools
 
 
-with open("README.md") as f:
-    long_description = f.read()
+# with open("README.md") as f:
+#     long_description = f.read()
+
+long_description = "mlmachine is a Python library that organizes and accelerates notebook-based machine learning experiments."
 
 description = "Accelerate machine learning experimentation"
 distname = "mlmachine"
@@ -15,7 +17,7 @@ project_urls = {
     "source code": "https://github.com/petersontylerd/mlmachine",
 }
 url = "https://github.com/petersontylerd/mlmachine"
-version = "0.0.34"
+version = "0.1.0"
 
 
 def setup_package():

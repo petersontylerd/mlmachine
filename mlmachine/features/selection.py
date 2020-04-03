@@ -932,7 +932,7 @@ class FeatureSelector:
 
             ---
             Parameters:
-                scoring : string
+                scoring : str
                     Scoring metric to visualize.
                 cv_summary : Pandas DataFrame or str, default=None
                     Pandas DataFrame, or str of csv file location, containing cross-validation results.
@@ -1083,7 +1083,7 @@ class FeatureSelector:
 
             ---
             Parameters:
-                scoring : string
+                scoring : str
                     Scoring metric to visualize.
                 feature_selector_summary : Pandas DataFrame or str
                     Pandas DataFrame, or str of csv file location, containing summary of
@@ -1181,7 +1181,7 @@ class FeatureSelector:
 
             ---
             Parameters:
-                scoring : string
+                scoring : str
                     Scoring metric to visualize.
                 feature_selector_summary : Pandas DataFrame or str
                     Pandas DataFrame, or str of csv file location, containing summary of feature_selector_suite results.
