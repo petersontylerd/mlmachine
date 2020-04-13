@@ -936,3 +936,53 @@ def df_side_by_side(self, dfs, names=[]):
     html_str = f"<table>{html_str}</table>"
     html_str = html_str.replace("table", 'table style="display:inline"')
     display_html(html_str, raw=True)
+
+
+def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15, outliers_out_of_scope=None):
+    """
+    Documentation:
+
+        ---
+        Description:
+            Produces exploratory data visualizations and statistical summaries for categorical and numerical 
+            features in a Machine object. 
+
+        ---
+        Parameters:
+            features : list, default=None
+                Features to visualize. If None, all features are selected.
+            level_count_cap : int, default=50
+                Maximum number of unique levels in feature. If the number of levels exceeds the
+                cap then the feature is skipped.
+            color_map : str specifying built-in matplotlib colormap, default="viridis"
+                Color map applied to plots.
+            legend_labels : list, default=None
+                Class labels displayed in plot legend.
+            chart_scale : int or float, default=15
+                Controls size and proportions of chart and chart elements. Higher value creates
+                larger plots and increases visual elements proportionally.
+            outliers_out_of_scope : boolean, float or int, default=None
+                Truncates the x-axis upper limit so that outliers are out of scope of the visualization.
+                The x-axis upper limit is reset to the maximum non-outlier value.
+
+                To identify outliers, the IQR is calculated, and values that are below the first quartile
+                minus the IQR, or above the third quarterile plus the IQR are designated as outliers. If True
+                is passed as a value, the IQR that is subtracted/added is multiplied by 5. If a float or int is
+                passed, the IQR is multiplied by that value. Higher values increase how extremem values need
+                to be to be identified as outliers.
+    """
+    if features is None:
+        features = self.data.mlm_dtypes['category'] + self.data.mlm_dtypes['number']
+
+    for feature in features:
+        if self.is_classification:
+            if feature in self.data.mlm_dtypes['category']:
+                self.eda_cat_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
+            elif feature in self.data.mlm_dtypes['number']:
+                self.eda_cat_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
+        else:
+            if feature in self.data.mlm_dtypes['category']:
+                self.eda_num_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
+            elif feature in self.data.mlm_dtypes['number']:
+                self.eda_num_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
+

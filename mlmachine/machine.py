@@ -57,6 +57,7 @@ class Machine:
         eda_cat_target_num_feat,
         eda_num_target_cat_feat,
         eda_num_target_num_feat,
+        eda,
     )
     from .explore.eda_preprocessing import (
         eda_missing_summary,
