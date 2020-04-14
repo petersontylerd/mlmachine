@@ -175,7 +175,7 @@ Activate your new virtual environment:
 
 Install mlmachine using pip to install mlmachine and all dependencies:
 
-`$ pip install mlachine`
+`$ pip install mlmachine`
 
 _**anaconda**_
 
