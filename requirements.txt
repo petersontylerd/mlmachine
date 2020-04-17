@@ -4,13 +4,13 @@ eif==1.0.2
 hyperopt>=0.2.3
 jupyter>=1.0.0
 lightgbm>=2.3.1
-matplotlib>=3.2.0
+matplotlib>=3.2.1
 mlxtend>=0.17.2
-numpy>=1.18.1
-pandas>=1.0.1
+numpy>=1.18.2
+pandas>=1.0.3
 prettierplot>=0.1.1
 seaborn>=0.10.0
-scikit-learn>=0.22.1
+scikit-learn>=0.22.2.post1
 scipy>=1.4.1
 shap>=0.35.0
 squarify>=0.4.3

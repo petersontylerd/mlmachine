@@ -1,15 +1,10 @@
 import setuptools
 
-
-# with open("README.md") as f:
-#     long_description = f.read()
-
 long_description = "mlmachine is a Python library that organizes and accelerates notebook-based machine learning experiments."
 
 description = "Accelerate machine learning experimentation"
 distname = "mlmachine"
 license = "MIT"
-# download_url = 'https://pypi.org/project/'
 maintainer = "Tyler Peterson"
 maintainer_email = "petersontylerd@gmail.com"
 project_urls = {
@@ -17,7 +12,7 @@ project_urls = {
     "source code": "https://github.com/petersontylerd/mlmachine",
 }
 url = "https://github.com/petersontylerd/mlmachine"
-version = "0.1.3"
+version = "0.1.4"
 
 
 def setup_package():
