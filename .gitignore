@@ -1,3 +1,19 @@
+*.csv
+*.xlsx
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.txt
+*.pem
+*.ppk
+**/[Cc]onfig*
+**/[Cc]redentials*
+**/.aws*
+**/.ssh*
+**/aws_attributes*
+
 # My additions
 .DS_Store
 .pdf

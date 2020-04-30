@@ -58,7 +58,6 @@ def setup_package():
         ],
         python_requires=">=3.6.1",
         install_requires=[i.strip() for i in open("requirements.txt").readlines()],
-        # dependency_links=["https://github.com/petersontylerd/prettierplot"],
     )
 
     setuptools.setup(**metadata)
