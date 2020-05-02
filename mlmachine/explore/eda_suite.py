@@ -22,7 +22,6 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-
 def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None,
                             chart_scale=15):
     """
@@ -977,12 +976,26 @@ def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_lab
     for feature in features:
         if self.is_classification:
             if feature in self.data.mlm_dtypes['category']:
-                self.eda_cat_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
+                self.eda_cat_target_cat_feat(feature=feature,
+                                             level_count_cap=level_count_cap,
+                                             color_map=color_map,
+                                             legend_labels=legend_labels,
+                                             chart_scale=chart_scale)
             elif feature in self.data.mlm_dtypes['number']:
-                self.eda_cat_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
+                self.eda_cat_target_num_feat(feature=feature,
+                                             color_map=color_map,
+                                             outliers_out_of_scope=outliers_out_of_scope,
+                                             legend_labels=legend_labels,
+                                             chart_scale=chart_scale)
         else:
             if feature in self.data.mlm_dtypes['category']:
-                self.eda_num_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
+                self.eda_num_target_cat_feat(feature=feature,
+                                             level_count_cap=level_count_cap,
+                                             color_map=color_map,
+                                             chart_scale=chart_scale)
             elif feature in self.data.mlm_dtypes['number']:
-                self.eda_num_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
+                self.eda_num_target_num_feat(feature=feature,
+                                             color_map=color_map,
+                                             outliers_out_of_scope=outliers_out_of_scope,
+                                             chart_scale=chart_scale)
 
