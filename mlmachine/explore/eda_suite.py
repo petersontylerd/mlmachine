@@ -259,7 +259,10 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             ax=ax,
         )
 
+        fig = plt.gcf()
         plt.show()
+        fig.tight_layout()
+        return fig
 
 
 def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None,
@@ -566,7 +569,10 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     # apply position adjustment to subplots
     plt.subplots_adjust(bottom=-0.1)
 
+    fig = plt.gcf()
     plt.show()
+    fig.tight_layout()
+    return fig
 
 
 def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
@@ -686,7 +692,11 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
         y_units=y_units,
         ax=ax,
     )
+
+    fig = plt.gcf()
     plt.show()
+    fig.tight_layout()
+    return fig
 
 
 def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", chart_scale=15):
@@ -899,7 +909,10 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 if i % n != 0
             ]
 
+        fig = plt.gcf()
         plt.show()
+        fig.tight_layout()
+        return fig
 
 
 def df_side_by_side(self, dfs, names=[]):
@@ -910,6 +923,7 @@ def df_side_by_side(self, dfs, names=[]):
         Description:
             Helper function for displaying Pandas DataFrames side by side in a
             Jupyter Notebook.
+
 
         ---
         Parameters:
@@ -938,7 +952,9 @@ def df_side_by_side(self, dfs, names=[]):
     display_html(html_str, raw=True)
 
 
-def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15, outliers_out_of_scope=None):
+def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15,
+        outliers_out_of_scope=None, callback=None):
+
     """
     Documentation:
 
@@ -970,19 +986,25 @@ def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_lab
                 is passed as a value, the IQR that is subtracted/added is multiplied by 5. If a float or int is
                 passed, the IQR is multiplied by that value. Higher values increase how extremem values need
                 to be to be identified as outliers.
+            callback: function to call after each plot is displayed
+                This function must take 2 parameters: the current figure object and the name of the current feature.
+                Can be used to save a plot, log the artifact, etc.
     """
     if features is None:
         features = self.data.mlm_dtypes['category'] + self.data.mlm_dtypes['number']
 
     for feature in features:
+        fig = None
         if self.is_classification:
             if feature in self.data.mlm_dtypes['category']:
-                self.eda_cat_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
+                fig = self.eda_cat_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
             elif feature in self.data.mlm_dtypes['number']:
-                self.eda_cat_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
+                fig = self.eda_cat_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
         else:
             if feature in self.data.mlm_dtypes['category']:
-                self.eda_num_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
+                fig = self.eda_num_target_cat_feat(feature=feature, level_count_cap=level_count_cap, color_map=color_map, legend_labels=legend_labels, chart_scale=chart_scale)
             elif feature in self.data.mlm_dtypes['number']:
-                self.eda_num_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
+                fig = self.eda_num_target_num_feat(feature=feature, color_map=color_map, outliers_out_of_scope=outliers_out_of_scope, legend_labels=legend_labels, chart_scale=chart_scale)
 
+        if callback is not None and fig is not None:
+            callback(fig, feature)
