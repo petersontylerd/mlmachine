@@ -38,7 +38,7 @@ from sklearn.preprocessing import (
     _data,
     _discretization,
 )
-from sklearn.externals.joblib import Parallel, delayed
+from joblib import Parallel, delayed
 
 from category_encoders import WOEEncoder, TargetEncoder, CatBoostEncoder, BinaryEncoder, CountEncoder
 
@@ -923,6 +923,9 @@ def skew_summary(self, data=None, columns=None):
         except ValueError:
             skewness.loc[col]["Percent zero"] = 0.0
     skewness = skewness.sort_values(["Skew"])
+
+    # fill remaining nulls with zero
+    skewness["Percent zero"] = skewness["Percent zero"].fillna(0.0)
 
     return skewness
 

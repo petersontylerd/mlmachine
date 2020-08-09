@@ -340,7 +340,7 @@ class Machine:
 
             # identify how many values in feature are zero or one
             zeros_and_ones = (self.data[column].eq(0) | self.data[column].eq(1)).sum()
-            
+
             # count number of unique values in feature
             unique_values = len(np.unique(self.data[column].dropna()))
 
