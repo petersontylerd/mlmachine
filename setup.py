@@ -12,7 +12,7 @@ project_urls = {
     "source code": "https://github.com/petersontylerd/mlmachine",
 }
 url = "https://github.com/petersontylerd/mlmachine"
-version = "0.1.4"
+version = "0.1.5"
 
 
 def setup_package():
