@@ -64,7 +64,9 @@ def eda_missing_summary(self, data=None, color=style.style_grey, display_df=Fals
             x_tick_wrap=False,
             ax=ax,
         )
-    
+
+        ax.set_ylim([0,100])
+
     # if missingness summary is empty, just print "No Nulls"
     else:
         print("No nulls")
@@ -130,7 +132,7 @@ def eda_transform_target(self, data, name, chart_scale=15):
         ---
         Description:
             Creates a two_panel visualization. The left plot is the current distribution
-            overlayed on a normal distribution. The right plot is a qqplot overlayed 
+            overlayed on a normal distribution. The right plot is a qqplot overlayed
             across a straight line.
 
         ---
@@ -188,7 +190,7 @@ def eda_transform_log1(self, data, name, chart_scale=15):
         ---
         Description:
             Creates a two_panel visualization. The left plot is the log + 1 transformed
-            distribution overlayed on a normal distribution. The right plot is a log + 1 
+            distribution overlayed on a normal distribution. The right plot is a log + 1
             adjusted qqplot overlayed across a straight line.
 
         ---

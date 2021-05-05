@@ -105,7 +105,7 @@ class FeatureSelector:
             ---
             Description:
                 Run multiple feature selections processes and aggregate results. Optionally rank feature
-                importance values. Optionally summary statistics on ranks.
+                importance values. Optionally generate summary statistics on ranks.
 
             ---
             Parameters:
@@ -981,6 +981,9 @@ class FeatureSelector:
 
         # iterate through each unique estimator in cv_summary
         for estimator in cv_summary["estimator"].unique():
+
+            print(scoring)
+            print(estimator)
 
             # subset cv_summary by scoring method and current estimator
             cv = cv_summary[

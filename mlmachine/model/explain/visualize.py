@@ -44,7 +44,7 @@ def single_shap_value_tree(self, obs_ix, model, data):
         ---
         Description:
             Generate elements necessary for creating a SHAP force plot for a single
-            observation. Works with tree_based models, including:
+            observation. Works with tree-based models, including:
                 - RandomForestClassifier (package: sklearn)
                 - GradientBoostingClassifier (package: sklearn)
                 - ExtraTreesClassifier (package: sklearn)
@@ -72,7 +72,7 @@ def single_shap_value_tree(self, obs_ix, model, data):
     """
     # collect observation feature values, explainer object and observation SHAP values
     obs_data = data.loc[obs_ix].values.reshape(1, -1)
-    explainer = SHAP.TreeExplainer(model.model)
+    explainer = shap.TreeExplainer(model.custom_model)
     obs_shap_values = explainer.shap_values(obs_data)
 
     # accommodate the fact that different types of models generate differently
@@ -137,7 +137,7 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
             print('True label: {:.6f}'.format(target.loc[obs_ix]))
 
     # display force plot
-    SHAP.force_plot(
+    shap.force_plot(
         base_value=base_value,
         shap_values=np.around(obs_shap_values.astype(np.double),3),
         features=np.around(obs_data.astype(np.double),3),
@@ -174,7 +174,7 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
                 Instantiated model object.
             data : Pandas DataFrame
                 Dataset from which to slice indiviudal observations' feature values.
-        
+
         ---
         Returns:
             obs_data : array
@@ -188,7 +188,7 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
 
     # collect observation feature values, explainer object and observation SHAP values
     obs_data = data.loc[obs_ixs].values
-    explainer = SHAP.TreeExplainer(model.model)
+    explainer = shap.TreeExplainer(model.custom_model)
     obs_shap_values = explainer.shap_values(obs_data)
 
     # accommodate the fact that different types of models generate differently
@@ -209,7 +209,7 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
 def multi_shap_viz_tree(self, obs_ixs, model, data):
     """
     Documentation:
-        
+
         ---
         Description:
             Generate a SHAP force plot for multiple observations simultaneously. Works with
@@ -233,7 +233,7 @@ def multi_shap_viz_tree(self, obs_ixs, model, data):
     obs_data, base_value, obs_shap_values = self.multi_shap_value_tree(obs_ixs=obs_ixs, model=model, data=data)
 
     # generate force plot
-    visual = SHAP.force_plot(
+    visual = shap.force_plot(
         base_value = base_value,
         shap_values = obs_shap_values,
         features = obs_data,
@@ -246,7 +246,7 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
                         x_jitter=0.08, dot_size=25, alpha=0.7, show=True, ax=None):
     """
     Documentation:
-        
+
         ---
         Description:
             Generate a SHAP dependence plot for a pair of features. One feature is
@@ -254,7 +254,7 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
             x-axis and the corresponding SHAP value for the observation on the y-axis.
             the second feature applies a hue to the scattered feature based on the
             individual values of the second feature.
-        
+
         ---
         Parameters:
             obs_data : array
@@ -280,7 +280,7 @@ def shap_dependence_plot(self, obs_data, obs_shap_values, scatter_feature, color
                 Axis on which to place visual.
     """
     # generate force plot
-    SHAP.dependence_plot(
+    shap.dependence_plot(
             ind = scatter_feature,
             shap_values = obs_shap_values,
             features = obs_data,
@@ -325,7 +325,7 @@ def shap_dependence_grid(self, obs_data, obs_shap_values, grid_features, all_fea
             alpha : float, default=0.7
                 Transparency of dots.
     """
-    # create subplot grid    
+    # create subplot grid
     fig, ax = plt.subplots(
         ncols=len(grid_features),
         nrows=len(grid_features),
@@ -370,7 +370,7 @@ def shap_summary_plot(self, obs_data, obs_shap_values, feature_names, alpha=0.7)
                 Controls transparency of dots.
     """
     # generate SHAP summary plot
-    SHAP.summary_plot(
+    shap.summary_plot(
         shap_values = obs_shap_values,
         features = obs_data,
         feature_names = feature_names,

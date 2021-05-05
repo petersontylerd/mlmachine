@@ -685,7 +685,7 @@ class PreserveMetaData(pd.DataFrame):
         return PreserveMetaData
 
 
-def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
+def train_test_df_compile(data, target_col, stratify=None, valid_size=0.2, random_state=1):
     """
     Documentation:
 
@@ -700,6 +700,8 @@ def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
                 Dataset to be deconstructed into train and test sets.
             target_col : str
                 Name of target column in dataset
+            stratify : array-like, default=None
+                If not None, data is split in a stratified fashion, using this as the class labels.
             valid_size : float, default=0.2
                 Proportion of dataset to be set aside as "unseen" test data.
             random_state : int, default=1
@@ -718,7 +720,7 @@ def train_test_df_compile(data, target_col, valid_size=0.2, random_state=1):
 
     # perform train/test split
     X_train, X_valid, y_train, y_valid = train_test_split(
-        x, y, test_size=valid_size, random_state=1, stratify=y
+        x, y, test_size=valid_size, random_state=random_state, stratify=stratify
     )
 
     # merge training data and associated targets
