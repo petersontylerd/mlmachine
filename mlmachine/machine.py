@@ -1,9 +1,8 @@
 import copy
 import os
 import sys
-import importlib
-import itertools
 import warnings
+from time import gmtime, strftime
 
 import numpy as np
 import pandas as pd
@@ -97,7 +96,10 @@ class Machine:
         binary_classification_panel,
         regression_panel,
     )
-    from .model.explain.visualize import (
+    from .model.explain.shap_explanations import (
+        create_shap_explainers
+    )
+    from .model.explain.shap_visualizations import (
         multi_shap_value_tree,
         multi_shap_viz_tree,
         shap_dependence_grid,
@@ -131,7 +133,7 @@ class Machine:
 
     def __init__(self, data, remove_features=[], identify_as_boolean=None, identify_as_continuous=None, identify_as_count=None,
                 identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None,
-                identify_as_string=None, target=None, is_classification=None):
+                identify_as_string=None, target=None, is_classification=None, create_experiment_dir=None):
         """
         Documentation:
 
@@ -172,6 +174,9 @@ class Machine:
                 is_classification : boolean, default=None
                     Controls whether Machine is instantiated as a classification object or a
                     regression object.
+                create_experiment_dir : boolean, default=None
+                    Controls whether a shell experiment directory gets created for storing
+                    experiment objects.
 
             ---
             Attributes:
@@ -210,6 +215,10 @@ class Machine:
         # encode the target column if is_classification == True
         if self.target is not None and self.is_classification:
             self.encode_target()
+
+        # create experiment directory tree
+        if create_experiment_dir:
+            self.create_experiment_dir()
 
     def capture_mlm_dtypes(self):
         """
@@ -674,6 +683,22 @@ class Machine:
         # merge data and target on index
         df = data.merge(target, left_index=True, right_index=True)
         return df
+
+    def create_experiment_dir(self):
+        start_time = strftime("%y%m%d%H%M%S", gmtime())
+
+        experiment_dir = os.path.join(".//experiments")
+        if not os.path.exists(experiment_dir):
+            os.makedirs(experiment_dir)
+
+        self.current_experiment_dir = os.path.join(experiment_dir, start_time)
+        if not os.path.exists(self.current_experiment_dir):
+            os.makedirs(self.current_experiment_dir)
+            os.makedirs(os.path.join(self.current_experiment_dir, "models"))
+            os.makedirs(os.path.join(self.current_experiment_dir, "transformers"))
+            os.makedirs(os.path.join(self.current_experiment_dir, "shap_explainers"))
+            os.makedirs(os.path.join(self.current_experiment_dir, "training_summary"))
+            os.makedirs(os.path.join(self.current_experiment_dir, "feature_selection_summary"))
 
 
 class PreserveMetaData(pd.DataFrame):

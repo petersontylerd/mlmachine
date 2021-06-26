@@ -1,8 +1,8 @@
 import ast
 import csv
 import inspect
-import sys
-import time
+import os
+import pickle
 from time import gmtime, strftime
 from timeit import default_timer as timer
 
@@ -74,7 +74,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
                 the parameter of the esto,atpr and the optimization process draws trial values from
                 that distribution.
             results_file : str
-                File destination for results summary csv.
+                File location of results summary csv.
             estimator_class : str or sklearn api object
                 The model to be fit.
             data : array
@@ -177,9 +177,31 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
         min_score = cv.min()
         max_score = cv.max()
 
+    # capture loss
+
+    ## load results summary and extract best loss value for current estimator
+    df = pd.read_csv(results_file)
+    df = df[df["estimator"] == estimator_name]
+
+    if df.empty:
+        best_loss = np.inf
+    else:
+        best_loss = df["loss"].min()
+
+    # compare current loss to best loss and pickle model if improved
+    if best_loss > loss:
+        model_path = os.path.join(
+            os.path.split(os.path.split(results_file)[0])[0],
+            "models",
+        )
+
+        model.custom_model.fit(data, target)
+
+        with open(os.path.join(model_path, "{}.pkl".format(estimator_name)), 'wb') as handle:
+            pickle.dump(model.custom_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
     # export results to csv
-    out_file = results_file
-    with open(out_file, "a", newline="") as file:
+    with open(results_file, "a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(
             [
@@ -197,6 +219,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
             ]
         )
 
+    # return result for optimizer
     return {
         "iteration": ITERATION,
         "estimator": estimator_name,
@@ -212,7 +235,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
     }
 
 def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scoring, columns=None, n_folds=3,
-                        n_jobs=4, iters=50, show_progressbar=False, results_file=None):
+                        n_jobs=4, iters=50, show_progressbar=False):
     """
     Documentation:
 
@@ -260,15 +283,13 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
                 Number of iterations to run process.
             show_progressbar : boolean, default=False
                 Controls whether to print progress bar to console during training.
-            results_file : str, default=None
-                file destination for results summary csv. If None, defaults to
-                ./bayes_optimization_summary_{data}_{time}.csv.
     """
     # set results logging destination
-    if results_file is None:
-        results_file = "bayes_optimization_summary_{}_{}.csv".format(
-            scoring, strftime("%y%m%d%H%M", gmtime())
-        )
+    results_file = os.path.join(
+        self.current_experiment_dir,
+        "training_summary",
+        "bayes_optimization_summary.csv"
+    )
 
     # add file header
     with open(results_file, "w", newline="") as outfile:
@@ -417,7 +438,7 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
             self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_class).args
+        estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -490,7 +511,7 @@ class BayesOptimRegressorBuilder(RegressorMixin):
             self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_class).args
+        estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -565,7 +586,7 @@ class BayesOptimModelBuilder(BaseEstimator):
             self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_class).args
+        estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -630,7 +651,7 @@ class BasicRegressorBuilder(RegressorMixin):
             self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_class).args
+        estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -699,7 +720,7 @@ class BasicClassifierBuilder(ClassifierMixin):
             self.estimator_class = eval(self.estimator_class)
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_class).args
+        estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
         if "probability" in estimator_args:
             self.params["probability"] = True
@@ -769,7 +790,7 @@ class BasicModelBuilder(BaseEstimator):
             self.estimator_name = self.estimator_class.__name__
 
         # capture available model arguments and set probabily and n_jobs where applicable
-        estimator_args = inspect.getfullargspec(self.estimator_class).args
+        estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
         if "probability" in estimator_args:
             self.params["probability"] = True

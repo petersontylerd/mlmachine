@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 
 import abc
 import inspect
+import os
 from time import gmtime, strftime
 
 import numpy as np
@@ -11,53 +12,53 @@ from sklearn.feature_selection import (
     f_classif,
     f_regression,
     VarianceThreshold,
-    SelectFromModel,
-    SelectKBest,
+    # SelectFromModel,
+    # SelectKBest,
 )
 from sklearn.model_selection import (
-    KFold,
-    train_test_split,
-    GridSearchCV,
-    StratifiedKFold,
-    cross_val_score,
-    RandomizedSearchCV,
+#     KFold,
+#     train_test_split,
+#     GridSearchCV,
+#     StratifiedKFold,
+#     cross_val_score,
+#     RandomizedSearchCV,
     cross_validate,
 )
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    GradientBoostingClassifier,
-    AdaBoostClassifier,
-    ExtraTreesClassifier,
-    IsolationForest,
-    RandomForestRegressor,
-    GradientBoostingRegressor,
-    ExtraTreesRegressor,
-    AdaBoostRegressor,
-)
-from sklearn.linear_model import (
-    Lasso,
-    Ridge,
-    ElasticNet,
-    LinearRegression,
-    LogisticRegression,
-    SGDRegressor,
-)
+# from sklearn.ensemble import (
+#     RandomForestClassifier,
+#     GradientBoostingClassifier,
+#     AdaBoostClassifier,
+#     ExtraTreesClassifier,
+#     IsolationForest,
+#     RandomForestRegressor,
+#     GradientBoostingRegressor,
+#     ExtraTreesRegressor,
+#     AdaBoostRegressor,
+# )
+# from sklearn.linear_model import (
+#     Lasso,
+#     Ridge,
+#     ElasticNet,
+#     LinearRegression,
+#     LogisticRegression,
+#     SGDRegressor,
+# )
 from sklearn.feature_selection import RFE
-from sklearn.kernel_ridge import KernelRidge
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from sklearn.svm import SVC, SVR
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+# from sklearn.kernel_ridge import KernelRidge
+# from sklearn.naive_bayes import MultinomialNB
+# from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+# from sklearn.svm import SVC, SVR
+# from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.exceptions import NotFittedError
-from sklearn.base import clone
+# from sklearn.base import clone
 from sklearn.metrics import get_scorer, make_scorer
 
-from xgboost import XGBClassifier, XGBRegressor
-from lightgbm import LGBMClassifier, LGBMRegressor
-import catboost
+# from xgboost import XGBClassifier, XGBRegressor
+# from lightgbm import LGBMClassifier, LGBMRegressor
+# import catboost
 
 from prettierplot.plotter import PrettierPlot
-from prettierplot import style
+# from prettierplot import style
 
 from mlxtend.feature_selection import SequentialFeatureSelector
 
@@ -85,15 +86,26 @@ class FeatureSelector:
             estimators : list of strings, sklearn api objects or instantiated models
                 List of estimators to cycle through when executing relevant feature importance
                 techniques.
+            experiment_dir : string, default=None
+                File path for storing feature selection results.
             classification : bool, default=True
                 Conditional controlling whether FeatureSelector operates in classification mode
                 or regression mode.
     """
 
-    def __init__(self, data, target, estimators, classification=True):
+    def __init__(self, data, target, estimators, experiment_dir=None, classification=True):
         self.data = data
         self.target = target
         self.estimators = estimators
+
+        if experiment_dir is not None:
+            self.experiment_dir = os.path.join(
+                    experiment_dir,
+                    "feature_selection_summary",
+                )
+        else:
+            self.experiment_dir = experiment_dir
+
         self.classification = classification
 
     def feature_selector_suite(self, sequential_scoring=None, sequential_n_folds=0, rank=False, add_stats=False,
@@ -126,7 +138,7 @@ class FeatureSelector:
                 n_jobs : int, default=1
                     Number of workers to deploy upon execution, if applicable. If estimator does not
                     have an n_jobs parameter, this is ignored.
-                save_to_csv : bool, default=Fakse
+                save_to_csv : bool, default=False
                     Conditional controlling whether or not the feature selection summary results
                     are saved to a csv file.
                 run_variance : bool, default=True
@@ -190,12 +202,13 @@ class FeatureSelector:
 
         # optionally save feature_selector_summary to csv
         if save_to_csv:
+
+            # export to csv
             feature_selector_summary.to_csv(
-                "feature_selection_summary_{}.csv".format(
-                    strftime("%y%m%d%H%M", gmtime())
-                ),
+                os.path.join(self.experiment_dir,"feature_summary_results.csv"),
                 columns=feature_selector_summary.columns,
             )
+
         return feature_selector_summary
 
     def feature_selector_f_score_class(self, rank=False):
@@ -911,8 +924,10 @@ class FeatureSelector:
 
         # optionally save results to csv
         if save_to_csv:
+
+            # export to csv
             self.cv_summary.to_csv(
-                "cv_summary_{}.csv".format(strftime("%y%m%d%H%M", gmtime())),
+                os.path.join(self.experiment_dir,"cv_summary_results.csv"),
                 columns=self.cv_summary.columns,
                 index_label="index",
             )
