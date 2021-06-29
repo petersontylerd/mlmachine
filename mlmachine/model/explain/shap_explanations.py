@@ -75,21 +75,8 @@ explainer_algorithm_map = {
     "KernelExplainer": [
         "KNeighborsClassifier",
         "KNeighborsRegressor",
-        # "SVC",
+        "SVC",
         "SVR",
-        # "XGBClassifier",
-        # "XGBRegressor",
-        # "LGBMClassifier",
-        # "LGBMRegressor",
-        # "RandomForestClassifier",
-        # "GradientBoostingClassifier",
-        # "AdaBoostClassifier", # not include in this explainer
-        # "ExtraTreesClassifier",
-        # "IsolationForest",
-        # "RandomForestRegressor",
-        # "GradientBoostingRegressor",
-        # "ExtraTreesRegressor",
-        # "AdaBoostRegressor", # not include in this explainer
     ],
 }
 
@@ -108,17 +95,27 @@ def create_shap_explainers(self, model_dir):
             if estimator_name in valid_estimators:
 
                 explainer = eval(explainer_name)
+                print(estimator_name)
+                print(explainer_name)
+                print()
 
-                if explainer_name == "KernelExplainer":
+                if explainer_name in ["KernelExplainer"]:
                     explainer = explainer(model.predict_proba, self.data.values)
-                else:
+                    shap_values = explainer.shap_values(self.data.values)
+                elif explainer_name in ["LinearExplainer"]:
                     explainer = explainer(model, self.data.values)
-                    shap_values = explainer(self.data.values)
+                    shap_values = explainer.shap_values(self.data.values)
+                else:
+                    explainer = explainer(model)
+                    try:
+                        shap_values = explainer.shap_values(self.data.values)
+                    except Exception:
+                        shap_values = explainer.shap_values(self.data.values, check_additivity=False)
 
                 with open(os.path.join(os.path.split(model_dir)[0], "shap_explainers", "{}_{}.pkl".format(estimator_name, explainer_name)), 'wb') as handle:
                     pickle.dump(explainer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-                print(estimator_name)
-                print(explainer_name)
-                print()
+                with open(os.path.join(os.path.split(model_dir)[0], "shap_values", "{}_{}.pkl".format(estimator_name, explainer_name)), 'wb') as handle:
+                    pickle.dump(shap_values, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 

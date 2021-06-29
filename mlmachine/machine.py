@@ -697,6 +697,7 @@ class Machine:
             os.makedirs(os.path.join(self.current_experiment_dir, "models"))
             os.makedirs(os.path.join(self.current_experiment_dir, "transformers"))
             os.makedirs(os.path.join(self.current_experiment_dir, "shap_explainers"))
+            os.makedirs(os.path.join(self.current_experiment_dir, "shap_values"))
             os.makedirs(os.path.join(self.current_experiment_dir, "training_summary"))
             os.makedirs(os.path.join(self.current_experiment_dir, "feature_selection_summary"))
 
