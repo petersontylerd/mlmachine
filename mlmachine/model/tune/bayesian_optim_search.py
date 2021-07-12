@@ -50,6 +50,8 @@ from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.base import clone
 
+from sklearn.metrics import get_scorer
+
 from xgboost import XGBClassifier, XGBRegressor
 from lightgbm import LGBMClassifier, LGBMRegressor
 import catboost
@@ -58,7 +60,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def objective(space, results_file, estimator_class, data, target, scoring, n_folds, n_jobs):
+def objective(space, results_file, estimator_class, training_features, training_target, validation_features, validation_target, scoring, n_folds, n_jobs):
     """
     Documentation:
 
@@ -77,10 +79,14 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
                 File location of results summary csv.
             estimator_class : str or sklearn api object
                 The model to be fit.
-            data : array
+            training_features : array
                 Training data observations.
-            target : array
+            training_target : array
                 Training target data.
+            validation_features : array
+                Validation data observations.
+            validation_target : array
+                Validation target data.
             scoring : str
                 Evaluation method for scoring model performance. The following metrics are supported:
                     - "accuracy"
@@ -131,19 +137,25 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
     # execute cross-validation scoring
     cv = cross_val_score(
         estimator=model.custom_model,
-        X=data,
-        y=target,
+        X=training_features,
+        y=training_target,
         verbose=False,
         n_jobs=n_jobs,
         cv=n_folds,
         scoring=scoring,
     )
 
+    # validation score
+    model.custom_model.fit(validation_features, validation_target)
+    # model.custom_model.predict(validation_features, validation_target)
+    validation_scorer = get_scorer(scoring)
+    validation_score = validation_scorer(model.custom_model, validation_features, validation_target)
+    
     # log runtime
     run_time = timer() - start
 
     # calculate loss based on scoring method
-    if score_transform in ["accuracy", "f1_micro", "f1_macro", "roc_auc"]:
+    if score_transform in ["accuracy", "f1_macro", "f1_micro", "precision", "recall", "roc_auc"]:
         loss = 1 - cv.mean()
 
         mean_score = cv.mean()
@@ -195,7 +207,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
             "models",
         )
 
-        model.custom_model.fit(data, target)
+        # model.custom_model.fit(data, target)
 
         with open(os.path.join(model_path, "{}.pkl".format(estimator_name)), 'wb') as handle:
             pickle.dump(model.custom_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -208,6 +220,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
                 ITERATION,
                 estimator_name,
                 scoring,
+                validation_score,
                 loss,
                 mean_score,
                 std_score,
@@ -224,6 +237,7 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
         "iteration": ITERATION,
         "estimator": estimator_name,
         "scoring": scoring,
+        "validation_score": validation_score,
         "loss": loss,
         "mean_score": mean_score,
         "std_score": std_score,
@@ -234,8 +248,8 @@ def objective(space, results_file, estimator_class, data, target, scoring, n_fol
         "params": space,
     }
 
-def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scoring, columns=None, n_folds=3,
-                        n_jobs=4, iters=50, show_progressbar=False):
+def exec_bayes_optim_search(self, estimator_parameter_space, training_features, training_target, validation_features, validation_target,
+                            scoring, columns=None, n_folds=3, n_jobs=4, iters=50, show_progressbar=False):
     """
     Documentation:
 
@@ -251,10 +265,14 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
                 a dictionary. Each nested dictionary contains 'parameter: value distribution' key/value
                 pairs. The inner dictionary key specifies the parameter of the model to be tuned, and the
                 value is a distribution of values from which trial values are drawn.
-            data : array
-                Train data observations.
-            target : array
+            training_features : array
+                Training data observations.
+            training_target : array
                 Training target data.
+            validation_features : array
+                Validation data observations.
+            validation_target : array
+                Validation target data.
             scoring : str
                 Evaluation method for scoring model performance. The following metrics are supported:
                     - "accuracy"
@@ -299,6 +317,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
                 "iteration",
                 "estimator",
                 "scoring",
+                "validation_score",
                 "loss",
                 "mean_score",
                 "std_score",
@@ -320,46 +339,93 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
         # establish feature space for hyper-parameter search for current estimator
         space = estimator_parameter_space[estimator_class]
 
-        # conditionally handle input data
-        if isinstance(data, pd.core.frame.DataFrame):
+        ## training data
+        # conditionally handle input training data
+        if isinstance(training_features, pd.core.frame.DataFrame):
 
             # if column subset is provided as a dictionary
             if isinstance(columns, dict):
                 try:
-                    input_data = data[columns[estimator_class]]
+                    input_training_features = training_features[columns[estimator_class]]
                 except KeyError:
-                    input_data = data.copy()
+                    input_training_features = training_features.copy()
 
             # if column subset is provided as a list
             if isinstance(columns, list):
                 try:
-                    input_data = data[columns]
+                    input_training_features = training_features[columns]
                 except KeyError:
-                    input_data = data.copy()
+                    input_training_features = training_features.copy()
 
             elif columns is None:
                 pass
 
             # use underlying numpy ndarray
-            input_data = data.values
+            input_training_features = training_features.values
         elif isinstance(data, np.ndarray):
 
             # create a copy of the underlying data array
-            input_data = data.copy()
+            input_training_features = training_features.copy()
         else:
             raise AttributeError(
                 "input data set must be either a Pandas DataFrame or a numpy ndarray"
             )
 
-        # conditionally handle input target
-        if isinstance(target, pd.core.series.Series):
+        # conditionally handle input training target
+        if isinstance(training_target, pd.core.series.Series):
 
             # use underlying numpy ndarray
-            input_target = target.values
-        elif isinstance(target, np.ndarray):
+            input_training_target = training_target.values
+        elif isinstance(training_target, np.ndarray):
 
             # create a copy of the underlying data array
-            input_target = target.copy()
+            input_training_target = training_target.copy()
+        else:
+            raise AttributeError(
+                "input target must be either a Pandas Series or a numpy ndarray"
+            )
+        
+        ## validation data
+        # conditionally handle input validation data
+        if isinstance(validation_features, pd.core.frame.DataFrame):
+
+            # if column subset is provided as a dictionary
+            if isinstance(columns, dict):
+                try:
+                    input_validation_features = validation_features[columns[estimator_class]]
+                except KeyError:
+                    input_validation_features = validation_features.copy()
+
+            # if column subset is provided as a list
+            if isinstance(columns, list):
+                try:
+                    input_validation_features = validation_features[columns]
+                except KeyError:
+                    input_validation_features = validation_features.copy()
+
+            elif columns is None:
+                pass
+
+            # use underlying numpy ndarray
+            input_validation_features = validation_features.values
+        elif isinstance(data, np.ndarray):
+
+            # create a copy of the underlying data array
+            input_validation_features = validation_features.copy()
+        else:
+            raise AttributeError(
+                "input data set must be either a Pandas DataFrame or a numpy ndarray"
+            )
+
+        # conditionally handle input validation target
+        if isinstance(validation_target, pd.core.series.Series):
+
+            # use underlying numpy ndarray
+            input_validation_target = validation_target.values
+        elif isinstance(validation_target, np.ndarray):
+
+            # create a copy of the underlying data array
+            input_validation_target = validation_target.copy()
         else:
             raise AttributeError(
                 "input target must be either a Pandas Series or a numpy ndarray"
@@ -369,8 +435,10 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
         objective.__defaults__ = (
             results_file,
             estimator_class,
-            input_data,
-            input_target,
+            input_training_features,
+            input_training_target,
+            input_validation_features,
+            input_validation_target,
             scoring,
             n_folds,
             n_jobs,
@@ -379,7 +447,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, data, target, scori
         # run optimization
         if show_progressbar:
             print("\n" + "#" * 100)
-            print("\nTuning {0}\n".format(estimator_class))
+            print(f"\nTuning {estimator_class}\n")
 
         # minimize the objective function
         best = fmin(
@@ -863,7 +931,7 @@ def unpack_bayes_optim_summary(self, bayes_optim_summary, estimator_class):
     return estimator_summary
 
 def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, trim_outliers=True, outlier_control=1.5,
-                    title_scale=0.7, color_map="viridis"):
+                    title_scale=0.7, color_map="viridis", save_plots=False):
     """
     Documentation:
 
@@ -896,6 +964,8 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
                 the main chart title, the x_axis title and the y_axis title.
             color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
+            save_plots : boolean, default = False
+                Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # unpack bayes_optim_summary parameters for an estimator_class
     estimator_summary = self.unpack_bayes_optim_summary(
@@ -921,7 +991,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Loss by iteration - {}".format(estimator_class),
+        title=f"Loss by iteration - {estimator_class}",
         y_shift=0.8,
         position=111,
         title_scale=title_scale,
@@ -940,10 +1010,25 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
         dot_size=10.0,
         ax=ax,
     )
-    plt.show()
+    
+    # save plots or show
+    
+
+    if save_plots:
+        os.path.join(
+            self.current_experiment_dir,
+            "training_summary",
+            "plots",
+            f"{estimator_class}.jpg",
+        )
+        plt.tight_layout()
+        plt.savefig(plot_path)
+        plt.close()
+    else:
+        plt.show()
 
 def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_parameter_space, n_iter, chart_scale=15,
-                    color_map="viridis", title_scale=1.2, show_single_str_params=False):
+                    color_map="viridis", title_scale=1.2, show_single_str_params=False, save_plots=False):
     """
     Documentation:
 
@@ -979,6 +1064,8 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             show_single_str_params : boolean, default=False
                 Controls whether to display visuals for string attributes where there is only one unique value,
                 i.e. there was only one choice for the optimization procedure to choose from during each iteration.
+            save_plots : boolean, default = False
+                Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # unpack bayes_optim_summary parameters for an estimator_class
     estimator_summary = self.unpack_bayes_optim_summary(
@@ -1056,7 +1143,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
 
                 # add canvas to prettierplot object
                 ax = p.make_canvas(
-                    title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator_class, param),
+                    title=f"Selection vs. theoretical distribution\n* {estimator_class} - {param}",
                     y_shift=0.8,
                     position=121,
                     title_scale=title_scale,
@@ -1076,7 +1163,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
 
                 # add canvas to prettierplot object
                 ax = p.make_canvas(
-                    title="Selection by iteration\n* {0} - {1}".format(estimator_class, param),
+                    title=f"Selection by iteration\n* {estimator_class} - {param}",
                     y_shift=0.5,
                     position=122,
                     title_scale=title_scale,
@@ -1097,7 +1184,18 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 # set tick label font size
                 ax.tick_params(axis="both", colors=style.style_grey, labelsize=1.2 * chart_scale)
 
-                plt.show()
+                # save plots or show
+                if save_plots:
+                    plot_path = os.path.join(
+                        self.experiment_dir,
+                        "plots",
+                        f"{estimator_class}_{param}.jpg"
+                    )
+                    plt.tight_layout()
+                    plt.savefig(plot_path)
+                    plt.close()
+                else:
+                    plt.show()
 
         # otherwise treat it as a numeric parameter
         else:
@@ -1113,7 +1211,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
 
             # add canvas to prettierplot object
             ax = p.make_canvas(
-                title="Selection vs. theoretical distribution\n* {0} - {1}".format(estimator_class, param),
+                title=f"Selection vs. theoretical distribution\n* {estimator_class} - {param}",
                 y_shift=0.8,
                 position=121,
                 title_scale=title_scale,
@@ -1183,7 +1281,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
 
             # add canvas to prettierplot object
             ax = p.make_canvas(
-                title="Selection by iteration\n* {0} - {1}".format(estimator_class, param),
+                title=f"Selection by iteration\n* {estimator_class} - {param}",
                 y_shift=0.8,
                 position=122,
                 title_scale=title_scale,
@@ -1203,7 +1301,20 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 alpha=0.6,
                 ax=ax
             )
-            plt.show()
+            
+            # save plots or show
+            if save_plots:
+                plot_path = os.path.join(
+                    self.experiment_dir,
+                    "plots",
+                    f"{estimator_class}_{param}.jpg"
+                )
+                plt.tight_layout()
+                plt.savefig(plot_path)
+                plt.close()
+            else:
+                plt.show()
+
 
 def sample_plot(self, sample_space, n_iter, chart_scale=15):
     """
@@ -1278,7 +1389,7 @@ def model_type_check(estimator, n_jobs, params=None):
     if isinstance(estimator, str):
         estimator = eval(estimator)
 
-    # if estimator is an api object, pass through BsicModelBuilder
+    # if estimator is an api object, pass through BasicModelBuilder
     if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
         model = BasicModelBuilder(estimator_class=estimator, n_jobs=n_jobs, params=params)
         estimator_name = model.estimator_name

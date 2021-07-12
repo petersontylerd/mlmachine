@@ -988,7 +988,7 @@ def unique_category_levels(self, data=None):
     for column in data.mlm_dtypes["category"]:
         print(column, "\t", np.unique(data[column]))
 
-def compare_train_valid_levels(self, train_data, validation_data):
+def compare_train_valid_levels(self, train_data, validation_features):
     """
     Documentation:
 
@@ -1001,7 +1001,7 @@ def compare_train_valid_levels(self, train_data, validation_data):
         Parameters:
             train_data : Pandas DataFrame
                 Pandas DataFrame containing training data.
-            validation_data : Pandas DataFrame
+            validation_features : Pandas DataFrame
                 Pandas DataFrame containing validation data.
     """
     # creat counter to track how many features have differing amounts of unique values
@@ -1011,7 +1011,7 @@ def compare_train_valid_levels(self, train_data, validation_data):
 
         # capture unique feature values in both training and validation datasets
         train_values = train_data[col].unique()
-        valid_values = validation_data[col].unique()
+        valid_values = validation_features[col].unique()
 
         # determine if categories exist in the training data and not the validation data
         train_diff = set(train_values) - set(valid_values)
@@ -1033,7 +1033,7 @@ def compare_train_valid_levels(self, train_data, validation_data):
     if counter == 0:
         print("All levels in all category columns present in both datasets.")
 
-def missing_column_compare(self, validation_data, train_data=None):
+def missing_column_compare(self, validation_features, train_data=None):
     """
     Documentation:
 
@@ -1045,7 +1045,7 @@ def missing_column_compare(self, validation_data, train_data=None):
 
         ---
         Parameters:
-            validation_data : Pandas DataFrame
+            validation_features : Pandas DataFrame
                 Pandas DataFrame containing validation data.
             train_data : Pandas DataFrame, default=None
                 Pandas DataFrame containing training data. If no value is passed, Method
@@ -1064,7 +1064,7 @@ def missing_column_compare(self, validation_data, train_data=None):
 
     # return DataFrame describing number of values missing within each feature in the
     # validation data
-    validation_missing = validation_data.isnull().sum()
+    validation_missing = validation_features.isnull().sum()
 
     # limit to feature that have greater than 0 missing values
     validation_missing = validation_missing[validation_missing > 0].index
