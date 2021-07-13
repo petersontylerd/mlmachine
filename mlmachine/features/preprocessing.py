@@ -877,7 +877,7 @@ class DualTransformer(TransformerMixin, BaseEstimator):
                     X[col + "_BoxCox"] = 0.
         return X
 
-def skew_summary(self, data=None, columns=None):
+def skew_summary(self, columns, training_data=True):
     """
     Documentation:
 
@@ -888,20 +888,15 @@ def skew_summary(self, data=None, columns=None):
 
         ---
         Parameters:
-            data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. If left as none,
-                The feature dataset provided to Machine during instantiation is used.
-            columns : list of strings, default=None
+            columns : list of strings
                 List containing string names of columns. If left as none, the value associated
                 with self.data.mlm_dtypes["continuous"] will be used as the column list.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.            
     """
-    # use data columns provided during instantiation if None
-    if data is None:
-        data = self.data
-    # use mlm_dtypes["continuous"] columns provided during instantiation if None
-    if columns is None:
-        columns = self.data.mlm_dtypes["continuous"]
-
+    # dynamically choose training data objects or validation data objects
+    data, _ = self.training_or_validation_dataset(training_data)
+    
     # calculate skew for each column, dropping nulls and sorting on skew descending
     skewness = (
         data[columns]
@@ -929,7 +924,7 @@ def skew_summary(self, data=None, columns=None):
 
     return skewness
 
-def missing_summary(self, data=None):
+def missing_summary(self, training_data=True):
     """
     Documentation:
 
@@ -939,14 +934,12 @@ def missing_summary(self, data=None):
 
         ---
         Parameters:
-            data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. If left as none,
-                the feature dataset provided to Machine during instantiation is used.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
     """
-    # use data provided during instantiation if None
-    if data is None:
-        data = self.data
-
+    # dynamically choose training data objects or validation data objects
+    data, _ = self.training_or_validation_dataset(training_data)
+    
     # calculate missing data statistics
     total_missing = data.isnull().sum()
     percent_missing = data.isnull().sum() / len(data) * 100
@@ -965,7 +958,7 @@ def missing_summary(self, data=None):
 
     return percent_missing
 
-def unique_category_levels(self, data=None):
+def unique_category_levels(self, training_data=True):
     """
     Documentation:
 
@@ -975,20 +968,17 @@ def unique_category_levels(self, data=None):
 
         ---
         Parameters:
-            data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. If left as none,
-                the feature dataset provided to Machine during instantiation is used.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
     """
-
-    # use data/ columns provided during instantiation if None
-    if data is None:
-        data = self.data
-
+    # dynamically choose training data objects or validation data objects
+    data, _ = self.training_or_validation_dataset(training_data)
+    
     # print unique values in each category columns
     for column in data.mlm_dtypes["category"]:
         print(column, "\t", np.unique(data[column]))
 
-def compare_train_valid_levels(self, train_data, validation_features):
+def compare_train_valid_levels(self):
     """
     Documentation:
 
@@ -996,22 +986,15 @@ def compare_train_valid_levels(self, train_data, validation_features):
         Description:
             displays Pandas DataFrame summarizing the skew of each number variable. Also summarizes
             the percent of a column that has a value of zero.
-
-        ---
-        Parameters:
-            train_data : Pandas DataFrame
-                Pandas DataFrame containing training data.
-            validation_features : Pandas DataFrame
-                Pandas DataFrame containing validation data.
     """
     # creat counter to track how many features have differing amounts of unique values
     # between the input training and validation datasets
     counter = 0
-    for col in train_data.mlm_dtypes["category"]:
+    for col in self.training_features.mlm_dtypes["category"]:
 
         # capture unique feature values in both training and validation datasets
-        train_values = train_data[col].unique()
-        valid_values = validation_features[col].unique()
+        train_values = self.training_features[col].unique()
+        valid_values = self.validation_features[col].unique()
 
         # determine if categories exist in the training data and not the validation data
         train_diff = set(train_values) - set(valid_values)
@@ -1033,7 +1016,7 @@ def compare_train_valid_levels(self, train_data, validation_features):
     if counter == 0:
         print("All levels in all category columns present in both datasets.")
 
-def missing_column_compare(self, validation_features, train_data=None):
+def missing_column_compare(self):
     """
     Documentation:
 
@@ -1043,28 +1026,17 @@ def missing_column_compare(self, validation_features, train_data=None):
             to the columns that contain missing data in the validation dataset. Prints
             a summary of the disjunction.
 
-        ---
-        Parameters:
-            validation_features : Pandas DataFrame
-                Pandas DataFrame containing validation data.
-            train_data : Pandas DataFrame, default=None
-                Pandas DataFrame containing training data. If no value is passed, Method
-                will default to using the Machine object's data attribute.
     """
-    # use data provided during instantiation if None
-    if train_data is None:
-        train_data = self.data
-
     # return DataFrame describing number of values missing within each feature in the
     # training data
-    train_missing = train_data.isnull().sum()
+    train_missing = self.training_features.isnull().sum()
 
     # limit to feature that have greater than 0 missing values
     train_missing = train_missing[train_missing > 0].index
 
     # return DataFrame describing number of values missing within each feature in the
     # validation data
-    validation_missing = validation_features.isnull().sum()
+    validation_missing = self.validation_features.isnull().sum()
 
     # limit to feature that have greater than 0 missing values
     validation_missing = validation_missing[validation_missing > 0].index

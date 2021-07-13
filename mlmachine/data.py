@@ -24,7 +24,7 @@ def housing():
         Description:
             Load Kaggle Housing Prices training dataset and validation dataset.
     """
-    train = joblib.load(os.path.join(dir, "datasets/housing//train.pkl"))
+    train = joblib.load(os.path.join(dir, "datasets/housing/train.pkl"))
     test = joblib.load(os.path.join(dir, "datasets/housing/test.pkl"))
     return train, test
 

@@ -9,7 +9,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def eda_missing_summary(self, data=None, color=style.style_grey, display_df=False, chart_scale=15):
+def eda_missing_summary(self, training_data=True, color=style.style_grey, display_df=False, chart_scale=15):
     """
     Documentation:
 
@@ -20,9 +20,8 @@ def eda_missing_summary(self, data=None, color=style.style_grey, display_df=Fals
 
         ---
         Parameters:
-            data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. If left as none,
-                the feature dataset provided to Machine during instantiation is used.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
             color : str or color code, default=style.style_grey
                 Bar color.
             display_df : boolean, default=False
@@ -31,12 +30,11 @@ def eda_missing_summary(self, data=None, color=style.style_grey, display_df=Fals
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
     """
-    # use dataset provided during instantiation if None
-    if data is None:
-        data = self.data
-
+    # dynamically choose training data objects or validation data objects
+    data, _ = self.training_or_validation_dataset(training_data)
+    
     # return missingness summary
-    percent_missing = self.missing_summary(data)
+    percent_missing = self.missing_summary(training_data)
 
     # if missingness summary is not empty, create the visualization
     if not percent_missing.empty:
@@ -71,7 +69,7 @@ def eda_missing_summary(self, data=None, color=style.style_grey, display_df=Fals
     else:
         print("No nulls")
 
-def eda_skew_summary(self, data=None, color=style.style_grey, display_df=False, chart_scale=15):
+def eda_skew_summary(self, training_data=True, color=style.style_grey, display_df=False, chart_scale=15):
     """
     Documentation:
 
@@ -82,9 +80,8 @@ def eda_skew_summary(self, data=None, color=style.style_grey, display_df=False, 
 
         ---
         Parameters:
-            data : Pandas DataFrame, default=None
-                Pandas DataFrame containing independent variables. If left as none,
-                the feature dataset provided to Machine during instantiation is used.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
             color : str, color code, default=style.style_grey
                 Bar color.
             display_df : boolean, default=False
@@ -93,10 +90,9 @@ def eda_skew_summary(self, data=None, color=style.style_grey, display_df=False, 
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
     """
-    # use dataset provided during instantiation if None
-    if data is None:
-        data = self.data
-
+    # dynamically choose training data objects or validation data objects
+    data, _ = self.training_or_validation_dataset(training_data)
+    
     # return skewness summary
     skew_summary = self.skew_summary(data)
 
@@ -150,7 +146,7 @@ def eda_transform_target(self, data, name, chart_scale=15):
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="dist/kde - {} (initial)".format(name),
+        title=f"dist/kde - {name} (initial)",
         x_label="",
         y_label="",
         y_shift=0.8,
@@ -168,7 +164,7 @@ def eda_transform_target(self, data, name, chart_scale=15):
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="probability plot - {} (initial)".format(name),
+        title=f"probability plot - {name} (initial)",
         x_label="",
         y_label="",
         y_shift=0.8,
@@ -181,7 +177,6 @@ def eda_transform_target(self, data, name, chart_scale=15):
     # turn off x and y ticks
     plt.xticks([])
     plt.yticks([])
-
 
 def eda_transform_log1(self, data, name, chart_scale=15):
     """
@@ -208,7 +203,7 @@ def eda_transform_log1(self, data, name, chart_scale=15):
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="dist/kde - {} (log+1)".format(name),
+        title=f"dist/kde - {name} (log+1)",
         x_label="",
         y_label="",
         y_shift=0.8,
@@ -226,7 +221,7 @@ def eda_transform_log1(self, data, name, chart_scale=15):
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="probability plot - {} (log+1)".format(name),
+        title=f"probability plot - {name} (log+1)",
         x_label="",
         y_label="",
         y_shift=0.8,
@@ -239,7 +234,6 @@ def eda_transform_log1(self, data, name, chart_scale=15):
     # turn off x and y ticks
     plt.xticks([])
     plt.yticks([])
-
 
 def eda_transform_box_cox(self, data, name, lmbda, chart_scale=15):
     """
@@ -268,7 +262,7 @@ def eda_transform_box_cox(self, data, name, lmbda, chart_scale=15):
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="dist/kde - {} (box-cox, {})".format(name, lmbda),
+        title=f"dist/kde - {name} (box-cox, {lmbda})",
         x_label="",
         y_label="",
         y_shift=0.8,
@@ -290,7 +284,7 @@ def eda_transform_box_cox(self, data, name, lmbda, chart_scale=15):
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Probability plot - {} (box-cox, {})".format(name, lmbda),
+        title=f"Probability plot - {name} (box-cox, {lmbda})",
         x_label="",
         y_label="",
         y_shift=0.8,

@@ -48,8 +48,8 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
                 pass to the meta_learner.
     """
     # row counts
-    n_train = X_train.shape[0]
-    n_valid = X_valid.shape[0]
+    n_train = X_machine.shape[0]
+    n_valid = X_machine.shape[0]
 
     # KFold train/test index generator
     kf = KFold(n_splits=n_folds)
@@ -81,7 +81,7 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
 
     # determine average score of validation predictions
     oof_valid[:] = oof_valid_scores.mean(axis=0)
-    return oof_train.reshape(-1, 1), oof_valid.reshape(-1, 1)
+    return oof_machine.reshape(-1, 1), oof_machine.reshape(-1, 1)
 
 
 def model_stacker(self, models, bayes_optim_summary, X_train, y_train, X_valid, n_folds, n_jobs):

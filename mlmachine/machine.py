@@ -241,44 +241,44 @@ class Machine:
                 and set Pandas dtype in DataFrame accordingly.
         """
         ### populate mlm_dtypes dictionary with feature type label for each feature
-        self.mlm_dtypes = {}
+        self.training_features.mlm_dtypes = {}
 
         ### boolean
         # mlmachine dtype capture
         if isinstance(self.identify_as_boolean, list):
-            self.mlm_dtypes["boolean"] = self.identify_as_boolean
+            self.training_features.mlm_dtypes["boolean"] = self.identify_as_boolean
         elif not isinstance(self.identify_as_boolean, list) and self.identify_as_boolean is not None:
             raise AttributeError ("Variable passed to identify_as_boolean is not a list. Provide a list of column names, provide None or allow identify_as_boolean to default to None.")
         elif self.identify_as_boolean is None:
-            self.mlm_dtypes["boolean"] = []
+            self.training_features.mlm_dtypes["boolean"] = []
 
         # Pandas dtype
-        for column in self.mlm_dtypes["boolean"]:
+        for column in self.training_features.mlm_dtypes["boolean"]:
             self.training_features[column] = self.training_features[column].astype("boolean")
 
         ### nominal category
         # mlmachine dtype capture
         if isinstance(self.identify_as_nominal, list):
-            self.mlm_dtypes["nominal"] = self.identify_as_nominal
+            self.training_features.mlm_dtypes["nominal"] = self.identify_as_nominal
         elif not isinstance(self.identify_as_nominal, list) and self.identify_as_nominal is not None:
             raise AttributeError ("Variable passed to identify_as_nominal is not a list. Provide a list of column names, provide None or allow identify_as_nominal to default to None.")
         elif self.identify_as_nominal is None:
-            self.mlm_dtypes["nominal"] = []
+            self.training_features.mlm_dtypes["nominal"] = []
 
         # Pandas dtype
-        for column in self.mlm_dtypes["nominal"]:
+        for column in self.training_features.mlm_dtypes["nominal"]:
             self.training_features[column] = self.training_features[column].astype("category")
 
         ### ordinal category
         # mlmachine dtype capture
         if isinstance(self.identify_as_ordinal, list):
-            self.mlm_dtypes["ordinal"] = self.identify_as_ordinal
+            self.training_features.mlm_dtypes["ordinal"] = self.identify_as_ordinal
         elif not isinstance(self.identify_as_ordinal, list) and self.identify_as_ordinal is not None:
             raise AttributeError ("Variable passed to identify_as_ordinal is not a list. Provide a list of column names, provide None or allow identify_as_ordinal to default to None.")
         elif isinstance(self.ordinal_encodings, dict):
-            self.mlm_dtypes["ordinal"] = list(self.ordinal_encodings.keys())
+            self.training_features.mlm_dtypes["ordinal"] = list(self.ordinal_encodings.keys())
         elif self.identify_as_ordinal is None and self.ordinal_encodings is None:
-            self.mlm_dtypes["ordinal"] = []
+            self.training_features.mlm_dtypes["ordinal"] = []
 
         # Pandas dtype
         if isinstance(self.ordinal_encodings, dict):
@@ -286,33 +286,33 @@ class Machine:
                 category_type = CategoricalDtype(categories=order, ordered=True)
                 self.training_features[column] = self.training_features[column].astype(category_type)
 
-        for column in self.mlm_dtypes["ordinal"]:
+        for column in self.training_features.mlm_dtypes["ordinal"]:
             self.training_features[column] = self.training_features[column].astype("category")
 
         ### continuous
         # mlmachine dtype capture
         if isinstance(self.identify_as_continuous, list):
-            self.mlm_dtypes["continuous"] = self.identify_as_continuous
+            self.training_features.mlm_dtypes["continuous"] = self.identify_as_continuous
         elif not isinstance(self.identify_as_continuous, list) and self.identify_as_continuous is not None:
             raise AttributeError ("Variable passed to identify_as_continuous is not a list. Either provider a list of column names, provide None or allow identify_as_continuous to default to None.")
         elif self.identify_as_continuous is None:
-            self.mlm_dtypes["continuous"] = []
+            self.training_features.mlm_dtypes["continuous"] = []
 
         # Pandas dtype
-        for column in self.mlm_dtypes["continuous"]:
+        for column in self.training_features.mlm_dtypes["continuous"]:
             self.training_features[column] = self.training_features[column].astype("float64")
 
         ### count
         # mlmachine dtype capture
         if isinstance(self.identify_as_count, list):
-            self.mlm_dtypes["count"] = self.identify_as_count
+            self.training_features.mlm_dtypes["count"] = self.identify_as_count
         elif not isinstance(self.identify_as_count, list) and self.identify_as_count is not None:
             raise AttributeError ("Variable passed to identify_as_count is not a list. Provide a list of column names, provide None or allow identify_as_count to default to None.")
         elif self.identify_as_count is None:
-            self.mlm_dtypes["count"] = []
+            self.training_features.mlm_dtypes["count"] = []
 
         # Pandas dtype
-        for column in self.mlm_dtypes["count"]:
+        for column in self.training_features.mlm_dtypes["count"]:
             try:
                 self.training_features[column] = self.training_features[column].astype("int64")
             except ValueError:
@@ -321,32 +321,32 @@ class Machine:
         ### string
         # mlmachine dtype capture
         if isinstance(self.identify_as_string, list):
-            self.mlm_dtypes["string"] = self.identify_as_string
+            self.training_features.mlm_dtypes["string"] = self.identify_as_string
         elif not isinstance(self.identify_as_string, list) and self.identify_as_string is not None:
             raise AttributeError ("Variable passed to identify_as_string is not a list. Provide a list of column names, provide None or allow identify_as_string to default to None.")
         elif self.identify_as_string is None:
-            self.mlm_dtypes["string"] = []
+            self.training_features.mlm_dtypes["string"] = []
 
         # Pandas dtype
-        for column in self.mlm_dtypes["string"]:
+        for column in self.training_features.mlm_dtypes["string"]:
             self.training_features[column] = self.training_features[column].astype("string")
 
         ### date
         # mlmachine dtype capture
         if isinstance(self.identify_as_date, list):
-            self.mlm_dtypes["date"] = self.identify_as_date
+            self.training_features.mlm_dtypes["date"] = self.identify_as_date
         elif not isinstance(self.identify_as_date, list) and self.identify_as_date is not None:
             raise AttributeError ("Variable passed to identify_as_date is not a list. Provide a list of column names, provide None or allow identify_as_date to default to None.")
         elif self.identify_as_date is None:
-            self.mlm_dtypes["date"] = []
+            self.training_features.mlm_dtypes["date"] = []
 
         # Pandas dtype
-        for column in self.mlm_dtypes["date"]:
+        for column in self.training_features.mlm_dtypes["date"]:
             self.training_features[column] = self.training_features[column].astype("datetime64[ns]")
 
         ### untracked columns
         # compile single list of features that have already been categorized
-        tracked_columns = [i for i in sum(self.mlm_dtypes.values(), [])]
+        tracked_columns = [i for i in sum(self.training_features.mlm_dtypes.values(), [])]
 
         # iterate through untracked columns and attempt mlmachine dtype identification
         for column in [i for i in self.training_features.columns if i not in tracked_columns]:
@@ -369,25 +369,25 @@ class Machine:
                 or is_string_dtype(self.training_features[column]) \
                 or is_categorical_dtype(self.training_features[column]):
 
-                self.mlm_dtypes["nominal"].append(column)
+                self.training_features.mlm_dtypes["nominal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
             # if feature is detected to have a datetime64 dtype
             elif is_datetime64_any_dtype(self.training_features[column]):
 
-                self.mlm_dtypes["date"].append(column)
+                self.training_features.mlm_dtypes["date"].append(column)
                 self.training_features[column] = self.training_features[column].astype("datetime64[ns]")
 
             # if feature is detected to have a bool dtype
             elif is_bool_dtype(self.training_features[column]):
 
-                self.mlm_dtypes["boolean"].append(column)
+                self.training_features.mlm_dtypes["boolean"].append(column)
                 self.training_features[column] = self.training_features[column].astype("boolean")
 
             # if feature is detected to have a string dtype
             elif is_string_dtype(self.training_features[column]):
 
-                self.mlm_dtypes["string"].append(column)
+                self.training_features.mlm_dtypes["string"].append(column)
                 self.training_features[column] = self.training_features[column].astype("string")
 
             # if feature is detected to have a numeric dtype
@@ -395,40 +395,40 @@ class Machine:
 
                 # if the values have a significant spread, assume continuous mlm dtype
                 if value_std/value_mean > 2 and value_std > 5:
-                    self.mlm_dtypes["continuous"].append(column)
+                    self.training_features.mlm_dtypes["continuous"].append(column)
                     self.training_features[column] = self.training_features[column].astype("float64")
 
                 # if feature contains only 0's and 1's, then assume boolean mlm dtype
                 elif self.training_features[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones == self.training_features.shape[0]:
 
-                    self.mlm_dtypes["boolean"].append(column)
+                    self.training_features.mlm_dtypes["boolean"].append(column)
                     self.training_features[column] = self.training_features[column].astype("boolean")
 
                 # if feature does not contain only 0's and 1's, then assume count mlm dtype
                 elif self.training_features[column].astype("float").apply(float.is_integer).all() \
                     and zeros_and_ones != self.training_features.shape[0]:
 
-                    self.mlm_dtypes["count"].append(column)
+                    self.training_features.mlm_dtypes["count"].append(column)
                     self.training_features[column] = self.training_features[column].astype("int64")
 
                 # otherwise, set as continuous
                 else:
-                    self.mlm_dtypes["continuous"].append(column)
+                    self.training_features.mlm_dtypes["continuous"].append(column)
                     self.training_features[column] = self.training_features[column].astype("float64")
 
 
             # all else are category
             else:
-                self.mlm_dtypes["nominal"].append(column)
+                self.training_features.mlm_dtypes["nominal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
         # sort lists within dictionary
-        self.mlm_dtypes = {x: sorted(self.mlm_dtypes[x]) for x in self.mlm_dtypes.keys()}
+        self.training_features.mlm_dtypes = {x: sorted(self.training_features.mlm_dtypes[x]) for x in self.training_features.mlm_dtypes.keys()}
 
         # create helper keys that combine all category and numeric mlm dtypes
-        self.mlm_dtypes["category"] = self.mlm_dtypes["boolean"] + self.mlm_dtypes["nominal"] + self.mlm_dtypes["ordinal"]
-        self.mlm_dtypes["number"] = self.mlm_dtypes["continuous"] + self.mlm_dtypes["count"]
+        self.training_features.mlm_dtypes["category"] = self.training_features.mlm_dtypes["boolean"] + self.training_features.mlm_dtypes["nominal"] + self.training_features.mlm_dtypes["ordinal"]
+        self.training_features.mlm_dtypes["number"] = self.training_features.mlm_dtypes["continuous"] + self.training_features.mlm_dtypes["count"]
 
     def update_dtypes(self, columns_to_drop=None):
         """
@@ -450,36 +450,36 @@ class Machine:
         current_columns = self.training_features.columns.tolist()
 
         # capture current state of mlm_dtypes
-        old_mlm_dtypes = copy.deepcopy(self.mlm_dtypes)
+        old_mlm_dtypes = copy.deepcopy(self.training_features.mlm_dtypes)
 
         # remove any columns listed in columns_to_drop
         if columns_to_drop is not None:
             current_columns = [x for x in current_columns if x not in columns_to_drop]
 
         # remove any columns_to_drop from mlm_dtypes
-        for k in self.mlm_dtypes.keys():
-            self.mlm_dtypes[k] = [x for x in self.mlm_dtypes[k] if x in current_columns]
+        for k in self.training_features.mlm_dtypes.keys():
+            self.training_features.mlm_dtypes[k] = [x for x in self.training_features.mlm_dtypes[k] if x in current_columns]
 
         # remove any columns listed in columns_to_drop from the main dataset
         if columns_to_drop is not None:
             try:
                 # preserve mlm_dtypes
-                self.meta_mlm_dtypes = self.mlm_dtypes
+                self.meta_mlm_dtypes = self.training_features.mlm_dtypes
                 self.training_features = self.training_features.drop(columns_to_drop, axis=1)
 
                 # add back mlm_dtypes
-                self.mlm_dtypes = self.meta_mlm_dtypes
+                self.training_features.mlm_dtypes = self.meta_mlm_dtypes
             except KeyError:
                 pass
 
         ### capture nominal column / value pairs
         self.nominal_column_values = {}
-        for column in self.mlm_dtypes["nominal"]:
+        for column in self.training_features.mlm_dtypes["nominal"]:
             self.nominal_column_values[column] = list(self.training_features[column].dropna().unique())
 
         ### add any currently untracked column to mlm_dtypes and set dtype in main dataset
         # compile single list of features that have already been categorized
-        tracked_columns = [i for i in sum(self.mlm_dtypes.values(), [])]
+        tracked_columns = [i for i in sum(self.training_features.mlm_dtypes.values(), [])]
         untracked_columns = list(set(current_columns).difference(tracked_columns))
 
         for column in untracked_columns:
@@ -500,7 +500,7 @@ class Machine:
             try:
                 self.training_features[column].astype("float").apply(float.is_integer).all()
             except ValueError:
-                self.mlm_dtypes["nominal"].append(column)
+                self.training_features.mlm_dtypes["nominal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
                 continue
 
@@ -509,7 +509,7 @@ class Machine:
                 and self.training_features[column].astype("float").apply(float.is_integer).all() \
                 and zeros_and_ones != self.training_features.shape[0]:
 
-                self.mlm_dtypes["ordinal"].append(column)
+                self.training_features.mlm_dtypes["ordinal"].append(column)
 
                 if pd.api.types.is_numeric_dtype(self.training_features[column].dtype.categories.dtype):
                     order = sorted(self.training_features[column].unique())
@@ -525,37 +525,37 @@ class Machine:
             # if column name suffix indicates that is is a BoxCox or YeoJohnson transformed column
             elif column.endswith(("_BoxCox","_YeoJohnson")):
 
-                self.mlm_dtypes["continuous"].append(column)
+                self.training_features.mlm_dtypes["continuous"].append(column)
                 self.training_features[column] = self.training_features[column].astype("float64")
 
             # if column name suffix suggests a continuous feature type
             elif column.endswith(("_target_encoded", "_woe_encoded", "_catboost_encoded")):
 
-                self.mlm_dtypes["continuous"].append(column)
+                self.training_features.mlm_dtypes["continuous"].append(column)
                 self.training_features[column] = self.training_features[column].astype("float64")
 
             # if column name suffix suggests a count feature type
             elif column.endswith(("_count_encoded")):
 
-                self.mlm_dtypes["count"].append(column)
+                self.training_features.mlm_dtypes["count"].append(column)
                 self.training_features[column] = self.training_features[column].astype("int64")
 
             # if column name suffix suggests an ordinal category feature type
             elif column.endswith(("_ordinal_encoded")):
 
-                self.mlm_dtypes["ordinal"].append(column)
+                self.training_features.mlm_dtypes["ordinal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
             # if column name suffix suggests an ordinal category feature type
             elif "_binned_" in column:
 
-                self.mlm_dtypes["ordinal"].append(column)
+                self.training_features.mlm_dtypes["ordinal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
             # if column name suffix suggests a nominal category feature type
             elif column.endswith(("_binary_encoded")):
 
-                self.mlm_dtypes["nominal"].append(column)
+                self.training_features.mlm_dtypes["nominal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
             # if column name contains "*", and the name split at "*" returns a list of len == 2, and
@@ -565,7 +565,7 @@ class Machine:
                 and (column.split("*")[0] in old_mlm_dtypes["continuous"] or column.split("*")[0] in old_mlm_dtypes["count"]) \
                 and (column.split("*")[1] in old_mlm_dtypes["continuous"] or column.split("*")[1] in old_mlm_dtypes["count"]):
 
-                self.mlm_dtypes["continuous"].append(column)
+                self.training_features.mlm_dtypes["continuous"].append(column)
                 self.training_features[column] = self.training_features[column].astype("float64")
 
             # if column name contains "*", and the name split at "*" returns a list of len == 2, and
@@ -573,13 +573,13 @@ class Machine:
             elif column.endswith(("^2")) \
                 and (column.split("^")[0] in old_mlm_dtypes["continuous"] or column.split("^")[0] in old_mlm_dtypes["count"]):
 
-                self.mlm_dtypes["continuous"].append(column)
+                self.training_features.mlm_dtypes["continuous"].append(column)
                 self.training_features[column] = self.training_features[column].astype("float64")
 
             #
             elif value_std/value_mean > 2 and value_std > 5:
 
-                self.mlm_dtypes["continuous"].append(column)
+                self.training_features.mlm_dtypes["continuous"].append(column)
                 self.training_features[column] = self.training_features[column].astype("float64")
 
             # if column contains only 0's and 1's, and is not a count column
@@ -588,7 +588,7 @@ class Machine:
                 and self.training_features[column].astype("float").apply(float.is_integer).all() \
                 and zeros_and_ones == self.training_features.shape[0]:
 
-                self.mlm_dtypes["nominal"].append(column)
+                self.training_features.mlm_dtypes["nominal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
             # if first portion of column name is previously identified as a category column
@@ -596,36 +596,36 @@ class Machine:
                 and column.split("_")[0] in old_mlm_dtypes["nominal"] \
                 and column.split("_")[1] in self.nominal_column_values["category"]:
 
-                self.mlm_dtypes["nominal"].append(column)
+                self.training_features.mlm_dtypes["nominal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
             #
             elif self.training_features[column].astype("float").apply(float.is_integer).all() \
                 and zeros_and_ones != self.training_features.shape[0]:
 
-                self.mlm_dtypes["count"].append(column)
+                self.training_features.mlm_dtypes["count"].append(column)
                 self.training_features[column] = self.training_features[column].astype("int64")
 
             # all else are nominal
             else:
 
-                self.mlm_dtypes["nominal"].append(column)
+                self.training_features.mlm_dtypes["nominal"].append(column)
                 self.training_features[column] = self.training_features[column].astype("category")
 
         # preserve mlm_dtypes
-        self.meta_mlm_dtypes = self.mlm_dtypes
+        self.meta_mlm_dtypes = self.training_features.mlm_dtypes
 
         # sort columns alphabetically by name
         self.training_features = self.training_features.sort_index(axis=1)
 
         # add back mlm_dtypes
-        self.mlm_dtypes = self.meta_mlm_dtypes
+        self.training_features.mlm_dtypes = self.meta_mlm_dtypes
 
         # add helper key / value pairs
-        self.mlm_dtypes["category"] = self.mlm_dtypes["boolean"] + self.mlm_dtypes["nominal"] + self.mlm_dtypes["ordinal"]
-        self.mlm_dtypes["number"] = self.mlm_dtypes["continuous"] + self.mlm_dtypes["count"]
+        self.training_features.mlm_dtypes["category"] = self.training_features.mlm_dtypes["boolean"] + self.training_features.mlm_dtypes["nominal"] + self.training_features.mlm_dtypes["ordinal"]
+        self.training_features.mlm_dtypes["number"] = self.training_features.mlm_dtypes["continuous"] + self.training_features.mlm_dtypes["count"]
 
-        self.mlm_dtypes = {x:sorted(self.mlm_dtypes[x]) for x in self.mlm_dtypes.keys()}
+        self.training_features.mlm_dtypes = {x:sorted(self.training_features.mlm_dtypes[x]) for x in self.training_features.mlm_dtypes.keys()}
 
     def encode_target(self, target):
         """
@@ -664,7 +664,7 @@ class Machine:
 
         return target, le_
 
-    def recombine_data(self, data=None, target=None):
+    def recombine_data(self, training_data=True):
         """
         Documentation:
 
@@ -675,64 +675,108 @@ class Machine:
 
             ---
             Parameters:
-                data : Pandas DataFrame, default=None
-                    Pandas DataFrame containing independent variables. If left as none,
-                    the feature dataset provided to Machine during instantiation is used.
-                target : Pandas Series, default=None
-                    Pandas Series containing dependent target variable. If left as none,
-                    the target dataset provided to Machine during instantiation is used.
+                training_data : boolean, dafault=False
+                    Controls which dataset (training or validation) is used for visualization.            
+
             ---
             Returns:
                 df : Pandas DataFrame
                     Pandas DataFrame containing combined independent and dependent variables.
         """
-        # use data provided during instantiation if None
-        if data is None:
-            data = self.data
-        # use target provided during instantiation if None
-        if target is None:
-            target = self.target
-
+        # dynamically choose training data objects or validation data objects
+        data, target = self.training_or_validation_dataset(training_data)
+    
         # merge data and target on index
         df = data.merge(target, left_index=True, right_index=True)
         return df
+    
+    def training_or_validation_dataset(self, training_data):
+        """
+        Documentation:
+
+            ---
+            Description:
+                Dynamically return training features and target, or validation features
+                and target
+
+            ---
+            Parameters:
+                training_data : boolean
+                    Controls whether training data objects are returned or validation
+                    data objects are returned.
+            ---
+            Returns:
+                data : Pandas DataFrame
+                    Pandas DataFrame containing independent variables.
+                target : Pandas Series, default=None
+                    Pandas Series containing dependent target variable.
+        """
+        if training_data:
+            data = self.training_features
+            target = self.training_target
+        else:
+            data = self.validation_features
+            target = self.validation_target
+        
+        return data, target
 
     def create_experiment_dir(self):
+        """
+        Documentation:
+
+            ---
+            Description:
+                Create directory structure for storing experiment object.
+        """
+        # capture current time to the second
         start_time = strftime("%y%m%d%H%M%S", gmtime())
 
-        #
-        experiment_dir = os.path.join(".//experiments")
-        if not os.path.exists(experiment_dir):
-            os.makedirs(experiment_dir)
+        # ensure main experiment directory exists
+        self.root_experiment_dir = os.path.join(".//experiments")
+        if not os.path.exists(self.root_experiment_dir):
+            os.makedirs(self.root_experiment_dir)
         
-        #
-        experiment_dir = os.path.join(".//experiments", self.experiment_name)
-        if not os.path.exists(experiment_dir):
-            os.makedirs(experiment_dir)
+        # add sub-directory for topic
+        self.experiment_topic_dir = os.path.join(self.root_experiment_dir, self.experiment_name)
+        if not os.path.exists(self.experiment_topic_dir):
+            os.makedirs(self.experiment_topic_dir)
 
-        #
-        self.current_experiment_dir = os.path.join(experiment_dir, start_time)
+        # add sub-directory for the specific experiment run
+        self.current_experiment_dir = os.path.join(self.experiment_topic_dir, start_time)
         if not os.path.exists(self.current_experiment_dir):
             os.makedirs(self.current_experiment_dir)
-            os.makedirs(os.path.join(self.current_experiment_dir, "machine"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "models"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "transformers"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "shap_explainers"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "shap_values"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "training_summary"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "training_summary", "plots"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "feature_selection_summary"))
-            os.makedirs(os.path.join(self.current_experiment_dir, "feature_selection_summary", "plots"))
-
-
-# class PreserveMetaData(pd.DataFrame):
-
-#     _metadata = ["mlm_dtypes"]
-
-#     @property
-#     def _constructor(self):
-#         return PreserveMetaData
-
+            
+            # add sub-directory for machine object
+            self.machine_object_dir = os.path.join(self.current_experiment_dir, "machine")
+            os.makedirs(self.machine_object_dir)
+            
+            # add sub-directory for transformer objects
+            self.transformers_object_dir = os.path.join(self.current_experiment_dir, "transformers")
+            os.makedirs(self.transformers_object_dir)
+            
+            # add sub-directory for shap-related object
+            self.shap_object_dir = os.path.join(self.current_experiment_dir, "shap")
+            os.makedirs(self.shap_object_dir)            
+            
+            # add sub-directory for shap explainer objects
+            self.shap_explainers_object_dir = os.path.join(self.current_experiment_dir, "shap", "shap_explainers")
+            os.makedirs(self.shap_explainers_object_dir)
+            
+            # add sub-directory for shap_values objects
+            self.shap_values_object_dir = os.path.join(self.current_experiment_dir, "shap", "shap_values")
+            os.makedirs(self.shap_values_object_dir)
+            
+            # add sub-directory for hyperparameter training objects
+            self.training_object_dir = os.path.join(self.current_experiment_dir, "training")
+            os.makedirs(self.training_object_dir)
+            
+            # add sub-directory for hyperparameter training plots
+            self.training_plots_object_dir = os.path.join(self.current_experiment_dir, "training", "plots")
+            os.makedirs(self.training_plots_object_dir)
+            
+            # add sub-directory for best trained models
+            self.training_models_object_dir = os.path.join(self.current_experiment_dir, "training", "models")
+            os.makedirs(self.training_models_object_dir)
 
 def train_test_df_compile(data, target_col, stratify=None, valid_size=0.2, random_state=1):
     """
@@ -778,3 +822,10 @@ def train_test_df_compile(data, target_col, stratify=None, valid_size=0.2, rando
 
     return df_train, df_valid
 
+class PreserveMetaData(pd.DataFrame):
+
+    _metadata = ["mlm_dtypes"]
+
+    @property
+    def _constructor(self):
+        return PreserveMetaData

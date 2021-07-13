@@ -102,7 +102,7 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
                 Pandas DataFrame containing prediction summary data.
     """
     # fit model on training data
-    model.fit(X_train.values, y_train.values)
+    model.fit(X_machine.values, y_machine.values)
 
     # if no validation data is provided
     if X_valid is None:
@@ -119,7 +119,7 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
         }
 
         # capture data in a DataFrame
-        df = pd.DataFrame(data, index=y_train.index)
+        df = pd.DataFrame(data, index=y_machine.index)
 
         # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Positive"] - df["Negative"])
@@ -138,7 +138,7 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
         }
 
         # capture data in a DataFrame
-        df = pd.DataFrame(data, index=y_valid.index)
+        df = pd.DataFrame(data, index=y_machine.index)
 
         # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Positive"] - df["Negative"])
@@ -176,7 +176,7 @@ def regression_prediction_summary(self, model, X_train, y_train, X_valid=None, y
                 Pandas DataFrame containing prediction summary data.
     """
     # fit model on training data
-    model.fit(X_train.values, y_train.values)
+    model.fit(X_machine.values, y_machine.values)
 
     # if no validation data is provided
     if X_valid is None:
@@ -191,7 +191,7 @@ def regression_prediction_summary(self, model, X_train, y_train, X_valid=None, y
         }
 
         # capture data in a DataFrame
-        df = pd.DataFrame(data, index=y_train.index)
+        df = pd.DataFrame(data, index=y_machine.index)
 
         # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Label"] - df["Prediction"])
@@ -208,7 +208,7 @@ def regression_prediction_summary(self, model, X_train, y_train, X_valid=None, y
         }
 
         # capture data in a DataFrame
-        df = pd.DataFrame(data, index=y_valid.index)
+        df = pd.DataFrame(data, index=y_machine.index)
 
         # add "Difference" and "Incorrect" summary columns
         df["Difference"] = np.abs(df["Label"] - df["Prediction"])
@@ -313,18 +313,18 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
                 Dataframe containing various summary statistics pertaining to model performance.
     """
     # fit model on training data
-    model.fit(X_train.values, y_train.values)
+    model.fit(X_machine.values, y_machine.values)
 
     ## training dataset
     # generate predictions using training data
-    y_pred = model.predict(X_train.values)
+    y_pred = model.predict(X_machine.values)
 
     # return regression_stats results for training data and predictions
     results = self.regression_stats(
         model=model,
-        y_true=y_train.values,
+        y_true=y_machine.values,
         y_pred=y_pred,
-        feature_count=X_train.shape[1],
+        feature_count=X_machine.shape[1],
     )
 
     # create shell results DataFrame and append
@@ -339,14 +339,14 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
     if X_valid is not None:
 
         # generate predictions using validation data
-        y_pred = model.predict(X_valid.values)
+        y_pred = model.predict(X_machine.values)
 
         # return regression_stats results for validation data and predictions
         results = self.regression_stats(
             model=model,
-            y_true=y_valid.values,
+            y_true=y_machine.values,
             y_pred=y_pred,
-            feature_count=X_train.shape[1],
+            feature_count=X_machine.shape[1],
             data_type="validation",
         )
 
@@ -365,10 +365,10 @@ def regression_results(self, model, X_train, y_train, X_valid=None, y_valid=None
 
         # iterate through KFolds
         for i, (train_ix, valid_ix) in enumerate(cv):
-            X_train_cv = X_train.iloc[train_ix]
-            y_train_cv = y_train.iloc[train_ix]
-            X_valid_cv = X_train.iloc[valid_ix]
-            y_valid_cv = y_train.iloc[valid_ix]
+            X_train_cv = X_machine.iloc[train_ix]
+            y_train_cv = y_machine.iloc[train_ix]
+            X_valid_cv = X_machine.iloc[valid_ix]
+            y_valid_cv = y_machine.iloc[valid_ix]
 
             # fit model on training observations and make predictions with holdout observations
             y_pred = model.fit(X_train_cv.values, y_train_cv.values).predict(

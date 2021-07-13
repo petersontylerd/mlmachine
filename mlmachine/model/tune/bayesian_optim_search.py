@@ -60,7 +60,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def objective(space, results_file, estimator_class, training_features, training_target, validation_features, validation_target, scoring, n_folds, n_jobs):
+def objective(space, results_file, estimator_class, training_features, training_target, validation_features, validation_target, scoring, n_folds, n_jobs, result_dir):
     """
     Documentation:
 
@@ -146,8 +146,7 @@ def objective(space, results_file, estimator_class, training_features, training_
     )
 
     # validation score
-    model.custom_model.fit(validation_features, validation_target)
-    # model.custom_model.predict(validation_features, validation_target)
+    model.custom_model.fit(training_features, training_target)
     validation_scorer = get_scorer(scoring)
     validation_score = validation_scorer(model.custom_model, validation_features, validation_target)
     
@@ -189,8 +188,6 @@ def objective(space, results_file, estimator_class, training_features, training_
         min_score = cv.min()
         max_score = cv.max()
 
-    # capture loss
-
     ## load results summary and extract best loss value for current estimator
     df = pd.read_csv(results_file)
     df = df[df["estimator"] == estimator_name]
@@ -202,14 +199,9 @@ def objective(space, results_file, estimator_class, training_features, training_
 
     # compare current loss to best loss and pickle model if improved
     if best_loss > loss:
-        model_path = os.path.join(
-            os.path.split(os.path.split(results_file)[0])[0],
-            "models",
-        )
 
-        # model.custom_model.fit(data, target)
-
-        with open(os.path.join(model_path, "{}.pkl".format(estimator_name)), 'wb') as handle:
+        #
+        with open(os.path.join(result_dir, "{}.pkl".format(estimator_name)), 'wb') as handle:
             pickle.dump(model.custom_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # export results to csv
@@ -304,8 +296,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, training_features, 
     """
     # set results logging destination
     results_file = os.path.join(
-        self.current_experiment_dir,
-        "training_summary",
+        self.training_object_dir,
         "bayes_optimization_summary.csv"
     )
 
@@ -442,6 +433,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, training_features, 
             scoring,
             n_folds,
             n_jobs,
+            self.training_models_object_dir,
         )
 
         # run optimization
@@ -458,6 +450,15 @@ def exec_bayes_optim_search(self, estimator_parameter_space, training_features, 
             trials=Trials(),
             show_progressbar=show_progressbar,
         )
+
+    #
+    self.bayes_optim_summary = pd.read_csv(
+                                    os.path.join(
+                                        self.training_object_dir,
+                                        "bayes_optimization_summary.csv"
+                                    ), 
+                                    na_values="nan"
+                                )
 
 class BayesOptimClassifierBuilder(ClassifierMixin):
     """
@@ -860,14 +861,21 @@ class BasicModelBuilder(BaseEstimator):
         # capture available model arguments and set probabily and n_jobs where applicable
         estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
+        # add probably=True if estimator accept the argument
         if "probability" in estimator_args:
             self.params["probability"] = True
 
+        # specify n_jobs variable if estimator accept the argument
         if "n_jobs" in estimator_args:
             self.params["n_jobs"] = self.n_jobs
 
+        # specify random_state variable if estimator accept the argument
         if "random_state" in estimator_args:
             self.params["random_state"] = self.random_state
+        
+        # special handling for XGBoost estimators (suppresses warning messages)
+        if "XGB" in self.estimator_name:
+            self.params["verbosity"] = 0
 
         # instantiate model
         self.custom_model = self.estimator_class(**self.params)
@@ -1012,13 +1020,9 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
     )
     
     # save plots or show
-    
-
     if save_plots:
         os.path.join(
-            self.current_experiment_dir,
-            "training_summary",
-            "plots",
+            self.training_plots_object_dir,
             f"{estimator_class}.jpg",
         )
         plt.tight_layout()
@@ -1187,8 +1191,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 # save plots or show
                 if save_plots:
                     plot_path = os.path.join(
-                        self.experiment_dir,
-                        "plots",
+                        self.training_plots_object_dir,
                         f"{estimator_class}_{param}.jpg"
                     )
                     plt.tight_layout()
@@ -1305,8 +1308,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             # save plots or show
             if save_plots:
                 plot_path = os.path.join(
-                    self.experiment_dir,
-                    "plots",
+                    self.training_plots_object_dir,
                     f"{estimator_class}_{param}.jpg"
                 )
                 plt.tight_layout()
@@ -1314,7 +1316,6 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 plt.close()
             else:
                 plt.show()
-
 
 def sample_plot(self, sample_space, n_iter, chart_scale=15):
     """

@@ -80,17 +80,22 @@ explainer_algorithm_map = {
     ],
 }
 
-def create_shap_explainers(self, model_dir):
+def create_shap_explainers(self):
     """
 
     """
-    for model_file in os.listdir(model_dir)[1:]:
 
-        #
-        with open(os.path.join(model_dir, model_file), "rb") as handle:
+    # iterate through all .pkl files in the trained model directory
+    for model_file in os.listdir(self.training_models_object_dir):
+
+        # reload model from .pkl file
+        with open(os.path.join(self.training_models_object_dir, model_file), "rb") as handle:
             model = pickle.load(handle)
+        
+        # capture estimator object name
         estimator_name = model.__class__.__name__
 
+        # iteration through explainer type and its associated estimators
         for explainer_name, valid_estimators in explainer_algorithm_map.items():
             if estimator_name in valid_estimators:
 
@@ -99,23 +104,31 @@ def create_shap_explainers(self, model_dir):
                 print(explainer_name)
                 print()
 
+                # generate shap explainer and shap values with KernelExplainer
                 if explainer_name in ["KernelExplainer"]:
-                    explainer = explainer(model.predict_proba, self.data.values)
-                    shap_values = explainer.shap_values(self.data.values)
+                    explainer = explainer(model.predict_proba, self.training_features.iloc[:10,:].values)
+                    shap_values = explainer.shap_values(self.training_features.iloc[:10,:].values)
+                
+                # generate shap explainer and shap values with LinearExplainer
                 elif explainer_name in ["LinearExplainer"]:
-                    explainer = explainer(model, self.data.values)
-                    shap_values = explainer.shap_values(self.data.values)
+                    explainer = explainer(model, self.training_features.iloc[:10,:].values)
+                    shap_values = explainer.shap_values(self.training_features.iloc[:10,:].values)
+                # generate shap explainer and shap values with TreeExplainer
                 else:
                     explainer = explainer(model)
                     try:
-                        shap_values = explainer.shap_values(self.data.values)
+                        shap_values = explainer.shap_values(self.training_features.iloc[:10,:].values)
+                    
+                    # if the process errors due to an addivity error, run with check_additivity set to False
                     except Exception:
-                        shap_values = explainer.shap_values(self.data.values, check_additivity=False)
+                        shap_values = explainer.shap_values(self.training_features.iloc[:10,:].values, check_additivity=False)
 
-                with open(os.path.join(os.path.split(model_dir)[0], "shap_explainers", "{}_{}.pkl".format(estimator_name, explainer_name)), 'wb') as handle:
+                # save shap explainer object as .pkl file
+                with open(os.path.join(self.shap_explainers_object_dir, f"{estimator_name}_{explainer_name}.pkl"), 'wb') as handle:
                     pickle.dump(explainer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-                with open(os.path.join(os.path.split(model_dir)[0], "shap_values", "{}_{}.pkl".format(estimator_name, explainer_name)), 'wb') as handle:
+                # save shap values as .pkl file
+                with open(os.path.join(self.shap_values_object_dir, f"{estimator_name}_{explainer_name}.pkl"), 'wb') as handle:
                     pickle.dump(shap_values, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 

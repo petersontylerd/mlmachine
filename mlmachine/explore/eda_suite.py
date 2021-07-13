@@ -22,7 +22,7 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", legend_labels=None,
+def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=50, color_map="viridis", legend_labels=None,
                             chart_scale=15):
     """
     Documentation:
@@ -36,6 +36,8 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         Parameters:
             feature : str
                 Feature to visualize.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
             level_count_cap : int, default=50
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap, then no visualization panel is produced.
@@ -47,9 +49,11 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
     """
-
+    # dynamically choose training data objects or validation data objects
+    data, target = self.training_or_validation_dataset(training_data)
+    
     # if number of unique levels in feature is less than specified level_count_cap
-    if (len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap):
+    if (len(np.unique(data[data[feature].notnull()][feature].values)) < level_count_cap):
 
         ### data summaries
         ## feature summary
@@ -58,7 +62,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         # capture unique values and count of those unique values
         unique_vals, unique_counts = np.unique(
-            self.data[self.data[feature].notnull()][feature], return_counts=True
+            data[data[feature].notnull()][feature], return_counts=True
         )
 
         # append each unique value, count and proportion to DataFrame
@@ -82,7 +86,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         ## feature vs. target summary
         # combine feature column and target
-        bi_df = pd.concat([self.data[feature], self.target], axis=1)
+        bi_df = pd.concat([data[feature], target], axis=1)
 
         # remove any rows with nulls
         bi_df = bi_df[bi_df[feature].notnull()]
@@ -90,10 +94,10 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         # groupby category feature and count the occurrences of target classes
         # for each level in category
         bi_summ_df = (
-            bi_df.groupby([feature] + [self.target.name])
+            bi_df.groupby([feature] + [target.name])
             .size()
             .reset_index()
-            .pivot(columns=self.target.name, index=feature, values=0)
+            .pivot(columns=target.name, index=feature, values=0)
         )
 
         # overwrite DataFrame index with actual class labels if provided
@@ -113,13 +117,13 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         ## proportion by category summary
         # combine feature column and target
-        prop_df = pd.concat([self.data[feature], self.target], axis=1)
+        prop_df = pd.concat([data[feature], target], axis=1)
 
         # remove any rows with nulls
         prop_df = prop_df[prop_df[feature].notnull()]
 
         # calculate percent of 100 by class label
-        prop_df = prop_df.groupby([feature, self.target.name]).agg({self.target.name : {"count"}})
+        prop_df = prop_df.groupby([feature, target.name]).agg({target.name : {"count"}})
         prop_df = prop_df.groupby(level=0).apply(lambda x: 100 * x / float(x.sum()))
         prop_df = prop_df.reset_index()
 
@@ -129,7 +133,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         prop_df.columns = singleIndex
         prop_df = prop_df.reset_index(drop=True)
 
-        prop_df = pd.pivot_table(prop_df, values=["Count"], columns=[feature], index=[self.target.name], aggfunc={"Count": np.mean})
+        prop_df = pd.pivot_table(prop_df, values=["Count"], columns=[feature], index=[target.name], aggfunc={"Count": np.mean})
         prop_df = prop_df.reset_index(drop=True)
 
         multiIndex = prop_df.columns
@@ -145,7 +149,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         prop_df = prop_df.reset_index(drop=True)
 
         # insert column to DataFrame with actual class labels if provided, otherwise use raw class labels in target
-        prop_df.insert(loc=0, column="Class", value=legend_labels if legend_labels is not None else np.unique(self.target))
+        prop_df.insert(loc=0, column="Class", value=legend_labels if legend_labels is not None else np.unique(target))
 
         # fill nan's with zero
         fill_columns = prop_df.iloc[:,:].columns
@@ -165,11 +169,11 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
             # total positive observations
             pos_obs1 = bi_df[
                 (bi_df[feature] == np.unique(bi_df[feature])[0])
-                & (bi_df[self.target.name] == 1)
+                & (bi_df[target.name] == 1)
             ][feature].shape[0]
             pos_obs2 = bi_df[
                 (bi_df[feature] == np.unique(bi_df[feature])[1])
-                & (bi_df[self.target.name] == 1)
+                & (bi_df[target.name] == 1)
             ][feature].shape[0]
 
             # perform z-test, return z-statistic and p-value
@@ -263,8 +267,7 @@ def eda_cat_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         fig.tight_layout()
         return fig
 
-
-def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_scope=None, legend_labels=None,
+def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridis", outliers_out_of_scope=None, legend_labels=None,
                             chart_scale=15):
     """
     Documentation:
@@ -278,6 +281,8 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         Parameters:
             feature : str
                 Feature to visualize.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
             color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             outliers_out_of_scope : boolean, float or int, default=None
@@ -295,10 +300,13 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
                 Controls size and proportions of chart and chart elements. Higher value creates larger plots
                 and increases visual elements proportionally.
     """
+    # dynamically choose training data objects or validation data objects
+    data, target = self.training_or_validation_dataset(training_data)
+    
     ### data summaries
     ## bivariate roll_up table
     # combine feature column and target
-    bi_df = pd.concat([self.data[feature], self.target], axis=1)
+    bi_df = pd.concat([data[feature], target], axis=1)
 
     # remove any rows with nulls
     bi_df = bi_df[bi_df[feature].notnull()]
@@ -309,10 +317,10 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     )
 
     # for each unique class label
-    for labl in np.unique(self.target):
+    for labl in np.unique(target):
 
         # get feature values associated with single class label
-        feature_slice = bi_df[bi_df[self.target.name] == labl][feature]
+        feature_slice = bi_df[bi_df[target.name] == labl][feature]
 
         # append summary statistics for feature values associated with class label
         bi_summ_stats_df = bi_summ_stats_df.append(
@@ -340,7 +348,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     describe_df = describe_df.append(
         {
             "index": "missing",
-            feature: np.round(self.data.shape[0] - bi_df[feature].shape[0], 5),
+            feature: np.round(data.shape[0] - bi_df[feature].shape[0], 5),
         },
         ignore_index=True,
     )
@@ -364,12 +372,12 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     describe_df = describe_df.rename(columns={"index": ""})
 
     # execute z-test or t-test
-    if len(np.unique(self.target)) == 2:
+    if len(np.unique(target)) == 2:
         s1 = bi_df[
-            (bi_df[self.target.name] == bi_df[self.target.name].unique()[0])
+            (bi_df[target.name] == bi_df[target.name].unique()[0])
         ][feature]
         s2 = bi_df[
-            (bi_df[self.target.name] == bi_df[self.target.name].unique()[1])
+            (bi_df[target.name] == bi_df[target.name].unique()[1])
         ][feature]
         if len(s1) > 30 and len(s2) > 30:
 
@@ -416,19 +424,19 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         if outliers_out_of_scope:
 
             # identify outliers using IQR method and an IQR step of 5
-            outliers = self.outlier_IQR(self.data[feature], iqr_step=5)
+            outliers = self.outlier_IQR(data[feature], iqr_step=5)
 
             # reset x-axis minimum and maximum
-            x_axis_min = self.data[feature].drop(index=outliers).min()
-            x_axis_max = self.data[feature].drop(index=outliers).max()
+            x_axis_min = data[feature].drop(index=outliers).min()
+            x_axis_max = data[feature].drop(index=outliers).max()
     # if outliers_out_of_scope is a float or int
     elif isinstance(outliers_out_of_scope, float) or isinstance(outliers_out_of_scope, int):
         # identify outliers using IQR method and an IQR step equal to the float/int passed
-        outliers = self.outlier_IQR(self.data[feature], iqr_step=outliers_out_of_scope)
+        outliers = self.outlier_IQR(data[feature], iqr_step=outliers_out_of_scope)
 
         # reset x-axis minimum and maximum
-        x_axis_min = self.data[feature].drop(index=outliers).min()
-        x_axis_max = self.data[feature].drop(index=outliers).max()
+        x_axis_min = data[feature].drop(index=outliers).min()
+        x_axis_max = data[feature].drop(index=outliers).max()
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
@@ -505,16 +513,16 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
         x_units = "f"
 
     # generate color list
-    color_list = style.color_gen(name=color_map, num=len(np.unique(self.target)))
+    color_list = style.color_gen(name=color_map, num=len(np.unique(target)))
 
     # add one distribution plot to canvas for each category class
-    for ix, labl in enumerate(np.unique(bi_df[self.target.name].values)):
+    for ix, labl in enumerate(np.unique(bi_df[target.name].values)):
         p.dist_plot(
-            bi_df[bi_df[self.target.name] == labl][feature].values,
+            bi_df[bi_df[target.name] == labl][feature].values,
             color=color_list[ix],
             y_units="f",
             x_units=x_units,
-            legend_labels=legend_labels if legend_labels is not None else np.arange(len(np.unique(self.target))),
+            legend_labels=legend_labels if legend_labels is not None else np.arange(len(np.unique(target))),
             alpha=0.4,
             bbox=(1.0, 1.0),
             ax=ax,
@@ -551,7 +559,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     # add horizontal box plot to canvas
     p.box_plot_h(
         x=feature,
-        y=self.target.name,
+        y=target.name,
         data=bi_df,
         alpha=0.7,
         x_units=x_units,
@@ -573,8 +581,7 @@ def eda_cat_target_num_feat(self, feature, color_map="viridis", outliers_out_of_
     fig.tight_layout()
     return fig
 
-
-def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
+def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridis", chart_scale=15):
     """
     Documentation:
 
@@ -587,22 +594,27 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
         Parameters:
             feature : str
                 Feature to visualize.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
             color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
     """
+    # dynamically choose training data objects or validation data objects
+    data, target = self.training_or_validation_dataset(training_data)
+    
     ### data summaries
     ## feature summary
     # combine feature column and target
-    bi_df = pd.concat([self.data[feature], self.target], axis=1)
+    bi_df = pd.concat([data[feature], target], axis=1)
 
     # remove any rows with nulls
     bi_df = bi_df[bi_df[feature].notnull()]
 
     # cast target as float
-    bi_df[self.target.name] = bi_df[self.target.name].astype(float)
+    bi_df[target.name] = bi_df[target.name].astype(float)
 
     # create summary statistic table
     describe_df = pd.DataFrame(bi_df[feature].describe()).reset_index()
@@ -683,7 +695,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
     # add regression plot to canvas
     p.reg_plot(
         x=feature,
-        y=self.target.name,
+        y=target.name,
         data=bi_df,
         x_jitter=0.1,
         x_rotate=x_rotate,
@@ -697,8 +709,7 @@ def eda_num_target_num_feat(self, feature, color_map="viridis", chart_scale=15):
     fig.tight_layout()
     return fig
 
-
-def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridis", chart_scale=15):
+def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=50, color_map="viridis", chart_scale=15):
     """
     Documentation:
 
@@ -711,6 +722,8 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         Parameters:
             feature : str
                 Feature to visualize.
+            training_data : boolean, dafault=False
+                Controls which dataset (training or validation) is used for visualization.
             level_count_cap : int, default=50
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap then the feature is skipped.
@@ -720,8 +733,11 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
     """
+    # dynamically choose training data objects or validation data objects
+    data, target = self.training_or_validation_dataset(training_data)
+    
     # if number of unique levels in feature is less than specified level_count_cap
-    if (len(np.unique(self.data[self.data[feature].notnull()][feature].values)) < level_count_cap):
+    if (len(np.unique(data[data[feature].notnull()][feature].values)) < level_count_cap):
 
         ### data summaries
         ## feature summary
@@ -730,7 +746,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         # capture unique values and count of those unique values
         unique_vals, unique_counts = np.unique(
-            self.data[self.data[feature].notnull()][feature], return_counts=True
+            data[data[feature].notnull()][feature], return_counts=True
         )
 
         # append each unique value, count and proportion to DataFrame
@@ -750,17 +766,17 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         ## feature vs. target summary
         # combine feature column and target
-        bi_df = pd.concat([self.data[feature], self.target], axis=1)
+        bi_df = pd.concat([data[feature], target], axis=1)
 
         # remove any rows with nulls
         bi_df = bi_df[bi_df[feature].notnull()]
 
         # cast target as float
-        bi_df[self.target.name] = bi_df[self.target.name].astype(float)
+        bi_df[target.name] = bi_df[target.name].astype(float)
 
         # create pivot table of target summary statistics, grouping by category feature
         bi_summ_piv_df = pd.pivot_table(
-            bi_df, index=feature, aggfunc={self.target.name: [np.nanmin, np.nanmax, np.nanmean, np.nanmedian, np.nanstd]}
+            bi_df, index=feature, aggfunc={target.name: [np.nanmin, np.nanmax, np.nanmean, np.nanmedian, np.nanstd]}
         )
         multi_index = bi_summ_piv_df.columns
         single_index = pd.Index([i[1] for i in multi_index.tolist()])
@@ -873,8 +889,8 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
 
         ## dynamically determine precision of y-units
         # capture min and max feature values
-        dist_min = bi_df[self.target.name].values.min()
-        dist_max = bi_df[self.target.name].values.max()
+        dist_min = bi_df[target.name].values.min()
+        dist_max = bi_df[target.name].values.max()
 
         # determine y-units precision based on min and max values in feature
         if -3 < dist_min < 3 and -3 < dist_max < 3 and dist_max/dist_min < 10:
@@ -891,7 +907,7 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         # add vertical box plot to canvas
         p.box_plot_v(
             x=feature,
-            y=self.target.name,
+            y=target.name,
             data=bi_df.sort_values([feature]),
             color=matplotlib.cm.get_cmap(name=color_map),
             label_rotate=rotation,
@@ -912,7 +928,6 @@ def eda_num_target_cat_feat(self, feature, level_count_cap=50, color_map="viridi
         plt.show()
         fig.tight_layout()
         return fig
-
 
 def df_side_by_side(self, dfs, names=[]):
     """
@@ -950,8 +965,7 @@ def df_side_by_side(self, dfs, names=[]):
     html_str = html_str.replace("table", 'table style="display:inline"')
     display_html(html_str, raw=True)
 
-
-def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15,
+def eda(self, training_data=True, features=None, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15,
         outliers_out_of_scope=None, callback=None):
 
     """
@@ -966,6 +980,8 @@ def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_lab
         Parameters:
             features : list, default=None
                 Features to visualize. If None, all features are selected.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
             level_count_cap : int, default=50
                 Maximum number of unique levels in feature. If the number of levels exceeds the
                 cap then the feature is skipped.
@@ -989,31 +1005,36 @@ def eda(self, features=None, level_count_cap=50, color_map="viridis", legend_lab
                 This function must take 2 parameters: the current figure object and the name of the current feature.
                 Can be used to save a plot, log the artifact, etc.
     """
+    # dynamically choose training data objects or validation data objects
+    data, target = self.training_or_validation_dataset(training_data)
+    
+    #
     if features is None:
-        features = self.data.mlm_dtypes['category'] + self.data.mlm_dtypes['number']
+        features = self.mlm_dtypes['category'] + self.mlm_dtypes['number']
 
+    #
     for feature in features:
         fig = None
         if self.is_classification:
-            if feature in self.data.mlm_dtypes['category']:
+            if feature in data.mlm_dtypes['category']:
                 fig = self.eda_cat_target_cat_feat(feature=feature,
                                              level_count_cap=level_count_cap,
                                              color_map=color_map,
                                              legend_labels=legend_labels,
                                              chart_scale=chart_scale)
-            elif feature in self.data.mlm_dtypes['number']:
+            elif feature in data.mlm_dtypes['number']:
                 fig = self.eda_cat_target_num_feat(feature=feature,
                                              color_map=color_map,
                                              outliers_out_of_scope=outliers_out_of_scope,
                                              legend_labels=legend_labels,
                                              chart_scale=chart_scale)
         else:
-            if feature in self.data.mlm_dtypes['category']:
+            if feature in data.mlm_dtypes['category']:
                 fig = self.eda_num_target_cat_feat(feature=feature,
                                              level_count_cap=level_count_cap,
                                              color_map=color_map,
                                              chart_scale=chart_scale)
-            elif feature in self.data.mlm_dtypes['number']:
+            elif feature in data.mlm_dtypes['number']:
                 fig = self.eda_num_target_num_feat(feature=feature,
                                              color_map=color_map,
                                              outliers_out_of_scope=outliers_out_of_scope,

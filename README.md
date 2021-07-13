@@ -51,11 +51,11 @@ mlmachine includes a utility called `KFoldEncoder`, which applies target encodin
 ```python
 # perform 5-fold target encoding with TargetEncoder from the category_encoders library
 encoder = KFoldEncoder(
-    target=mlmachine_titanic_train.target,
+    target=mlmachine_titanic_machine.training_target,
     cv=KFold(n_splits=5, shuffle=True, random_state=0),
     encoder=TargetEncoder,
 )
-encoder.fit_transform(mlmachine_titanic_train.data[["Pclass"]])
+encoder.fit_transform(mlmachine_titanic_machine.training_features[["Pclass"]])
 ```
 
 ![alt text](/notebooks/images/kfold.jpeg "Pandas Pipeline")
@@ -94,9 +94,9 @@ estimators = [
 ]
 
 # instantiate FeatureSelector object
-fs = mlmachine_titanic_train.FeatureSelector(
-    data=mlmachine_titanic_train.data,
-    target=mlmachine_titanic_train.target,
+fs = mlmachine_titanic_machine.FeatureSelector(
+    data=mlmachine_titanic_machine.training_features,
+    target=mlmachine_titanic_machine.training_target,
     estimators=estimators,
 )
 
@@ -124,7 +124,7 @@ mlmachine can perform Bayesian optimization on multiple estimators in one shot, 
 
 ```python
 # generate parameter selection panels for each parameter
-mlmachine_titanic_train.model_param_plot(
+mlmachine_titanic_machine.model_param_plot(
         bayes_optim_summary=bayes_optim_summary,
         estimator_class="KNeighborsClassifier",
         estimator_parameter_space=estimator_parameter_space,
