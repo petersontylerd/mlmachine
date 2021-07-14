@@ -1021,7 +1021,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
     
     # save plots or show
     if save_plots:
-        os.path.join(
+        plot_path = os.path.join(
             self.training_plots_object_dir,
             f"{estimator_class}.jpg",
         )
@@ -1082,9 +1082,10 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
     # subset estimator_parameter_space to space for the specified estimator_class
     estimator_space = estimator_parameter_space[estimator_class]
 
-    print("*" * 100)
-    print("* {}".format(estimator_class))
-    print("*" * 100)
+    if not save_plots:
+        print("*" * 100)
+        print("* {}".format(estimator_class))
+        print("*" * 100)
 
     # iterate through each parameter
     for param in estimator_space.keys():

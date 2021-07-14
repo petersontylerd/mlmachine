@@ -676,7 +676,7 @@ class Machine:
             ---
             Parameters:
                 training_data : boolean, dafault=False
-                    Controls which dataset (training or validation) is used for visualization.            
+                    Controls which dataset (training or validation) is used for visualization.
 
             ---
             Returns:
@@ -685,11 +685,11 @@ class Machine:
         """
         # dynamically choose training data objects or validation data objects
         data, target = self.training_or_validation_dataset(training_data)
-    
+
         # merge data and target on index
         df = data.merge(target, left_index=True, right_index=True)
         return df
-    
+
     def training_or_validation_dataset(self, training_data):
         """
         Documentation:
@@ -717,7 +717,7 @@ class Machine:
         else:
             data = self.validation_features
             target = self.validation_target
-        
+
         return data, target
 
     def create_experiment_dir(self):
@@ -735,7 +735,7 @@ class Machine:
         self.root_experiment_dir = os.path.join(".//experiments")
         if not os.path.exists(self.root_experiment_dir):
             os.makedirs(self.root_experiment_dir)
-        
+
         # add sub-directory for topic
         self.experiment_topic_dir = os.path.join(self.root_experiment_dir, self.experiment_name)
         if not os.path.exists(self.experiment_topic_dir):
@@ -745,38 +745,42 @@ class Machine:
         self.current_experiment_dir = os.path.join(self.experiment_topic_dir, start_time)
         if not os.path.exists(self.current_experiment_dir):
             os.makedirs(self.current_experiment_dir)
-            
+
+            # add sub-directory for machine object
+            self.eda_object_dir = os.path.join(self.current_experiment_dir, "eda")
+            os.makedirs(self.eda_object_dir)
+
             # add sub-directory for machine object
             self.machine_object_dir = os.path.join(self.current_experiment_dir, "machine")
             os.makedirs(self.machine_object_dir)
-            
-            # add sub-directory for transformer objects
-            self.transformers_object_dir = os.path.join(self.current_experiment_dir, "transformers")
-            os.makedirs(self.transformers_object_dir)
-            
+
             # add sub-directory for shap-related object
             self.shap_object_dir = os.path.join(self.current_experiment_dir, "shap")
-            os.makedirs(self.shap_object_dir)            
-            
+            os.makedirs(self.shap_object_dir)
+
             # add sub-directory for shap explainer objects
             self.shap_explainers_object_dir = os.path.join(self.current_experiment_dir, "shap", "shap_explainers")
             os.makedirs(self.shap_explainers_object_dir)
-            
+
             # add sub-directory for shap_values objects
             self.shap_values_object_dir = os.path.join(self.current_experiment_dir, "shap", "shap_values")
             os.makedirs(self.shap_values_object_dir)
-            
+
             # add sub-directory for hyperparameter training objects
             self.training_object_dir = os.path.join(self.current_experiment_dir, "training")
             os.makedirs(self.training_object_dir)
-            
+
             # add sub-directory for hyperparameter training plots
             self.training_plots_object_dir = os.path.join(self.current_experiment_dir, "training", "plots")
             os.makedirs(self.training_plots_object_dir)
-            
+
             # add sub-directory for best trained models
             self.training_models_object_dir = os.path.join(self.current_experiment_dir, "training", "models")
             os.makedirs(self.training_models_object_dir)
+
+            # add sub-directory for transformer objects
+            self.transformers_object_dir = os.path.join(self.current_experiment_dir, "transformers")
+            os.makedirs(self.transformers_object_dir)
 
 def train_test_df_compile(data, target_col, stratify=None, valid_size=0.2, random_state=1):
     """

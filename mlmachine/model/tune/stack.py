@@ -48,8 +48,8 @@ def oof_generator(self, model, X_train, y_train, X_valid, n_folds=10):
                 pass to the meta_learner.
     """
     # row counts
-    n_train = X_machine.shape[0]
-    n_valid = X_machine.shape[0]
+    n_train = X_train.shape[0]
+    n_valid = X_train.shape[0]
 
     # KFold train/test index generator
     kf = KFold(n_splits=n_folds)

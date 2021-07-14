@@ -94,7 +94,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             classification_report(
                 y_train,
                 y_pred,
-                target_names=labels if labels is not None else np.unique(y_machine.values),
+                target_names=labels if labels is not None else np.unique(y_train.values),
             )
         )
 
@@ -117,7 +117,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         estimator=model,
         X=X_train,
         y_true=y_train,
-        display_labels=labels if labels is not None else np.unique(y_machine.values),
+        display_labels=labels if labels is not None else np.unique(y_train.values),
         cmap=color_map,
         values_format=".0f",
         ax=ax,
@@ -159,7 +159,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             classification_report(
                 y_valid,
                 y_pred,
-                target_names=labels if labels is not None else np.unique(y_machine.values),
+                target_names=labels if labels is not None else np.unique(y_train.values),
             )
         )
 
@@ -182,7 +182,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             estimator=model,
             X=X_valid,
             y_true=y_valid,
-            display_labels=labels if labels is not None else np.unique(y_machine.values),
+            display_labels=labels if labels is not None else np.unique(y_train.values),
             cmap=color_map,
             values_format=".0f",
             ax=ax,
@@ -234,10 +234,10 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             print("\n" + "*" * 55)
             print("CV Fold {}\n".format(i + 1))
 
-            X_train_cv = X_machine.iloc[train_ix]
-            y_train_cv = y_machine.iloc[train_ix]
-            X_valid_cv = X_machine.iloc[valid_ix]
-            y_valid_cv = y_machine.iloc[valid_ix]
+            X_train_cv = X_train.iloc[train_ix]
+            y_train_cv = y_train.iloc[train_ix]
+            X_valid_cv = X_train.iloc[valid_ix]
+            y_valid_cv = y_train.iloc[valid_ix]
 
             # fit model on training data and generate predictions using holdout observations
             y_pred = model.fit(X_train_cv, y_train_cv).predict(X_valid_cv)
@@ -247,7 +247,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             classification_report(
                     y_valid_cv,
                     y_pred,
-                    target_names=labels if labels is not None else np.unique(y_machine.values),
+                    target_names=labels if labels is not None else np.unique(y_train.values),
                 )
             )
 
@@ -270,7 +270,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
                 estimator=model,
                 X=X_valid_cv,
                 y_true=y_valid_cv,
-                display_labels=labels if labels is not None else np.unique(y_machine.values),
+                display_labels=labels if labels is not None else np.unique(y_train.values),
                 cmap=color_map,
                 values_format=".0f",
                 ax=ax,
@@ -347,12 +347,12 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     print("Training data evaluation")
 
     # fit model on training data
-    model.fit(X_machine.values, y_machine.values)
+    model.fit(X_train.values, y_train.values)
 
     ## training dataset
     # generate predictions using training data and calculate residuals
-    y_pred = model.predict(X_machine.values)
-    residuals = y_pred - y_machine.values
+    y_pred = model.predict(X_train.values)
+    residuals = y_pred - y_train.values
 
     # create prettierplot object
     p = PrettierPlot(plot_orientation="wide_narrow")
@@ -436,9 +436,9 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
     # generate regression_stats using training data and predictions
     results = self.regression_stats(
         model=model,
-        y_true=y_machine.values,
+        y_true=y_train.values,
         y_pred=y_pred,
-        feature_count=X_machine.shape[1],
+        feature_count=X_train.shape[1],
     )
 
     # create shell results DataFrame and append
@@ -454,8 +454,8 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         print("Training data evaluation")
 
         # generate predictions with validation data and calculate residuals
-        y_pred = model.predict(X_machine.values)
-        residuals = y_pred - y_machine.values
+        y_pred = model.predict(X_train.values)
+        residuals = y_pred - y_train.values
 
         # create prettierplot object
         p = PrettierPlot(plot_orientation="wide_narrow")
@@ -513,9 +513,9 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
         # generate regression_stats using validation data and predictions
         results = self.regression_stats(
             model=model,
-            y_true=y_machine.values,
+            y_true=y_train.values,
             y_pred=y_pred,
-            feature_count=X_machine.shape[1],
+            feature_count=X_train.shape[1],
             data_type="validation",
         )
 
@@ -540,10 +540,10 @@ def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, 
 
         # iterate through cross-validation indices
         for i, (train_ix, valid_ix) in enumerate(cv):
-            X_train_cv = X_machine.iloc[train_ix]
-            y_train_cv = y_machine.iloc[train_ix]
-            X_valid_cv = X_machine.iloc[valid_ix]
-            y_valid_cv = y_machine.iloc[valid_ix]
+            X_train_cv = X_train.iloc[train_ix]
+            y_train_cv = y_train.iloc[train_ix]
+            X_valid_cv = X_train.iloc[valid_ix]
+            y_valid_cv = y_train.iloc[valid_ix]
 
             # fit model on training data and generate predictions using holdout observations
             y_pred = model.fit(X_train_cv.values, y_train_cv.values).predict(

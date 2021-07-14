@@ -50,7 +50,7 @@ from sklearn.feature_selection import RFE
 # from sklearn.svm import SVC, SVR
 # from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.exceptions import NotFittedError
-# from sklearn.base import clone
+from sklearn.base import clone
 from sklearn.metrics import get_scorer, make_scorer
 
 # from xgboost import XGBClassifier, XGBRegressor
@@ -115,11 +115,13 @@ class FeatureSelector:
 
         #
         self.feature_selection_object_dir = os.path.join(self.experiment_dir, "feature_selection")
-        os.makedirs(self.feature_selection_object_dir)
-        
+        if not os.path.exists(self.feature_selection_object_dir):
+            os.makedirs(self.feature_selection_object_dir)
+
         #
         self.feature_selection_plots_object_dir = os.path.join(self.experiment_dir, "feature_selection", "plots")
-        os.makedirs(self.feature_selection_plots_object_dir)
+        if not os.path.exists(self.feature_selection_plots_object_dir):
+            os.makedirs(self.feature_selection_plots_object_dir)
 
     def feature_selector_suite(self, sequential_scoring=None, sequential_n_folds=0, rank=False, add_stats=False,
                                 n_jobs=1, save_to_csv=False, run_variance=True, run_importance=True, run_rfe=True,
@@ -495,7 +497,7 @@ class FeatureSelector:
 
                 # create exhaustive sequential feature selector object
                 selector = SequentialFeatureSelector(
-                            model.custom_model,
+                            model,
                             k_features=1,
                             forward=False,
                             floating=False,
@@ -586,6 +588,7 @@ class FeatureSelector:
         # iterate through all provided estimators
         for estimator in self.estimators:
 
+            
             # iterate through all provided scoring techniques
             for metric in scoring:
 
@@ -600,7 +603,8 @@ class FeatureSelector:
 
                 # create exhaustive sequential feature selector object
                 selector = SequentialFeatureSelector(
-                            model.custom_model,
+                            # model.custom_model,
+                            model,
                             k_features=self.training_features.shape[1],
                             forward=True,
                             floating=False,
@@ -911,7 +915,7 @@ class FeatureSelector:
                     model.custom_model.fit(self.training_features[top], self.training_target)
                     # validation_scorer = get_scorer(scoring)
                     validation_score = metric(model.custom_model, self.validation_features[top], self.validation_target)
-                    
+
                     # append results to estimator's summary DataFrame
                     cv.loc[row_ix] = [
                         estimator_name,
@@ -1005,7 +1009,7 @@ class FeatureSelector:
 
             # retrieve number of features dropped to form best subset
             num_dropped = cv[cv["validation score"] == cv["validation score"].max()].sort_values(["validation score"], ascending=sort_order)["features dropped"].max()
-            
+
             # retrieve score achieved by best subset
             score = np.round(
                 cv.sort_values(["validation score"], ascending=sort_order)[
@@ -1199,9 +1203,10 @@ class FeatureSelector:
             estimator = eval(estimator)
 
         # if estimator is an api object, pass through BasicModelBuilder
-        if isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
+        elif isinstance(estimator, type) or isinstance(estimator, abc.ABCMeta):
             model = BasicModelBuilder(estimator_class=estimator, n_jobs=n_jobs)
             estimator_name = model.estimator_name
+            model = model.custom_model
 
         # otherwise clone the instantiated model that was passed
         else:

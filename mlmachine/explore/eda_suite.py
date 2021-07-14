@@ -23,7 +23,7 @@ from prettierplot import style
 
 
 def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=50, color_map="viridis", legend_labels=None,
-                            chart_scale=15):
+                            chart_scale=15, save_plots=False):
     """
     Documentation:
 
@@ -48,6 +48,8 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
+            save_plots : boolean, default=False
+                Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
@@ -189,21 +191,23 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
             ).round(4)
 
             # display summary tables
-            self.df_side_by_side(
-                dfs=(uni_summ_df, bi_summ_df, prop_df, stat_test_df),
-                names=["Feature summary", "Feature vs. target summary", "Target proportion", "Statistical test",],
-            )
-            if "percent_positive" in bi_summ_df:
-                bi_summ_df = bi_summ_df.drop(["percent_positive"], axis=1)
+            if not save_plots:
+                self.df_side_by_side(
+                    dfs=(uni_summ_df, bi_summ_df, prop_df, stat_test_df),
+                    names=["Feature summary", "Feature vs. target summary", "Target proportion", "Statistical test",],
+                )
+                if "percent_positive" in bi_summ_df:
+                    bi_summ_df = bi_summ_df.drop(["percent_positive"], axis=1)
 
         else:
             # display summary tables
-            self.df_side_by_side(
-                dfs=(uni_summ_df, bi_summ_df, prop_df),
-                names=["Feature summary", "Feature vs. target summary", "Target proportion"],
-            )
-            if "percent_positive" in bi_summ_df:
-                bi_summ_df = bi_summ_df.drop(["percent_positive"], axis=1)
+            if not save_plots:
+                self.df_side_by_side(
+                    dfs=(uni_summ_df, bi_summ_df, prop_df),
+                    names=["Feature summary", "Feature vs. target summary", "Target proportion"],
+                )
+                if "percent_positive" in bi_summ_df:
+                    bi_summ_df = bi_summ_df.drop(["percent_positive"], axis=1)
 
         ### visualizations
         # set label rotation angle
@@ -222,7 +226,7 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
         p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
         # add canvas to prettierplot object
-        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=0.82)
+        ax = p.make_canvas(title=f"Category counts\n* {feature}", position=131, title_scale=0.82)
 
         # add treemap to canvas
         p.tree_map(
@@ -234,7 +238,7 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
         )
 
         # add canvas to prettierplot object
-        ax = p.make_canvas(title="Category counts by target\n* {}".format(feature), position=132)
+        ax = p.make_canvas(title=f"Category counts by target\n* {feature}", position=132)
 
         # add faceted categorical plot to canvas
         p.facet_cat(
@@ -250,7 +254,7 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
         )
 
         # add canvas to prettierplot object
-        ax = p.make_canvas(title="Target proportion by category\n* {}".format(feature), position=133)
+        ax = p.make_canvas(title=f"Target proportion by category\n* {feature}", position=133)
 
         # add stacked bar chart to canvas
         p.stacked_bar_h(
@@ -262,13 +266,20 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
             ax=ax,
         )
 
-        fig = plt.gcf()
-        plt.show()
-        fig.tight_layout()
-        return fig
+        # save plots or show
+        if save_plots:
+            plot_path = os.path.join(
+                self.eda_object_dir,
+                f"{feature}.jpg",
+            )
+            plt.tight_layout()
+            plt.savefig(plot_path)
+            plt.close()
+        else:
+            plt.show()
 
 def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridis", outliers_out_of_scope=None, legend_labels=None,
-                            chart_scale=15):
+                            chart_scale=15, save_plots=False):
     """
     Documentation:
 
@@ -299,6 +310,8 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates larger plots
                 and increases visual elements proportionally.
+            save_plots : boolean, default=False
+                Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
@@ -402,17 +415,19 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
             ).round(4)
 
         # display summary tables
-        self.df_side_by_side(
-            dfs=(describe_df, bi_summ_stats_df, stat_test_df),
-            names=["Feature summary", "Feature vs. target summary", "Statistical test"],
-        )
+        if not save_plots:
+            self.df_side_by_side(
+                dfs=(describe_df, bi_summ_stats_df, stat_test_df),
+                names=["Feature summary", "Feature vs. target summary", "Statistical test"],
+            )
     else:
 
         # display summary tables
-        self.df_side_by_side(
-            dfs=(describe_df, bi_summ_stats_df),
-            names=["Feature summary", "Feature vs. target summary"],
-        )
+        if not save_plots:
+            self.df_side_by_side(
+                dfs=(describe_df, bi_summ_stats_df),
+                names=["Feature summary", "Feature vs. target summary"],
+            )
 
     ### visualizations
     # create prettierplot object
@@ -440,7 +455,7 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Feature distribution\n* {}".format(feature),
+        title=f"Feature distribution\n* {feature}",
         title_scale=0.85,
         position=221,
     )
@@ -477,7 +492,7 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Probability plot\n* {}".format(feature),
+        title=f"Probability plot\n* {feature}",
         title_scale=0.85,
         position=222,
     )
@@ -490,7 +505,7 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Distribution by class\n* {}".format(feature),
+        title=f"Distribution by class\n* {feature}",
         title_scale=0.85,
         position=223,
     )
@@ -534,7 +549,7 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Boxplot by class\n* {}".format(feature),
+        title=f"Boxplot by class\n* {feature}",
         title_scale=0.85,
         position=224,
     )
@@ -576,12 +591,19 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
     # apply position adjustment to subplots
     plt.subplots_adjust(bottom=-0.1)
 
-    fig = plt.gcf()
-    plt.show()
-    fig.tight_layout()
-    return fig
+    # save plots or show
+    if save_plots:
+        plot_path = os.path.join(
+            self.eda_object_dir,
+            f"{feature}.jpg",
+        )
+        plt.tight_layout()
+        plt.savefig(plot_path)
+        plt.close()
+    else:
+        plt.show()
 
-def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridis", chart_scale=15):
+def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridis", chart_scale=15, save_plots=False):
     """
     Documentation:
 
@@ -601,6 +623,8 @@ def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridi
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
+            save_plots : boolean, default=False
+                Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
@@ -645,7 +669,7 @@ def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridi
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Feature distribution\n* {}".format(feature), position=131, title_scale=1.2
+        title=f"Feature distribution\n* {feature}", position=131, title_scale=1.2
     )
 
     # determine x-units precision based on magnitude of max value
@@ -680,14 +704,14 @@ def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridi
     )
 
     # add canvas to prettierplot object
-    ax = p.make_canvas(title="Probability plot\n* {}".format(feature), position=132)
+    ax = p.make_canvas(title=f"Probability plot\n* {feature}", position=132)
 
     # add QQ / probability plot to canvas
     p.prob_plot(x=bi_df[feature].values, plot=ax)
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Regression plot - feature vs. target\n* {}".format(feature),
+        title=f"Regression plot - feature vs. target\n* {feature}",
         position=133,
         title_scale=1.5
         )
@@ -704,12 +728,19 @@ def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridi
         ax=ax,
     )
 
-    fig = plt.gcf()
-    plt.show()
-    fig.tight_layout()
-    return fig
+    # save plots or show
+    if save_plots:
+        plot_path = os.path.join(
+            self.eda_object_dir,
+            f"{feature}.jpg",
+        )
+        plt.tight_layout()
+        plt.savefig(plot_path)
+        plt.close()
+    else:
+        plt.show()
 
-def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=50, color_map="viridis", chart_scale=15):
+def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=50, color_map="viridis", chart_scale=15, save_plots=False):
     """
     Documentation:
 
@@ -732,6 +763,8 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
+            save_plots : boolean, default=False
+                Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
@@ -802,17 +835,18 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
             bi_summ_piv_df[feature] = bi_summ_piv_df[feature].astype("int64")
 
         # display summary tables
-        self.df_side_by_side(
-            dfs=(uni_summ_df, bi_summ_piv_df),
-            names=["Feature summary", "Feature vs. target summary"],
-        )
+        if not save_plots:
+            self.df_side_by_side(
+                dfs=(uni_summ_df, bi_summ_piv_df),
+                names=["Feature summary", "Feature vs. target summary"],
+            )
 
         ### visualizations
         # create prettierplot object
         p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
         # add canvas to prettierplot object
-        ax = p.make_canvas(title="Category counts\n* {}".format(feature), position=131, title_scale=1.0)
+        ax = p.make_canvas(title=f"Category counts\n* {feature}", position=131, title_scale=1.0)
 
         # add treemap to canvas
         p.tree_map(
@@ -824,7 +858,7 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
         )
 
         # add canvas to prettierplot object
-        ax = p.make_canvas(title="Feature distribution\n* {}".format(feature), position=132)
+        ax = p.make_canvas(title=f"Feature distribution\n* {feature}", position=132)
 
         # error catching block for resorting labels
         try:
@@ -884,7 +918,7 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
 
         # add canvas to prettierplot object
         ax = p.make_canvas(
-            title="Boxplot by category\n* {}".format(feature), position=133
+            title=f"Boxplot by category\n* {feature}", position=133
         )
 
         ## dynamically determine precision of y-units
@@ -924,10 +958,17 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
                 if i % n != 0
             ]
 
-        fig = plt.gcf()
-        plt.show()
-        fig.tight_layout()
-        return fig
+        # save plots or show
+        if save_plots:
+            plot_path = os.path.join(
+                self.eda_object_dir,
+                f"{feature}.jpg",
+            )
+            plt.tight_layout()
+            plt.savefig(plot_path)
+            plt.close()
+        else:
+            plt.show()
 
 def df_side_by_side(self, dfs, names=[]):
     """
@@ -966,7 +1007,7 @@ def df_side_by_side(self, dfs, names=[]):
     display_html(html_str, raw=True)
 
 def eda(self, training_data=True, features=None, level_count_cap=50, color_map="viridis", legend_labels=None, chart_scale=15,
-        outliers_out_of_scope=None, callback=None):
+        outliers_out_of_scope=None, save_plots=False):
 
     """
     Documentation:
@@ -1004,6 +1045,8 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
             callback: function to call after each plot is displayed
                 This function must take 2 parameters: the current figure object and the name of the current feature.
                 Can be used to save a plot, log the artifact, etc.
+            save_plots : boolean, default=False
+                Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
@@ -1014,31 +1057,43 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
 
     #
     for feature in features:
-        fig = None
+        # fig = None
         if self.is_classification:
             if feature in data.mlm_dtypes['category']:
-                fig = self.eda_cat_target_cat_feat(feature=feature,
-                                             level_count_cap=level_count_cap,
-                                             color_map=color_map,
-                                             legend_labels=legend_labels,
-                                             chart_scale=chart_scale)
+                fig = self.eda_cat_target_cat_feat(
+                                            feature=feature,
+                                            level_count_cap=level_count_cap,
+                                            color_map=color_map,
+                                            legend_labels=legend_labels,
+                                            chart_scale=chart_scale,
+                                            save_plots=save_plots,
+                                        )
             elif feature in data.mlm_dtypes['number']:
-                fig = self.eda_cat_target_num_feat(feature=feature,
-                                             color_map=color_map,
-                                             outliers_out_of_scope=outliers_out_of_scope,
-                                             legend_labels=legend_labels,
-                                             chart_scale=chart_scale)
+                fig = self.eda_cat_target_num_feat(
+                                            feature=feature,
+                                            color_map=color_map,
+                                            outliers_out_of_scope=outliers_out_of_scope,
+                                            legend_labels=legend_labels,
+                                            chart_scale=chart_scale,
+                                            save_plots=save_plots,
+                                        )
         else:
             if feature in data.mlm_dtypes['category']:
-                fig = self.eda_num_target_cat_feat(feature=feature,
-                                             level_count_cap=level_count_cap,
-                                             color_map=color_map,
-                                             chart_scale=chart_scale)
+                fig = self.eda_num_target_cat_feat(
+                                            feature=feature,
+                                            level_count_cap=level_count_cap,
+                                            color_map=color_map,
+                                            chart_scale=chart_scale,
+                                            save_plots=save_plots,
+                                        )
             elif feature in data.mlm_dtypes['number']:
-                fig = self.eda_num_target_num_feat(feature=feature,
-                                             color_map=color_map,
-                                             outliers_out_of_scope=outliers_out_of_scope,
-                                             chart_scale=chart_scale)
+                fig = self.eda_num_target_num_feat(
+                                            feature=feature,
+                                            color_map=color_map,
+                                            outliers_out_of_scope=outliers_out_of_scope,
+                                            chart_scale=chart_scale,
+                                            save_plots=save_plots,
+                                        )
 
-        if callback is not None and fig is not None:
-            callback(fig, feature)
+        # if callback is not None and fig is not None:
+        #     callback(fig, feature)
