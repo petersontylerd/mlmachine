@@ -131,6 +131,9 @@ def objective(space, results_file, estimator_class, training_features, training_
     elif scoring == "root_mean_squared_log_error":
         scoring = "neg_mean_squared_log_error"
         score_transform = "rmsle"
+    elif scoring == 'neg_mean_absolute_error':
+        scoring = 'neg_mean_absolute_error'
+        score_transform = 'mae'
     else:
         score_transform = scoring
 
@@ -183,6 +186,15 @@ def objective(space, results_file, estimator_class, training_features, training_
         max_score = cv.max()
     # root mean squared log error
     elif scoring in ["rmsle"]:
+        cv = np.sqrt(np.abs(cv))
+        loss = np.mean(cv)
+
+        mean_score = cv.mean()
+        std_score = cv.std()
+        min_score = cv.min()
+        max_score = cv.max()
+    # Mean absolute error
+    elif score_transform in ['mae']:
         cv = np.sqrt(np.abs(cv))
         loss = np.mean(cv)
 
