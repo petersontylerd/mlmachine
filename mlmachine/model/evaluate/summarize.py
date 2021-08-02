@@ -58,6 +58,12 @@ def top_bayes_optim_models(self, bayes_optim_summary, metric, num_models=1):
 
     models = {}
 
+    if metric in ["validation_score"]:
+        sort_direction = False
+    elif metric in ["loss"]:
+        sort_direction = True
+
+
     # iterate through unique estimators in bayes_optim_summary
     for estimator in bayes_optim_summary["estimator"].unique():
 
@@ -66,7 +72,7 @@ def top_bayes_optim_models(self, bayes_optim_summary, metric, num_models=1):
         est_df = bayes_optim_summary[
             bayes_optim_summary["estimator"] == estimator
         ].sort_values(
-            [metric, "std_score", "train_time"], ascending=[True, True, True]
+            [metric, "std_score", "train_time"], ascending=[sort_direction, True, True]
         )[
             "iteration"
         ][

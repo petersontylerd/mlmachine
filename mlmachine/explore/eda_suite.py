@@ -53,7 +53,7 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
-    
+
     # if number of unique levels in feature is less than specified level_count_cap
     if (len(np.unique(data[data[feature].notnull()][feature].values)) < level_count_cap):
 
@@ -270,7 +270,7 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
         if save_plots:
             plot_path = os.path.join(
                 self.eda_object_dir,
-                f"{feature}.jpg",
+                f"{feature}.jpg".replace("/",""),
             )
             plt.tight_layout()
             plt.savefig(plot_path)
@@ -315,7 +315,7 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
-    
+
     ### data summaries
     ## bivariate roll_up table
     # combine feature column and target
@@ -595,7 +595,7 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
     if save_plots:
         plot_path = os.path.join(
             self.eda_object_dir,
-            f"{feature}.jpg",
+            f"{feature}.jpg".replace("/",""),
         )
         plt.tight_layout()
         plt.savefig(plot_path)
@@ -628,7 +628,7 @@ def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridi
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
-    
+
     ### data summaries
     ## feature summary
     # combine feature column and target
@@ -732,7 +732,7 @@ def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridi
     if save_plots:
         plot_path = os.path.join(
             self.eda_object_dir,
-            f"{feature}.jpg",
+            f"{feature}.jpg".replace("/",""),
         )
         plt.tight_layout()
         plt.savefig(plot_path)
@@ -768,7 +768,7 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
-    
+
     # if number of unique levels in feature is less than specified level_count_cap
     if (len(np.unique(data[data[feature].notnull()][feature].values)) < level_count_cap):
 
@@ -962,7 +962,7 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
         if save_plots:
             plot_path = os.path.join(
                 self.eda_object_dir,
-                f"{feature}.jpg",
+                f"{feature}.jpg".replace("/",""),
             )
             plt.tight_layout()
             plt.savefig(plot_path)
@@ -1014,8 +1014,8 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
 
         ---
         Description:
-            Produces exploratory data visualizations and statistical summaries for categorical and numerical 
-            features in a Machine object. 
+            Produces exploratory data visualizations and statistical summaries for categorical and numerical
+            features in a Machine object.
 
         ---
         Parameters:
@@ -1050,10 +1050,10 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
     """
     # dynamically choose training data objects or validation data objects
     data, target = self.training_or_validation_dataset(training_data)
-    
+
     #
     if features is None:
-        features = self.mlm_dtypes['category'] + self.mlm_dtypes['number']
+        features = data.mlm_dtypes['category'] + data.mlm_dtypes['number']
 
     #
     for feature in features:

@@ -149,7 +149,7 @@ def objective(space, results_file, estimator_class, training_features, training_
     model.custom_model.fit(training_features, training_target)
     validation_scorer = get_scorer(scoring)
     validation_score = validation_scorer(model.custom_model, validation_features, validation_target)
-    
+
     # log runtime
     run_time = timer() - start
 
@@ -375,7 +375,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, training_features, 
             raise AttributeError(
                 "input target must be either a Pandas Series or a numpy ndarray"
             )
-        
+
         ## validation data
         # conditionally handle input validation data
         if isinstance(validation_features, pd.core.frame.DataFrame):
@@ -456,7 +456,7 @@ def exec_bayes_optim_search(self, estimator_parameter_space, training_features, 
                                     os.path.join(
                                         self.training_object_dir,
                                         "bayes_optimization_summary.csv"
-                                    ), 
+                                    ),
                                     na_values="nan"
                                 )
 
@@ -509,11 +509,22 @@ class BayesOptimClassifierBuilder(ClassifierMixin):
         # capture available model arguments and set probabily and n_jobs where applicable
         estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
+        # add probably=True if estimator accept the argument
         if "probability" in estimator_args:
             self.params["probability"] = True
 
+        # specify n_jobs variable if estimator accept the argument
         if "n_jobs" in estimator_args:
             self.params["n_jobs"] = self.n_jobs
+
+        # # specify random_state variable if estimator accept the argument
+        # if "random_state" in estimator_args:
+        #     self.params["random_state"] = self.random_state
+
+        # special handling for XGBoost estimators (suppresses warning messages)
+        if "XGB" in self.estimator_name:
+            self.params["verbosity"] = 0
+            self.params["use_label_encoder"] = False
 
         # instantiate model
         self.custom_model = self.estimator_class(**self.params)
@@ -582,11 +593,22 @@ class BayesOptimRegressorBuilder(RegressorMixin):
         # capture available model arguments and set probabily and n_jobs where applicable
         estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
+        # add probably=True if estimator accept the argument
         if "probability" in estimator_args:
             self.params["probability"] = True
 
+        # specify n_jobs variable if estimator accept the argument
         if "n_jobs" in estimator_args:
             self.params["n_jobs"] = self.n_jobs
+
+        # specify random_state variable if estimator accept the argument
+        if "random_state" in estimator_args:
+            self.params["random_state"] = self.random_state
+
+        # special handling for XGBoost estimators (suppresses warning messages)
+        if "XGB" in self.estimator_name:
+            self.params["verbosity"] = 0
+            self.params["use_label_encoder"] = False
 
         # instantiate model
         self.custom_model = self.estimator_class(**self.params)
@@ -657,11 +679,22 @@ class BayesOptimModelBuilder(BaseEstimator):
         # capture available model arguments and set probabily and n_jobs where applicable
         estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
+        # add probably=True if estimator accept the argument
         if "probability" in estimator_args:
             self.params["probability"] = True
 
+        # specify n_jobs variable if estimator accept the argument
         if "n_jobs" in estimator_args:
             self.params["n_jobs"] = self.n_jobs
+
+        # specify random_state variable if estimator accept the argument
+        if "random_state" in estimator_args:
+            self.params["random_state"] = self.random_state
+
+        # special handling for XGBoost estimators (suppresses warning messages)
+        if "XGB" in self.estimator_name:
+            self.params["verbosity"] = 0
+            self.params["use_label_encoder"] = False
 
         # instantiate model
         self.custom_model = self.estimator_class(**self.params)
@@ -722,14 +755,22 @@ class BasicRegressorBuilder(RegressorMixin):
         # capture available model arguments and set probabily and n_jobs where applicable
         estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
+        # add probably=True if estimator accept the argument
         if "probability" in estimator_args:
             self.params["probability"] = True
 
+        # specify n_jobs variable if estimator accept the argument
         if "n_jobs" in estimator_args:
             self.params["n_jobs"] = self.n_jobs
 
+        # specify random_state variable if estimator accept the argument
         if "random_state" in estimator_args:
             self.params["random_state"] = self.random_state
+
+        # special handling for XGBoost estimators (suppresses warning messages)
+        if "XGB" in self.estimator_name:
+            self.params["verbosity"] = 0
+            self.params["use_label_encoder"] = False
 
         # instantiate model
         self.custom_model = self.estimator_class(**self.params)
@@ -791,14 +832,22 @@ class BasicClassifierBuilder(ClassifierMixin):
         # capture available model arguments and set probabily and n_jobs where applicable
         estimator_args = inspect.signature(self.estimator_class.__init__).parameters.keys()
 
+        # add probably=True if estimator accept the argument
         if "probability" in estimator_args:
             self.params["probability"] = True
 
+        # specify n_jobs variable if estimator accept the argument
         if "n_jobs" in estimator_args:
             self.params["n_jobs"] = self.n_jobs
 
+        # specify random_state variable if estimator accept the argument
         if "random_state" in estimator_args:
             self.params["random_state"] = self.random_state
+
+        # special handling for XGBoost estimators (suppresses warning messages)
+        if "XGB" in self.estimator_name:
+            self.params["verbosity"] = 0
+            self.params["use_label_encoder"] = False
 
         # instantiate model
         self.custom_model = self.estimator_class(**self.params)
@@ -872,10 +921,11 @@ class BasicModelBuilder(BaseEstimator):
         # specify random_state variable if estimator accept the argument
         if "random_state" in estimator_args:
             self.params["random_state"] = self.random_state
-        
+
         # special handling for XGBoost estimators (suppresses warning messages)
         if "XGB" in self.estimator_name:
             self.params["verbosity"] = 0
+            self.params["use_label_encoder"] = False
 
         # instantiate model
         self.custom_model = self.estimator_class(**self.params)
@@ -1018,7 +1068,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
         dot_size=10.0,
         ax=ax,
     )
-    
+
     # save plots or show
     if save_plots:
         plot_path = os.path.join(
@@ -1305,7 +1355,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 alpha=0.6,
                 ax=ax
             )
-            
+
             # save plots or show
             if save_plots:
                 plot_path = os.path.join(

@@ -12,53 +12,14 @@ from sklearn.feature_selection import (
     f_classif,
     f_regression,
     VarianceThreshold,
-    # SelectFromModel,
-    # SelectKBest,
 )
-from sklearn.model_selection import (
-#     KFold,
-#     train_test_split,
-#     GridSearchCV,
-#     StratifiedKFold,
-#     cross_val_score,
-#     RandomizedSearchCV,
-    cross_validate,
-)
-# from sklearn.ensemble import (
-#     RandomForestClassifier,
-#     GradientBoostingClassifier,
-#     AdaBoostClassifier,
-#     ExtraTreesClassifier,
-#     IsolationForest,
-#     RandomForestRegressor,
-#     GradientBoostingRegressor,
-#     ExtraTreesRegressor,
-#     AdaBoostRegressor,
-# )
-# from sklearn.linear_model import (
-#     Lasso,
-#     Ridge,
-#     ElasticNet,
-#     LinearRegression,
-#     LogisticRegression,
-#     SGDRegressor,
-# )
+from sklearn.model_selection import cross_validate
 from sklearn.feature_selection import RFE
-# from sklearn.kernel_ridge import KernelRidge
-# from sklearn.naive_bayes import MultinomialNB
-# from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-# from sklearn.svm import SVC, SVR
-# from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 from sklearn.exceptions import NotFittedError
 from sklearn.base import clone
 from sklearn.metrics import get_scorer, make_scorer
 
-# from xgboost import XGBClassifier, XGBRegressor
-# from lightgbm import LGBMClassifier, LGBMRegressor
-# import catboost
-
 from prettierplot.plotter import PrettierPlot
-# from prettierplot import style
 
 from mlxtend.feature_selection import SequentialFeatureSelector
 
@@ -125,7 +86,7 @@ class FeatureSelector:
 
     def feature_selector_suite(self, sequential_scoring=None, sequential_n_folds=0, rank=False, add_stats=False,
                                 n_jobs=1, save_to_csv=False, run_variance=True, run_importance=True, run_rfe=True,
-                                run_corr=True, run_f_score=True, run_sfs=True, run_sbs=True):
+                                run_corr=True, run_f_score=True, run_sfs=True, run_sbs=True, verbose=False):
         """
         Documentation:
 
@@ -173,26 +134,30 @@ class FeatureSelector:
                 run_sbs : bool, default=True
                     Conditional controlling whether or not the sequential backward feature selection method
                     is executed.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
         # run each feature importance method, if method's parameter is not set to False
-        self.results_variance = self.variance(rank=rank) if run_variance else None
-        self.results_importance = self.importance(rank=rank, n_jobs=n_jobs) if run_importance else None
-        self.results_rfe = self.rfe(n_jobs=n_jobs) if run_rfe else None
+        self.results_variance = self.variance(rank=rank, verbose=verbose) if run_variance else None
+        self.results_importance = self.importance(rank=rank, n_jobs=n_jobs, verbose=verbose) if run_importance else None
+        self.results_rfe = self.rfe(n_jobs=n_jobs, verbose=verbose) if run_rfe else None
         self.results_forward = self.forward_sequential(
                                                             n_jobs=n_jobs,
                                                             scoring=sequential_scoring,
                                                             n_folds=sequential_n_folds,
+                                                            verbose=verbose,
                                                         ) if run_sfs else None
         self.results_backward = self.backward_sequential(
                                                             n_jobs=n_jobs,
                                                             scoring=sequential_scoring,
                                                             n_folds=sequential_n_folds,
+                                                            verbose=verbose,
                                                         ) if run_sbs else None
-        self.results_corr = self.corr(rank=rank) if run_corr else None
+        self.results_corr = self.corr(rank=rank, verbose=verbose) if run_corr else None
         if self.classification:
-            self.results_f_score = self.f_score_class(rank=rank) if run_f_score else None
+            self.results_f_score = self.f_score_class(rank=rank, verbose=verbose) if run_f_score else None
         else:
-            self.results_f_score = self.f_score_reg(rank=rank) if run_f_score else None
+            self.results_f_score = self.f_score_reg(rank=rank, verbose=verbose) if run_f_score else None
 
         # collect resulting DataFrames in a list
         results = [
@@ -224,7 +189,7 @@ class FeatureSelector:
                 columns=self.feature_selector_summary.columns,
             )
 
-    def f_score_class(self, rank=False):
+    def f_score_class(self, rank=False, verbose=False):
         """
         Documentation:
 
@@ -238,7 +203,13 @@ class FeatureSelector:
                 rank : bool, default=False
                     Conditional controlling whether to overwrite feature importance
                     values with feature importance rank.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
+        # print status if verbose=True
+        if verbose:
+            print("*** F-score ***")
+
         # calculate f-values and p-values
         univariate = f_classif(self.training_features, self.training_target)
 
@@ -256,7 +227,7 @@ class FeatureSelector:
 
         return self.results_f_score
 
-    def f_score_reg(self, rank=False):
+    def f_score_reg(self, rank=False, verbose=False):
         """
         Documentation:
 
@@ -270,7 +241,13 @@ class FeatureSelector:
                 rank : bool, default=False
                     Conditional controlling whether to overwrite feature importance values
                     with feature importance rank.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
+        # print status if verbose=True
+        if verbose:
+            print("*** F-score ***")
+
         # calculate f-values and p-values
         univariate = f_regression(self.training_features, self.training_target)
 
@@ -288,7 +265,7 @@ class FeatureSelector:
 
         return self.results_f_score
 
-    def variance(self, rank=False):
+    def variance(self, rank=False, verbose=False):
         """
         Documentation:
 
@@ -301,7 +278,13 @@ class FeatureSelector:
                 rank : bool, default=False
                     Conditional controlling whether to overwrite feature importance values
                     with feature importance rank.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
+        # print status if verbose=True
+        if verbose:
+            print("*** Variance ***")
+
         # calculate variance
         var_importance = VarianceThreshold()
         var_importance.fit(self.training_features)
@@ -319,7 +302,7 @@ class FeatureSelector:
 
         return self.results_variance
 
-    def importance(self, rank=False, add_stats=False, n_jobs=1):
+    def importance(self, rank=False, add_stats=False, n_jobs=1, verbose=False):
         """
         Documentation:
 
@@ -340,8 +323,14 @@ class FeatureSelector:
                 n_jobs : int, default=1
                     Number of workers to deploy upon execution, if applicable. If estimator does not
                     have an n_jobs parameter, this is ignored.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
         feature_dict = {}
+
+        # print status if verbose=True
+        if verbose:
+            print("*** Feature Importance ***")
 
         # iterate through all provided estimators
         for estimator in self.estimators:
@@ -364,6 +353,10 @@ class FeatureSelector:
                 # otherwise, continue
                 continue
 
+            # print status if verbose=True
+            if verbose:
+                print(f"{estimator_name} completed")
+
         # store data in DataFrame, using column names for the index
         self.results_importance = pd.DataFrame(feature_dict, index=self.training_features.columns)
 
@@ -377,7 +370,7 @@ class FeatureSelector:
 
         return self.results_importance
 
-    def rfe(self, add_stats=False, n_jobs=1):
+    def rfe(self, add_stats=False, n_jobs=1, verbose=False):
         """
         Documentation:
 
@@ -396,9 +389,15 @@ class FeatureSelector:
                 n_jobs : int, default=1
                     Number of workers to deploy upon execution, if applicable. If estimator does not
                     have an n_jobs parameter, this is ignored.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
         #
         feature_dict = {}
+
+        # print status if verbose=True
+        if verbose:
+            print("*** Recursive Feature Elimination ***")
 
         # iterate through all provided estimators
         for estimator in self.estimators:
@@ -424,6 +423,10 @@ class FeatureSelector:
             except (RuntimeError, KeyError, ValueError):
                 continue
 
+            # print status if verbose=True
+            if verbose:
+                print(f"{estimator_name} completed")
+
         # store data in DataFrame, using column names for the index
         self.results_rfe = pd.DataFrame(feature_dict, index=self.training_features.columns)
 
@@ -433,7 +436,7 @@ class FeatureSelector:
 
         return self.results_rfe
 
-    def backward_sequential(self, scoring, n_folds=0, add_stats=False, n_jobs=1):
+    def backward_sequential(self, scoring, n_folds=0, add_stats=False, n_jobs=1, verbose=False):
 
         """
         Documentation:
@@ -459,6 +462,8 @@ class FeatureSelector:
                 n_jobs : int, default=1
                     Number of workers to deploy upon execution, if applicable. If estimator does not
                     have an n_jobs parameter, this is ignored.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
         # if scorers are specified using a list
         if isinstance(scoring, list):
@@ -479,6 +484,10 @@ class FeatureSelector:
 
         # iterate through estimators and scoring metrics
         results = []
+
+        # print status if verbose=True
+        if verbose:
+            print("*** Sequential Feature Elimination - Backward ***")
 
         # iterate through all provided estimators
         for estimator in self.estimators:
@@ -534,11 +543,15 @@ class FeatureSelector:
                 # append estimator summary to list of all results
                 results.append(feature_selector_estimator_summary)
 
+            # print status if verbose=True
+            if verbose:
+                print(f"{estimator_name} completed")
+
         # concatenate all results into single feature selector summary
         self.results_backward = pd.concat(results, join="inner", axis=1)
         return self.results_backward
 
-    def forward_sequential(self, scoring, n_folds=0, add_stats=False, n_jobs=1):
+    def forward_sequential(self, scoring, n_folds=0, add_stats=False, n_jobs=1, verbose=False):
 
         """
         Documentation:
@@ -564,6 +577,8 @@ class FeatureSelector:
                 n_jobs : int, default=1
                     Number of workers to deploy upon execution, if applicable. If estimator does not
                     have an n_jobs parameter, this is ignored.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
         # if scorers are specified using a list
         if isinstance(scoring, list):
@@ -585,10 +600,14 @@ class FeatureSelector:
         # iterate through estimators and scoring metrics
         results = []
 
+        # print status if verbose=True
+        if verbose:
+            print("*** Sequential Feature Elimination - Forward ***")
+
         # iterate through all provided estimators
         for estimator in self.estimators:
 
-            
+
             # iterate through all provided scoring techniques
             for metric in scoring:
 
@@ -641,11 +660,15 @@ class FeatureSelector:
                 # append estimator summary to list of all results
                 results.append(feature_selector_estimator_summary)
 
+            # print status if verbose=True
+            if verbose:
+                print(f"{estimator_name} completed")
+
         # concatenate all results into single feature selector summary
         self.results_forward = pd.concat(results, join="inner", axis=1)
         return self.results_forward
 
-    def corr(self, rank=False):
+    def corr(self, rank=False, verbose=False):
         """
         Documentation:
 
@@ -659,7 +682,13 @@ class FeatureSelector:
                 rank : bool, default=False
                     Conditional controlling whether to overwrite feature importance values with
                     feature importance rank.
+                verbose : bool, default=False
+                    Conditional controlling whether status information gets printed.
         """
+        # print status if verbose=True
+        if verbose:
+            print("*** Correlation ***")
+
         # calculate absolute correlation coefficients relative to target and store in DataFrame
         self.results_corr = self.training_features.merge(self.training_target, left_index=True, right_index=True)
         self.results_corr = pd.DataFrame(self.results_corr.corr().abs()[self.training_target.name])
@@ -889,7 +918,8 @@ class FeatureSelector:
 
                     # execute cross-validation procedure with current feature subset
                     scores = cross_validate(
-                        estimator=model.custom_model if hasattr(model, "custom_model") else model,
+                        estimator=model,
+                        # estimator=model.custom_model if hasattr(model, "custom_model") else model,
                         X=self.training_features[top],
                         y=self.training_target,
                         cv=n_folds,
@@ -912,9 +942,9 @@ class FeatureSelector:
                         metric_name = metric._score_func.__name__
 
                     # validation score
-                    model.custom_model.fit(self.training_features[top], self.training_target)
+                    model.fit(self.training_features[top], self.training_target)
                     # validation_scorer = get_scorer(scoring)
-                    validation_score = metric(model.custom_model, self.validation_features[top], self.validation_target)
+                    validation_score = metric(model, self.validation_features[top], self.validation_target)
 
                     # append results to estimator's summary DataFrame
                     cv.loc[row_ix] = [

@@ -877,7 +877,7 @@ class DualTransformer(TransformerMixin, BaseEstimator):
                     X[col + "_BoxCox"] = 0.
         return X
 
-def skew_summary(self, columns, training_data=True):
+def skew_summary(self, columns=None, training_data=True):
     """
     Documentation:
 
@@ -892,11 +892,15 @@ def skew_summary(self, columns, training_data=True):
                 List containing string names of columns. If left as none, the value associated
                 with self.data.mlm_dtypes["continuous"] will be used as the column list.
             training_data : boolean, dafault=True
-                Controls which dataset (training or validation) is used for visualization.            
+                Controls which dataset (training or validation) is used for visualization.
     """
     # dynamically choose training data objects or validation data objects
     data, _ = self.training_or_validation_dataset(training_data)
-    
+
+    # specify columns to evaluate
+    if columns is None:
+        columns = data.mlm_dtypes["continuous"]
+
     # calculate skew for each column, dropping nulls and sorting on skew descending
     skewness = (
         data[columns]
@@ -939,7 +943,7 @@ def missing_summary(self, training_data=True):
     """
     # dynamically choose training data objects or validation data objects
     data, _ = self.training_or_validation_dataset(training_data)
-    
+
     # calculate missing data statistics
     total_missing = data.isnull().sum()
     percent_missing = data.isnull().sum() / len(data) * 100
@@ -973,7 +977,7 @@ def unique_category_levels(self, training_data=True):
     """
     # dynamically choose training data objects or validation data objects
     data, _ = self.training_or_validation_dataset(training_data)
-    
+
     # print unique values in each category columns
     for column in data.mlm_dtypes["category"]:
         print(column, "\t", np.unique(data[column]))
