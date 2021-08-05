@@ -31,8 +31,8 @@ def eda_missing_summary(self, training_data=True, color=style.style_grey, displa
                 larger plots and increases visual elements proportionally.
     """
     # dynamically choose training data objects or validation data objects
-    data, _ = self.training_or_validation_dataset(training_data)
-    
+    data, _, mlm_dtypes = self.training_or_validation_dataset(training_data)
+
     # return missingness summary
     percent_missing = self.missing_summary(training_data)
 
@@ -91,8 +91,8 @@ def eda_skew_summary(self, training_data=True, color=style.style_grey, display_d
                 larger plots and increases visual elements proportionally.
     """
     # dynamically choose training data objects or validation data objects
-    data, _ = self.training_or_validation_dataset(training_data)
-    
+    data, _, mlm_dtypes = self.training_or_validation_dataset(training_data)
+
     # return skewness summary
     skew_summary = self.skew_summary(data)
 

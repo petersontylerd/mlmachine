@@ -532,6 +532,66 @@ class PandasFeatureUnion(FeatureUnion):
             than a two dimensional array.
     """
 
+    # def fit_transform(self, X, y=None, **fit_params):
+    def fit(self, X, y=None, **fit_params):
+
+        # preserve mlm_dtypes if it exists
+        try:
+            self.meta_mlm_dtypes = X.mlm_dtypes
+            self.no_meta_mlm_dtypes = False
+        except AttributeError:
+            self.no_meta_mlm_dtypes = True
+            pass
+
+        self._validate_transformers()
+        result = Parallel(n_jobs=self.n_jobs)(
+            delayed(_fit_transform_one)(
+                transformer=trans,
+                X=X,
+                y=y,
+                weight=weight,
+                **fit_params)
+            for name, trans, weight in self._iter())
+
+        if not result:
+            # All transformers are None
+            return np.zeros((X.shape[0], 0))
+        Xs, transformers = zip(*result)
+        self._update_transformer_list(transformers)
+        if any(sparse.issparse(f) for f in Xs):
+            Xs = sparse.hstack(Xs).tocsr()
+        else:
+            Xs = self.merge_dataframes_by_column(Xs)
+
+        if not self.no_meta_mlm_dtypes:
+            Xs = Xs.loc[:, ~Xs.columns.duplicated()]
+            Xs = PreserveMetaData(Xs)
+            Xs.mlm_dtypes = self.meta_mlm_dtypes
+
+            # reset dtype for any columns that were turned into object columns
+            for mlm_dtype in Xs.mlm_dtypes.keys():
+                for column in Xs.mlm_dtypes[mlm_dtype]:
+                    try:
+                        if is_object_dtype(Xs[column]):
+                            if mlm_dtype == "boolean":
+                                Xs[column] = Xs[column].astype("boolean")
+                            elif mlm_dtype == "continuous":
+                                Xs[column] = Xs[column].astype("float64")
+                            elif mlm_dtype == "category":
+                                Xs[column] = Xs[column].astype("category")
+                            elif mlm_dtype == "count":
+                                Xs[column] = Xs[column].astype("int64")
+                            elif mlm_dtype == "date":
+                                Xs[column] = Xs[column].astype("datetime64[ns]")
+                            elif mlm_dtype == "nominal":
+                                Xs[column] = Xs[column].astype("category")
+                            elif mlm_dtype == "ordinal":
+                                Xs[column] = Xs[column].astype("category")
+                    except KeyError:
+                        continue
+
+        return Xs
+
     def fit_transform(self, X, y=None, **fit_params):
 
         # preserve mlm_dtypes if it exists
@@ -699,6 +759,7 @@ class KFoldEncoder(BaseEstimator, TransformerMixin):
 
             # add empty columns to input dataset and set as number
             for column in self.columns:
+
                 X[column + self.column_suffix] = np.nan
                 X[column + self.column_suffix] = pd.to_numeric(X[column + self.column_suffix])
 
@@ -895,11 +956,11 @@ def skew_summary(self, columns=None, training_data=True):
                 Controls which dataset (training or validation) is used for visualization.
     """
     # dynamically choose training data objects or validation data objects
-    data, _ = self.training_or_validation_dataset(training_data)
+    data, _, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     # specify columns to evaluate
     if columns is None:
-        columns = data.mlm_dtypes["continuous"]
+        columns = mlm_dtypes["continuous"]
 
     # calculate skew for each column, dropping nulls and sorting on skew descending
     skewness = (
@@ -942,7 +1003,7 @@ def missing_summary(self, training_data=True):
                 Controls which dataset (training or validation) is used for visualization.
     """
     # dynamically choose training data objects or validation data objects
-    data, _ = self.training_or_validation_dataset(training_data)
+    data, _, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     # calculate missing data statistics
     total_missing = data.isnull().sum()
@@ -976,10 +1037,10 @@ def unique_category_levels(self, training_data=True):
                 Controls which dataset (training or validation) is used for visualization.
     """
     # dynamically choose training data objects or validation data objects
-    data, _ = self.training_or_validation_dataset(training_data)
+    data, _, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     # print unique values in each category columns
-    for column in data.mlm_dtypes["category"]:
+    for column in mlm_dtypes["category"]:
         print(column, "\t", np.unique(data[column]))
 
 def compare_train_valid_levels(self):

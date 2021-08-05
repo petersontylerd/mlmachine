@@ -52,7 +52,7 @@ def eda_cat_target_cat_feat(self, feature, training_data=True, level_count_cap=5
                 Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
-    data, target = self.training_or_validation_dataset(training_data)
+    data, target, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     # if number of unique levels in feature is less than specified level_count_cap
     if (len(np.unique(data[data[feature].notnull()][feature].values)) < level_count_cap):
@@ -314,7 +314,7 @@ def eda_cat_target_num_feat(self, feature, training_data=True, color_map="viridi
                 Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
-    data, target = self.training_or_validation_dataset(training_data)
+    data, target, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     ### data summaries
     ## bivariate roll_up table
@@ -627,7 +627,7 @@ def eda_num_target_num_feat(self, feature, training_data=True, color_map="viridi
                 Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
-    data, target = self.training_or_validation_dataset(training_data)
+    data, target, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     ### data summaries
     ## feature summary
@@ -767,7 +767,7 @@ def eda_num_target_cat_feat(self, feature, training_data=True, level_count_cap=5
                 Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
-    data, target = self.training_or_validation_dataset(training_data)
+    data, target, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     # if number of unique levels in feature is less than specified level_count_cap
     if (len(np.unique(data[data[feature].notnull()][feature].values)) < level_count_cap):
@@ -1049,17 +1049,17 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
                 Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # dynamically choose training data objects or validation data objects
-    data, target = self.training_or_validation_dataset(training_data)
+    data, target, mlm_dtypes = self.training_or_validation_dataset(training_data)
 
     #
     if features is None:
-        features = data.mlm_dtypes['category'] + data.mlm_dtypes['number']
+        features = mlm_dtypes['category'] + mlm_dtypes['number']
 
     #
     for feature in features:
         # fig = None
         if self.is_classification:
-            if feature in data.mlm_dtypes['category']:
+            if feature in mlm_dtypes['category']:
                 fig = self.eda_cat_target_cat_feat(
                                             feature=feature,
                                             level_count_cap=level_count_cap,
@@ -1068,7 +1068,7 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
                                             chart_scale=chart_scale,
                                             save_plots=save_plots,
                                         )
-            elif feature in data.mlm_dtypes['number']:
+            elif feature in mlm_dtypes['number']:
                 fig = self.eda_cat_target_num_feat(
                                             feature=feature,
                                             color_map=color_map,
@@ -1078,7 +1078,7 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
                                             save_plots=save_plots,
                                         )
         else:
-            if feature in data.mlm_dtypes['category']:
+            if feature in mlm_dtypes['category']:
                 fig = self.eda_num_target_cat_feat(
                                             feature=feature,
                                             level_count_cap=level_count_cap,
@@ -1086,7 +1086,7 @@ def eda(self, training_data=True, features=None, level_count_cap=50, color_map="
                                             chart_scale=chart_scale,
                                             save_plots=save_plots,
                                         )
-            elif feature in data.mlm_dtypes['number']:
+            elif feature in mlm_dtypes['number']:
                 fig = self.eda_num_target_num_feat(
                                             feature=feature,
                                             color_map=color_map,

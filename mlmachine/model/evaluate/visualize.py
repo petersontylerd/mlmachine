@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+import os
+
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import (
@@ -39,7 +41,7 @@ from prettierplot import style
 
 
 def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, labels=None,
-                        n_folds=None, title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15):
+                                title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15, save_objects=False):
     """
     Documentation:
 
@@ -63,9 +65,6 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             labels : list, default=None
                 Custom labels for confusion matrix axes. If left as none,
                 will default to 0, 1, 2...
-            n_folds : int, default=None
-                Number of cross-validation folds to use. If validation data is provided through
-                X_valid/y_valid, n_folds is ignored.
             color_map : str specifying built-in matplotlib colormap, default="viridis"
                 Color map applied to plots.
             title_scale : float, default=1.0
@@ -76,36 +75,49 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             chart_scale : int or float, default=15
                 Controls size and proportions of chart and chart elements. Higher value creates
                 larger plots and increases visual elements proportionally.
+            save_objects : boolean, default=False
+                Controls whether visualizations and summary table are saved to the experiment directory.
     """
-    print("*" * 55)
-    print("* Estimator: {}".format(model.estimator_name))
-    print("* Parameter set: {}".format(model.model_iter))
-    print("*" * 55)
+    if not save_objects:
+        print("*" * 55)
+        print(f"* Estimator: {model.estimator_name}")
+        print(f"* Parameter set: {model.model_iter}")
+        print("*" * 55)
 
-    print("\n" + "*" * 55)
-    print("Training data evaluation\n")
+        print("\n" + "*" * 55)
+        print("Training data evaluation\n")
 
     ## training panel
     # fit model on training data and generate predictions using training data
     y_pred = model.fit(X_train, y_train).predict(X_train)
 
-    # print and generate classification_report using training data
-    print(
-            classification_report(
+    # generate classification_report using training data
+    report = classification_report(
                 y_train,
                 y_pred,
                 target_names=labels if labels is not None else np.unique(y_train.values),
+                output_dict=True,
             )
+
+    df = pd.DataFrame(report).transpose()
+
+    # save or display classification report
+    if save_objects:
+        csv_path = os.path.join(
+            self.evaluation_summaries_object_dir,
+            f"{model.estimator_name}_train_classification_report.csv"
         )
+        df.to_csv(csv_path, index=False)
+
+    else:
+        display(df)
 
     # create prettierplot object
     p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="Confusion matrix - training data\nModel: {}\nParameter set: {}".format(
-            model.estimator_name, model.model_iter
-        ),
+        title=f"Confusion matrix - training data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
         y_shift=0.4,
         x_shift=0.25,
         position=121,
@@ -125,10 +137,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
 
     # add canvas to prettierplot object
     ax = p.make_canvas(
-        title="ROC curve - training data\nModel: {}\nParameter set: {}".format(
-            model.estimator_name,
-            model.model_iter,
-        ),
+        title=f"ROC curve - training data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
         x_label="False positive rate",
         y_label="True positive rate",
         y_shift=0.35,
@@ -144,33 +153,56 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         ax=ax,
     )
     plt.subplots_adjust(wspace=0.3)
-    plt.show()
+
+    # save plots or show
+    if save_objects:
+        plot_path = os.path.join(
+            self.evaluation_plots_object_dir,
+            f"{model.estimator_name}_train_visualization.jpg"
+        )
+        plt.tight_layout()
+        plt.savefig(plot_path)
+        plt.close()
+    else:
+        plt.show()
 
     # if validation data is provided
     if X_valid is not None:
-        print("\n" + "*" * 55)
-        print("Validation data evaluation\n")
+
+        if not save_objects:
+            print("\n" + "*" * 55)
+            print("Validation data evaluation\n")
 
         # fit model on training data and generate predictions using validation data
         y_pred = model.fit(X_train, y_train).predict(X_valid)
 
-        # print and generate classification_report using training data
-        print(
-            classification_report(
-                y_valid,
-                y_pred,
-                target_names=labels if labels is not None else np.unique(y_train.values),
+        # generate classification_report using training data
+        report = classification_report(
+                    y_valid,
+                    y_pred,
+                    target_names=labels if labels is not None else np.unique(y_train.values),
+                    output_dict=True,
+                )
+
+        df = pd.DataFrame(report).transpose()
+
+        # save or display classification report
+        if save_objects:
+            csv_path = os.path.join(
+                self.evaluation_summaries_object_dir,
+                f"{model.estimator_name}_validation_classification_report.csv"
             )
-        )
+            df.to_csv(csv_path, index=False)
+
+        else:
+            display(df)
 
         # create prettierplot object
         p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
         # add canvas to prettierplot object
         ax = p.make_canvas(
-            title="Confusion matrix - validation data\nModel: {}\nParameter set: {}".format(
-                model.estimator_name, model.model_iter
-            ),
+            title=f"Confusion matrix - validation data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
             y_shift=0.4,
             x_shift=0.25,
             position=121,
@@ -190,10 +222,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
 
         # add canvas to prettierplot object
         ax = p.make_canvas(
-            title="ROC curve - validation data\nModel: {}\nParameter set: {}".format(
-                model.estimator_name,
-                model.model_iter,
-            ),
+            title=f"ROC curve - validation data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
             x_label="False positive rate",
             y_label="True positive rate",
             y_shift=0.35,
@@ -212,95 +241,17 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
             ax=ax,
         )
         plt.subplots_adjust(wspace=0.3)
-        plt.show()
 
-    # if n_folds are provided, indicating cross-validation
-    elif isinstance(n_folds, int):
-        print("\n" + "*" * 55)
-        print("Cross validation evaluation\n")
-
-        # generate cross-validation indices
-        cv = list(
-            StratifiedKFold(
-                n_splits=n_folds, shuffle=True, random_state=random_state
-            ).split(X_train, y_train)
-        )
-
-        # generate colors
-        color_list = style.color_gen(color_map, num=len(cv))
-
-        # iterate through cross-validation indices
-        for i, (train_ix, valid_ix) in enumerate(cv):
-            print("\n" + "*" * 55)
-            print("CV Fold {}\n".format(i + 1))
-
-            X_train_cv = X_train.iloc[train_ix]
-            y_train_cv = y_train.iloc[train_ix]
-            X_valid_cv = X_train.iloc[valid_ix]
-            y_valid_cv = y_train.iloc[valid_ix]
-
-            # fit model on training data and generate predictions using holdout observations
-            y_pred = model.fit(X_train_cv, y_train_cv).predict(X_valid_cv)
-
-            # print and generate classification_report using holdout observations
-            print(
-            classification_report(
-                    y_valid_cv,
-                    y_pred,
-                    target_names=labels if labels is not None else np.unique(y_train.values),
-                )
+        # save plots or show
+        if save_objects:
+            plot_path = os.path.join(
+                self.evaluation_plots_object_dir,
+                f"{model.estimator_name}_validation_visualization.jpg"
             )
-
-            # create prettierplot object
-            p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
-
-            # add canvas to prettierplot object
-            ax = p.make_canvas(
-                title="Confusion matrix - CV Fold {}\nModel: {}\nParameter set: {}".format(
-                    i + 1, model.estimator_name, model.model_iter
-                ),
-                y_shift=0.4,
-                x_shift=0.25,
-                position=121,
-                title_scale=title_scale,
-            )
-
-            # add confusion matrix to canvas
-            plot_confusion_matrix(
-                estimator=model,
-                X=X_valid_cv,
-                y_true=y_valid_cv,
-                display_labels=labels if labels is not None else np.unique(y_train.values),
-                cmap=color_map,
-                values_format=".0f",
-                ax=ax,
-            )
-
-            # add canvas to prettierplot object
-            ax = p.make_canvas(
-                title="ROC curve - CV Fold {}\nModel: {}\nParameter set: {}".format(
-                    i + 1,
-                    model.estimator_name,
-                    model.model_iter,
-                ),
-                x_label="False positive rate",
-                y_label="True positive rate",
-                y_shift=0.35,
-                position=122,
-                title_scale=title_scale,
-            )
-
-            # add ROC curve to canvas
-            p.roc_curve_plot(
-                model=model,
-                X_train=X_train_cv,
-                y_train=y_train_cv,
-                X_valid=X_valid_cv,
-                y_valid=y_valid_cv,
-                linecolor=style.style_grey,
-                ax=ax,
-            )
-            plt.subplots_adjust(wspace=0.3)
+            plt.tight_layout()
+            plt.savefig(plot_path)
+            plt.close()
+        else:
             plt.show()
 
 def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=None, title_scale=1.0,

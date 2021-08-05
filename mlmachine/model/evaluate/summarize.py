@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+import os
+
 from sklearn.metrics import (
     precision_score,
     recall_score,
@@ -81,7 +83,7 @@ def top_bayes_optim_models(self, bayes_optim_summary, metric, num_models=1):
         models[estimator] = est_df.values.tolist()
     return models
 
-def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None):
+def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None, save_table=False):
     """
     Documentation:
 
@@ -102,6 +104,8 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
                 Validation data observations.
             y_valid : Pandas Series, default=None
                 Validation target data.
+            save_table : boolean, default=False
+                Controls whether DataFrame is saved to the experiment directory.
 
         ---
         Returns:
@@ -153,7 +157,15 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
 
     # sort to bring largest errors to the top
     df = df.sort_values(["Incorrect","Difference"], ascending=[False,False])
-    return df
+
+    if save_table:
+        plot_path = os.path.join(
+                self.evaluation_object_dir,
+                f"{model.estimator_name}_prediction_summary.csv",
+            )
+        df.to_csv(plot_path, index=False)
+    else:
+        return df
 
 def regression_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None):
     """

@@ -1072,7 +1072,7 @@ def model_loss_plot(self, bayes_optim_summary, estimator_class, chart_scale=15, 
     # save plots or show
     if save_plots:
         plot_path = os.path.join(
-            self.training_plots_object_dir,
+            self.training_plots_model_loss_dir,
             f"{estimator_class}.jpg",
         )
         plt.tight_layout()
@@ -1118,7 +1118,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             show_single_str_params : boolean, default=False
                 Controls whether to display visuals for string attributes where there is only one unique value,
                 i.e. there was only one choice for the optimization procedure to choose from during each iteration.
-            save_plots : boolean, default = False
+            save_plots : boolean, default=False
                 Controls whether model loss plot imgaes are saved to the experiment directory.
     """
     # unpack bayes_optim_summary parameters for an estimator_class
@@ -1242,7 +1242,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
                 # save plots or show
                 if save_plots:
                     plot_path = os.path.join(
-                        self.training_plots_object_dir,
+                        self.training_plots_parameter_selection_dir,
                         f"{estimator_class}_{param}.jpg"
                     )
                     plt.tight_layout()
@@ -1359,7 +1359,7 @@ def model_param_plot(self, bayes_optim_summary, estimator_class, estimator_param
             # save plots or show
             if save_plots:
                 plot_path = os.path.join(
-                    self.training_plots_object_dir,
+                    self.training_plots_parameter_selection_dir,
                     f"{estimator_class}_{param}.jpg"
                 )
                 plt.tight_layout()

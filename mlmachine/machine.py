@@ -133,7 +133,7 @@ class Machine:
 
     def __init__(self, experiment_name, training_dataset, validation_dataset, remove_features=[], identify_as_boolean=None, identify_as_continuous=None, identify_as_count=None,
                 identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None,
-                identify_as_string=None, target=None, is_classification=None, create_experiment_dir=None):
+                identify_as_string=None, target=None, is_classification=None, create_experiment_dir=None, experiment_dir_location=".//experiments"):
         """
         Documentation:
 
@@ -181,6 +181,8 @@ class Machine:
                 create_experiment_dir : boolean, default=None
                     Controls whether a shell experiment directory gets created for storing
                     experiment objects.
+                experiment_dir_location : str, default=".//experiments"
+                    Location to create experiments directory.
 
             ---
             Attributes:
@@ -212,6 +214,7 @@ class Machine:
         self.ordinal_encodings = ordinal_encodings
         self.identify_as_string = identify_as_string
         self.is_classification = is_classification
+        self.experiment_dir_location = experiment_dir_location
 
         if self.is_classification is None:
             raise Exception ("Indicate whether supervised learning problem is classification or not by specifying 'is_classification=True' or 'is_classification=False'")
@@ -684,7 +687,7 @@ class Machine:
                     Pandas DataFrame containing combined independent and dependent variables.
         """
         # dynamically choose training data objects or validation data objects
-        data, target = self.training_or_validation_dataset(training_data)
+        data, target, _ = self.training_or_validation_dataset(training_data)
 
         # merge data and target on index
         df = data.merge(target, left_index=True, right_index=True)
@@ -718,7 +721,9 @@ class Machine:
             data = self.validation_features
             target = self.validation_target
 
-        return data, target
+        mlm_dtypes = self.training_features.mlm_dtypes
+
+        return data, target, mlm_dtypes
 
     def create_experiment_dir(self):
         """
@@ -732,7 +737,7 @@ class Machine:
         start_time = strftime("%y%m%d%H%M%S", gmtime())
 
         # ensure main experiment directory exists
-        self.root_experiment_dir = os.path.join(".//experiments")
+        self.root_experiment_dir = os.path.join(self.experiment_dir_location)
         if not os.path.exists(self.root_experiment_dir):
             os.makedirs(self.root_experiment_dir)
 
@@ -755,15 +760,31 @@ class Machine:
             os.makedirs(self.machine_object_dir)
 
             # add sub-directory for shap-related object
-            self.shap_object_dir = os.path.join(self.current_experiment_dir, "shap")
+            self.evaluation_object_dir = os.path.join(self.current_experiment_dir, "evaluation")
+            os.makedirs(self.evaluation_object_dir)
+
+            # add sub-directory for shap-related object
+            self.evaluation_summaries_object_dir = os.path.join(self.current_experiment_dir, "evaluation", "summaries")
+            os.makedirs(self.evaluation_summaries_object_dir)
+
+            # add sub-directory for shap-related object
+            self.evaluation_plots_object_dir = os.path.join(self.current_experiment_dir, "evaluation", "plots")
+            os.makedirs(self.evaluation_plots_object_dir)
+
+            # add sub-directory for shap-related object
+            self.explanability_object_dir = os.path.join(self.current_experiment_dir, "explanability")
+            os.makedirs(self.explanability_object_dir)
+
+            # add sub-directory for shap-related object
+            self.shap_object_dir = os.path.join(self.current_experiment_dir, "explanability", "shap")
             os.makedirs(self.shap_object_dir)
 
             # add sub-directory for shap explainer objects
-            self.shap_explainers_object_dir = os.path.join(self.current_experiment_dir, "shap", "shap_explainers")
+            self.shap_explainers_object_dir = os.path.join(self.current_experiment_dir, "explanability", "shap", "shap_explainers")
             os.makedirs(self.shap_explainers_object_dir)
 
             # add sub-directory for shap_values objects
-            self.shap_values_object_dir = os.path.join(self.current_experiment_dir, "shap", "shap_values")
+            self.shap_values_object_dir = os.path.join(self.current_experiment_dir, "explanability", "shap", "shap_values")
             os.makedirs(self.shap_values_object_dir)
 
             # add sub-directory for hyperparameter training objects
@@ -773,6 +794,14 @@ class Machine:
             # add sub-directory for hyperparameter training plots
             self.training_plots_object_dir = os.path.join(self.current_experiment_dir, "training", "plots")
             os.makedirs(self.training_plots_object_dir)
+
+            # add sub-directory for hyperparameter training plots
+            self.training_plots_model_loss_dir = os.path.join(self.current_experiment_dir, "training", "plots", "model_loss")
+            os.makedirs(self.training_plots_model_loss_dir)
+
+            # add sub-directory for hyperparameter training plots
+            self.training_plots_parameter_selection_dir = os.path.join(self.current_experiment_dir, "training", "plots", "parameter_selection")
+            os.makedirs(self.training_plots_parameter_selection_dir)
 
             # add sub-directory for best trained models
             self.training_models_object_dir = os.path.join(self.current_experiment_dir, "training", "models")
@@ -825,7 +854,6 @@ def train_test_df_compile(data, target_col, stratify=None, valid_size=0.2, rando
     df_valid = X_valid.merge(y_valid, left_index=True, right_index=True)
 
     return df_train, df_valid
-
 
 class PreserveMetaData(pd.DataFrame):
 
