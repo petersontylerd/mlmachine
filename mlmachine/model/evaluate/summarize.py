@@ -83,7 +83,7 @@ def top_bayes_optim_models(self, bayes_optim_summary, metric, num_models=1):
         models[estimator] = est_df.values.tolist()
     return models
 
-def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_valid=None, save_table=False):
+def binary_prediction_summary(self, model, save_table=False):
     """
     Documentation:
 
@@ -96,14 +96,6 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
         Paramaters:
             model : model object
                 Instantiated model object.
-            X_train : Pandas DataFrame
-                Training data observations.
-            y_train : Pandas Series
-                Training target data.
-            X_valid : Pandas DataFrame, default=None
-                Validation data observations.
-            y_valid : Pandas Series, default=None
-                Validation target data.
             save_table : boolean, default=False
                 Controls whether DataFrame is saved to the experiment directory.
 
@@ -113,57 +105,60 @@ def binary_prediction_summary(self, model, X_train, y_train, X_valid=None, y_val
                 Pandas DataFrame containing prediction summary data.
     """
     # fit model on training data
-    model.fit(X_train.values, y_train.values)
+    model.fit(self.training_features, self.training_target)
 
-    # if no validation data is provided
-    if X_valid is None:
+    ## training data
+    # capture probabilites based on training data
+    probas = model.predict_proba(self.training_features)
 
-        # capture probabilites based on training data
-        probas = model.predict_proba(X_train)
+    # organize probabilities in dictionary
+    data = {
+        "Label": self.training_target,
+        "Prediction": probas.argmax(axis=1),
+        "Positive": probas[:,0],
+        "Negative": probas[:,1],
+    }
 
-        # organize probabilities in dictionary
-        data = {
-            "Label": y_train,
-            "Prediction": probas.argmax(axis=1),
-            "Positive": probas[:,0],
-            "Negative": probas[:,1],
-        }
+    # capture data in a DataFrame
+    df_training = pd.DataFrame(data, index=self.training_target.index)
 
-        # capture data in a DataFrame
-        df = pd.DataFrame(data, index=y_train.index)
+    # add "Difference" and "Incorrect" summary columns
+    df_training["Difference"] = np.abs(df_training["Positive"] - df_training["Negative"])
+    df_training["Incorrect"] = np.abs(df_training["Label"] - df_training["Prediction"])
+    df_training["DatasetType"] = "Training"
 
-        # add "Difference" and "Incorrect" summary columns
-        df["Difference"] = np.abs(df["Positive"] - df["Negative"])
-        df["Incorrect"] = np.abs(df["Label"] - df["Prediction"])
+    ## validation data
+    # capture probabilites based on validation data
+    probas = model.predict_proba(self.validation_features)
 
-    else:
-        # capture probabilites based on validation data
-        probas = model.predict_proba(X_valid)
+    # organize probabilities in dictionary
+    data = {
+        "Label": self.validation_target,
+        "Prediction": probas.argmax(axis=1),
+        "Positive": probas[:,0],
+        "Negative": probas[:,1],
+    }
 
-        # organize probabilities in dictionary
-        data = {
-            "Label": y_valid,
-            "Prediction": probas.argmax(axis=1),
-            "Positive": probas[:,0],
-            "Negative": probas[:,1],
-        }
+    # capture data in a DataFrame
+    df_validation = pd.DataFrame(data, index=self.validation_target.index)
 
-        # capture data in a DataFrame
-        df = pd.DataFrame(data, index=y_train.index)
+    # add "Difference" and "Incorrect" summary columns
+    df_validation["Difference"] = np.abs(df_validation["Positive"] - df_validation["Negative"])
+    df_validation["Incorrect"] = np.abs(df_validation["Label"] - df_validation["Prediction"])
+    df_validation["DatasetType"] = "Validation"
 
-        # add "Difference" and "Incorrect" summary columns
-        df["Difference"] = np.abs(df["Positive"] - df["Negative"])
-        df["Incorrect"] = np.abs(df["Label"] - df["Prediction"])
+    # concatenate training and validation DataFrames
+    df = pd.concat([df_training, df_validation])
 
     # sort to bring largest errors to the top
-    df = df.sort_values(["Incorrect","Difference"], ascending=[False,False])
+    df = df.sort_values(["Incorrect","Difference"], ascending=[True,False])
 
     if save_table:
-        plot_path = os.path.join(
-                self.evaluation_object_dir,
+        table_path = os.path.join(
+                self.evaluation_summaries_object_dir,
                 f"{model.estimator_name}_prediction_summary.csv",
             )
-        df.to_csv(plot_path, index=False)
+        df.to_csv(table_path)
     else:
         return df
 

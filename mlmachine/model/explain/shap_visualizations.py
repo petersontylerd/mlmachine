@@ -37,7 +37,7 @@ from prettierplot import style
 import shap
 
 
-def single_shap_value_tree(self, obs_ix, model, data):
+def single_shap_value_tree(self, observation_index, model, explainer, shap_values, training_data=True):
     """
     Documentation:
 
@@ -53,44 +53,52 @@ def single_shap_value_tree(self, obs_ix, model, data):
 
         ---
         Parameters:
-            obs_ix : int
+            observation_index : int
                 Index of observation to analyze.
             model : model object
-                Instantiated model object.
-            data : Pandas DataFrame
-                Dataset from which to slice individual observation's features.
+                Fitted model object.
+            explainer : SHAP explainer object
+                Fitted explainer object.
+            shap_values : Numpy array
+                All shape values associated with dataset.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
 
         ---
         Returns:
-            obs_data : array
+            observation_values : array
                 Feature values for the specified observation.
-            base_value : float
-                Expected prediction value.
-            obs_shap_values : array
+            observation_shap_values : array
                 Data array containing the SHAP values for the specified
                 observation.
+            base_value : float
+                Expected prediction value.
     """
-    # collect observation feature values, explainer object and observation SHAP values
-    obs_data = data.loc[obs_ix].values.reshape(1, -1)
-    explainer = shap.TreeExplainer(model.custom_model)
-    obs_shap_values = explainer.shap_values(obs_data)
+    #
+    data, _, _ = self.training_or_validation_dataset(training_data)
 
-    # accommodate the fact that different types of models generate differently
-    # formatted SHAP values and expected values
-    if isinstance(obs_shap_values, list):
-        obs_shap_values = obs_shap_values[1]
-    else:
-        obs_shap_values = obs_shap_values
+    #
+    observation_values = data.loc[observation_index].values.reshape(1, -1)
 
+    #
+    observation_shap_values = shap_values.loc[observation_index]
+    # #
+    # if isinstance(shap_values, list):
+    #     observation_shap_values = shap_values[1][observation_index]
+    # else:
+    #     observation_shap_values = shap_values[observation_index]
+
+    #
     if isinstance(explainer.expected_value, np.floating):
         base_value = explainer.expected_value
     else:
         base_value = explainer.expected_value[1]
 
-    return obs_data, base_value, obs_shap_values
+    return observation_values, observation_shap_values, base_value
 
 
-def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=True, cmap="viridis"):
+def single_shap_viz_tree(self, observation_index, model, explainer, shap_values, target=None,
+                            classification=True, cmap="viridis", training_data=True):
     """
     Documentation:
 
@@ -106,12 +114,14 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
 
         ---
         Parameters:
-            obs_ix : int
-                Index of observation to visualize.
+            observation_index : int
+                Index of observation to analyze.
             model : model object
-                Instantiated model object.
-            data : Pandas DataFrame
-                Dataset from which to slice indiviudal observation's features.
+                Fitted model object.
+            explainer : SHAP explainer object
+                Fitted explainer object.
+            shap_values : Numpy array
+                All shape values associated with dataset.
             target : Pandas Series, default=None
                 True label for observation.
             classification : bool, default=True
@@ -119,28 +129,40 @@ def single_shap_viz_tree(self, obs_ix, model, data, target=None, classification=
                 task or regression task.
             cmap : str, colormap, default=viridis
                 Colormap applied to plot.
+            training_data : boolean, dafault=True
+                Controls which dataset (training or validation) is used for visualization.
     """
+    #
+    data, _, _ = self.training_or_validation_dataset(training_data)
+
     # return observation features values, expected value, and observation SHAP values
-    obs_data, base_value, obs_shap_values = self.single_shap_value_tree(obs_ix=obs_ix, model=model, data=data)
+    observation_values, observation_shap_values, base_value =\
+         self.single_shap_value_tree(
+                    observation_index=observation_index,
+                    model=model,
+                    explainer=explainer,
+                    shap_values=shap_values,
+                    training_data=training_data
+                )
 
     # display summary information about prediction
     if classification:
-        probas = model.predict_proba(obs_data)
+        probas = model.predict_proba(observation_values)
         print('negative class probability: {:.6f}'.format(probas[0][0]))
         print('positive class probability: {:.6f}'.format(probas[0][1]))
 
         if target is not None:
-            print('True label: {}'.format(target.loc[obs_ix]))
+            print('True label: {}'.format(target.loc[observation_index]))
     else:
-        print('prediction: {:.6f}'.format(model.predict(obs_data)[0]))
+        print('prediction: {:.6f}'.format(model.predict(observation_values)[0]))
         if target is not None:
-            print('True label: {:.6f}'.format(target.loc[obs_ix]))
+            print('True label: {:.6f}'.format(target.loc[observation_index]))
 
     # display force plot
     shap.force_plot(
         base_value=base_value,
-        shap_values=np.around(obs_shap_values.astype(np.double),3),
-        features=np.around(obs_data.astype(np.double),3),
+        shap_values=np.around(observation_shap_values.astype(np.double),3),
+        features=np.around(observation_values.astype(np.double),3),
         feature_names=data.columns.tolist(),
         matplotlib=True,
         show=False,

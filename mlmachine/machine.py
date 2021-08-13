@@ -763,6 +763,11 @@ class Machine:
             self.evaluation_object_dir = os.path.join(self.current_experiment_dir, "evaluation")
             os.makedirs(self.evaluation_object_dir)
 
+            if is_classification:
+                # add sub-directory for shap-related object
+                self.evaluation_classification_report_object_dir = os.path.join(self.current_experiment_dir, "evaluation", "classification_reports")
+                os.makedirs(self.evaluation_summaries_object_dir)
+
             # add sub-directory for shap-related object
             self.evaluation_summaries_object_dir = os.path.join(self.current_experiment_dir, "evaluation", "summaries")
             os.makedirs(self.evaluation_summaries_object_dir)

@@ -40,8 +40,8 @@ from prettierplot.plotter import PrettierPlot
 from prettierplot import style
 
 
-def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, labels=None,
-                                title_scale=1.0, color_map="viridis", random_state=1, chart_scale=15, save_objects=False):
+def binary_classification_panel(self, model, labels=None, title_scale=1.0, color_map="viridis",
+                                random_state=1, chart_scale=15, save_objects=False):
     """
     Documentation:
 
@@ -54,14 +54,6 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         Parameters:
             model : model object
                 Instantiated model object.
-            X_train : Pandas DataFrame
-                Training data observations.
-            y_train : Pandas Series
-                Training target data.
-            X_valid : Pandas DataFrame, default=None
-                Validation data observations.
-            y_valid : Pandas Series, default=None
-                Validation target data.
             labels : list, default=None
                 Custom labels for confusion matrix axes. If left as none,
                 will default to 0, 1, 2...
@@ -87,15 +79,15 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
         print("\n" + "*" * 55)
         print("Training data evaluation\n")
 
-    ## training panel
+    ## training data
     # fit model on training data and generate predictions using training data
-    y_pred = model.fit(X_train, y_train).predict(X_train)
+    y_pred = model.fit(self.training_features, self.training_target).predict(self.training_features)
 
     # generate classification_report using training data
     report = classification_report(
-                y_train,
+                self.training_target,
                 y_pred,
-                target_names=labels if labels is not None else np.unique(y_train.values),
+                target_names=labels if labels is not None else np.unique(self.training_target.values),
                 output_dict=True,
             )
 
@@ -104,7 +96,7 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     # save or display classification report
     if save_objects:
         csv_path = os.path.join(
-            self.evaluation_summaries_object_dir,
+            self.evaluation_classification_report_object_dir,
             f"{model.estimator_name}_train_classification_report.csv"
         )
         df.to_csv(csv_path, index=False)
@@ -127,9 +119,9 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     # add confusion plot to canvas
     plot_confusion_matrix(
         estimator=model,
-        X=X_train,
-        y_true=y_train,
-        display_labels=labels if labels is not None else np.unique(y_train.values),
+        X=self.training_features,
+        y_true=self.training_target,
+        display_labels=labels if labels is not None else np.unique(self.training_target.values),
         cmap=color_map,
         values_format=".0f",
         ax=ax,
@@ -147,8 +139,8 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     # add ROC curve to canvas
     p.roc_curve_plot(
         model=model,
-        X_train=X_train,
-        y_train=y_train,
+        X_train=self.training_features,
+        y_train=self.training_target,
         linecolor=style.style_grey,
         ax=ax,
     )
@@ -166,93 +158,91 @@ def binary_classification_panel(self, model, X_train, y_train, X_valid=None, y_v
     else:
         plt.show()
 
-    # if validation data is provided
-    if X_valid is not None:
+    ## validation data
+    if not save_objects:
+        print("\n" + "*" * 55)
+        print("Validation data evaluation\n")
 
-        if not save_objects:
-            print("\n" + "*" * 55)
-            print("Validation data evaluation\n")
+    # fit model on training data and generate predictions using validation data
+    y_pred = model.fit(self.training_features, self.training_target).predict(self.validation_features)
 
-        # fit model on training data and generate predictions using validation data
-        y_pred = model.fit(X_train, y_train).predict(X_valid)
-
-        # generate classification_report using training data
-        report = classification_report(
-                    y_valid,
-                    y_pred,
-                    target_names=labels if labels is not None else np.unique(y_train.values),
-                    output_dict=True,
-                )
-
-        df = pd.DataFrame(report).transpose()
-
-        # save or display classification report
-        if save_objects:
-            csv_path = os.path.join(
-                self.evaluation_summaries_object_dir,
-                f"{model.estimator_name}_validation_classification_report.csv"
+    # generate classification_report using training data
+    report = classification_report(
+                self.validation_target,
+                y_pred,
+                target_names=labels if labels is not None else np.unique(self.training_target.values),
+                output_dict=True,
             )
-            df.to_csv(csv_path, index=False)
 
-        else:
-            display(df)
+    df = pd.DataFrame(report).transpose()
 
-        # create prettierplot object
-        p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
-
-        # add canvas to prettierplot object
-        ax = p.make_canvas(
-            title=f"Confusion matrix - validation data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
-            y_shift=0.4,
-            x_shift=0.25,
-            position=121,
-            title_scale=title_scale,
+    # save or display classification report
+    if save_objects:
+        csv_path = os.path.join(
+            self.evaluation_classification_report_object_dir,
+            f"{model.estimator_name}_validation_classification_report.csv"
         )
+        df.to_csv(csv_path, index=False)
 
-        # add confusion matrix to canvas
-        plot_confusion_matrix(
-            estimator=model,
-            X=X_valid,
-            y_true=y_valid,
-            display_labels=labels if labels is not None else np.unique(y_train.values),
-            cmap=color_map,
-            values_format=".0f",
-            ax=ax,
-        )
+    else:
+        display(df)
 
-        # add canvas to prettierplot object
-        ax = p.make_canvas(
-            title=f"ROC curve - validation data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
-            x_label="False positive rate",
-            y_label="True positive rate",
-            y_shift=0.35,
-            position=122,
-            # position=111 if X_valid is not None else 121,
-            title_scale=title_scale,
-        )
-        # add ROC curve to canvas
-        p.roc_curve_plot(
-            model=model,
-            X_train=X_train,
-            y_train=y_train,
-            X_valid=X_valid,
-            y_valid=y_valid,
-            linecolor=style.style_grey,
-            ax=ax,
-        )
-        plt.subplots_adjust(wspace=0.3)
+    # create prettierplot object
+    p = PrettierPlot(chart_scale=chart_scale, plot_orientation="wide_narrow")
 
-        # save plots or show
-        if save_objects:
-            plot_path = os.path.join(
-                self.evaluation_plots_object_dir,
-                f"{model.estimator_name}_validation_visualization.jpg"
-            )
-            plt.tight_layout()
-            plt.savefig(plot_path)
-            plt.close()
-        else:
-            plt.show()
+    # add canvas to prettierplot object
+    ax = p.make_canvas(
+        title=f"Confusion matrix - validation data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
+        y_shift=0.4,
+        x_shift=0.25,
+        position=121,
+        title_scale=title_scale,
+    )
+
+    # add confusion matrix to canvas
+    plot_confusion_matrix(
+        estimator=model,
+        X=self.validation_features,
+        y_true=self.validation_target,
+        display_labels=labels if labels is not None else np.unique(self.training_target.values),
+        cmap=color_map,
+        values_format=".0f",
+        ax=ax,
+    )
+
+    # add canvas to prettierplot object
+    ax = p.make_canvas(
+        title=f"ROC curve - validation data\nModel: {model.estimator_name}\nParameter set: {model.model_iter}",
+        x_label="False positive rate",
+        y_label="True positive rate",
+        y_shift=0.35,
+        position=122,
+        # position=111 if X_valid is not None else 121,
+        title_scale=title_scale,
+    )
+    # add ROC curve to canvas
+    p.roc_curve_plot(
+        model=model,
+        X_train=self.training_features,
+        y_train=self.training_target,
+        X_valid=self.validation_features,
+        y_valid=self.validation_target,
+        linecolor=style.style_grey,
+        ax=ax,
+    )
+    plt.subplots_adjust(wspace=0.3)
+
+    # save plots or show
+    if save_objects:
+        plot_path = os.path.join(
+            self.evaluation_plots_object_dir,
+            f"{model.estimator_name}_validation_visualization.jpg"
+        )
+        plt.tight_layout()
+        plt.savefig(plot_path)
+        plt.close()
+    else:
+        plt.show()
 
 def regression_panel(self, model, X_train, y_train, X_valid=None, y_valid=None, n_folds=None, title_scale=1.0,
                     color_map="viridis", random_state=1, chart_scale=15):
