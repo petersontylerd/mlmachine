@@ -2,6 +2,8 @@ import copy
 import os
 import sys
 import warnings
+warnings.filterwarnings('ignore')
+
 from time import gmtime, strftime
 
 import numpy as np
@@ -100,6 +102,7 @@ class Machine:
         create_shap_explainers
     )
     from .model.explain.shap_visualizations import (
+        load_shap_objects,
         multi_shap_value_tree,
         multi_shap_viz_tree,
         shap_dependence_grid,
@@ -777,19 +780,19 @@ class Machine:
             os.makedirs(self.evaluation_plots_object_dir)
 
             # add sub-directory for shap-related object
-            self.explanability_object_dir = os.path.join(self.current_experiment_dir, "explanability")
-            os.makedirs(self.explanability_object_dir)
+            self.explainability_object_dir = os.path.join(self.current_experiment_dir, "explainability")
+            os.makedirs(self.explainability_object_dir)
 
             # add sub-directory for shap-related object
-            self.shap_object_dir = os.path.join(self.current_experiment_dir, "explanability", "shap")
+            self.shap_object_dir = os.path.join(self.current_experiment_dir, "explainability", "shap")
             os.makedirs(self.shap_object_dir)
 
             # add sub-directory for shap explainer objects
-            self.shap_explainers_object_dir = os.path.join(self.current_experiment_dir, "explanability", "shap", "shap_explainers")
+            self.shap_explainers_object_dir = os.path.join(self.current_experiment_dir, "explainability", "shap", "shap_explainers")
             os.makedirs(self.shap_explainers_object_dir)
 
             # add sub-directory for shap_values objects
-            self.shap_values_object_dir = os.path.join(self.current_experiment_dir, "explanability", "shap", "shap_values")
+            self.shap_values_object_dir = os.path.join(self.current_experiment_dir, "explainability", "shap", "shap_values")
             os.makedirs(self.shap_values_object_dir)
 
             # add sub-directory for hyperparameter training objects
@@ -809,7 +812,7 @@ class Machine:
             os.makedirs(self.training_plots_parameter_selection_dir)
 
             # add sub-directory for best trained models
-            self.training_models_object_dir = os.path.join(self.current_experiment_dir, "training", "models")
+            self.training_models_object_dir = os.path.join(self.current_experiment_dir, "training", "best_estimators")
             os.makedirs(self.training_models_object_dir)
 
             # add sub-directory for transformer objects

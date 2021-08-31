@@ -1,3 +1,5 @@
+import os
+import pickle
 import numpy as np
 import pandas as pd
 
@@ -37,7 +39,24 @@ from prettierplot import style
 import shap
 
 
-def single_shap_value_tree(self, observation_index, model, explainer, shap_values, training_data=True):
+def load_shap_objects(self, estimator_name):
+    """
+
+    """
+    with open(os.path.join(self.shap_explainers_object_dir, f"{estimator_name}_TreeExplainer.pkl"), "rb") as handle:
+        explainer = pickle.load(handle)
+
+    with open(os.path.join(self.shap_values_object_dir, f"{estimator_name}_TreeExplainer_training.pkl"), "rb") as handle:
+        training_shap_values = pickle.load(handle)
+
+    with open(os.path.join(self.shap_values_object_dir, f"{estimator_name}_TreeExplainer_validation.pkl"), "rb") as handle:
+        validation_shap_values = pickle.load(handle)
+
+    return explainer, training_shap_values, validation_shap_values
+
+
+# def single_shap_value_tree(self, observation_index, model, explainer, shap_values, training_data=True):
+def single_shap_value_tree(self, observation_index, model):
     """
     Documentation:
 
@@ -57,10 +76,6 @@ def single_shap_value_tree(self, observation_index, model, explainer, shap_value
                 Index of observation to analyze.
             model : model object
                 Fitted model object.
-            explainer : SHAP explainer object
-                Fitted explainer object.
-            shap_values : Numpy array
-                All shape values associated with dataset.
             training_data : boolean, dafault=True
                 Controls which dataset (training or validation) is used for visualization.
 
@@ -74,6 +89,16 @@ def single_shap_value_tree(self, observation_index, model, explainer, shap_value
             base_value : float
                 Expected prediction value.
     """
+    # load shap objects for estimator
+    estimator_name = model.custom_model.__class__.__name__
+    explainer, training_shap_values, validation_shap_values = self.load_shap_objects(estimator_name=estimator_name)
+
+    if observation_index in self.training_features.index:
+        training_data = True
+    elif observation_index in self.validation_features.index:
+        training_data = False
+    else:
+        raise ValueError("invalid index value provided")
     #
     data, _, _ = self.training_or_validation_dataset(training_data)
 
@@ -81,15 +106,15 @@ def single_shap_value_tree(self, observation_index, model, explainer, shap_value
     observation_values = data.loc[observation_index].values.reshape(1, -1)
 
     #
-    observation_shap_values = shap_values.loc[observation_index]
-    # #
-    # if isinstance(shap_values, list):
-    #     observation_shap_values = shap_values[1][observation_index]
-    # else:
-    #     observation_shap_values = shap_values[observation_index]
+    if training_data:
+        observation_shap_values = training_shap_values.loc[observation_index]
+    else:
+        observation_shap_values = validation_shap_values.loc[observation_index]
 
     #
     if isinstance(explainer.expected_value, np.floating):
+        base_value = explainer.expected_value
+    elif isinstance(explainer.expected_value[0], np.floating) and len(explainer.expected_value) == 1:
         base_value = explainer.expected_value
     else:
         base_value = explainer.expected_value[1]
@@ -97,8 +122,7 @@ def single_shap_value_tree(self, observation_index, model, explainer, shap_value
     return observation_values, observation_shap_values, base_value
 
 
-def single_shap_viz_tree(self, observation_index, model, explainer, shap_values, target=None,
-                            classification=True, cmap="viridis", training_data=True):
+def single_shap_viz_tree(self, observation_index, model, target=None, classification=True, cmap="viridis"):
     """
     Documentation:
 
@@ -118,10 +142,6 @@ def single_shap_viz_tree(self, observation_index, model, explainer, shap_values,
                 Index of observation to analyze.
             model : model object
                 Fitted model object.
-            explainer : SHAP explainer object
-                Fitted explainer object.
-            shap_values : Numpy array
-                All shape values associated with dataset.
             target : Pandas Series, default=None
                 True label for observation.
             classification : bool, default=True
@@ -132,17 +152,11 @@ def single_shap_viz_tree(self, observation_index, model, explainer, shap_values,
             training_data : boolean, dafault=True
                 Controls which dataset (training or validation) is used for visualization.
     """
-    #
-    data, _, _ = self.training_or_validation_dataset(training_data)
-
     # return observation features values, expected value, and observation SHAP values
     observation_values, observation_shap_values, base_value =\
          self.single_shap_value_tree(
                     observation_index=observation_index,
                     model=model,
-                    explainer=explainer,
-                    shap_values=shap_values,
-                    training_data=training_data
                 )
 
     # display summary information about prediction
@@ -161,12 +175,13 @@ def single_shap_viz_tree(self, observation_index, model, explainer, shap_values,
     # display force plot
     shap.force_plot(
         base_value=base_value,
-        shap_values=np.around(observation_shap_values.astype(np.double),3),
+        shap_values=np.around(observation_shap_values.astype(np.double),3).values,
         features=np.around(observation_values.astype(np.double),3),
-        feature_names=data.columns.tolist(),
+        feature_names=self.training_features.columns.tolist(),
         matplotlib=True,
         show=False,
-        plot_cmap=cmap
+        plot_cmap=cmap,
+        text_rotation=20,
     )
     plt.rcParams['axes.facecolor']='white'
     plt.rcParams['figure.facecolor'] = 'white'
@@ -174,7 +189,7 @@ def single_shap_viz_tree(self, observation_index, model, explainer, shap_values,
     plt.show()
 
 
-def multi_shap_value_tree(self, obs_ixs, model, data):
+def multi_shap_value_tree(self, observation_indexes, model):
     """
     Documentation:
 
@@ -208,27 +223,38 @@ def multi_shap_value_tree(self, obs_ixs, model, data):
                 observations.
     """
 
-    # collect observation feature values, explainer object and observation SHAP values
-    obs_data = data.loc[obs_ixs].values
-    explainer = shap.TreeExplainer(model.custom_model)
-    obs_shap_values = explainer.shap_values(obs_data)
+    # load shap objects for estimator
+    estimator_name = model.custom_model.__class__.__name__
+    explainer, training_shap_values, validation_shap_values = self.load_shap_objects(estimator_name=estimator_name)
 
-    # accommodate the fact that different types of models generate differently
-    # formatted SHAP values and expected values
-    if isinstance(obs_shap_values, list):
-        obs_shap_values = obs_shap_values[1]
+    if set(observation_indexes).issubset(self.training_features.index):
+        training_data = True
+    elif set(observation_indexes).issubset(self.validation_features.index):
+        training_data = False
     else:
-        obs_shap_values = obs_shap_values
+        raise ValueError("Invalid index value detected.")
+    #
+    data, _, _ = self.training_or_validation_dataset(training_data)
 
+    # collect observation feature values, explainer object and observation SHAP values
+    observation_values = data.loc[observation_indexes].values
+
+    #
+    if training_data:
+        observation_shap_values = training_shap_values.loc[observation_indexes]
+    else:
+        observation_shap_values = validation_shap_values.loc[observation_indexes]
+
+    #
     if isinstance(explainer.expected_value, np.floating):
         base_value = explainer.expected_value
     else:
         base_value = explainer.expected_value[1]
 
-    return obs_data, base_value, obs_shap_values
+    return observation_values, observation_shap_values, base_value
 
 
-def multi_shap_viz_tree(self, obs_ixs, model, data):
+def multi_shap_viz_tree(self, observation_indexes, model):
     """
     Documentation:
 
@@ -244,7 +270,7 @@ def multi_shap_viz_tree(self, obs_ixs, model, data):
 
         ---
         Parameters:
-            obs_ixs : array or list
+            observation_indexes : array or list
                 Index values of observations to analyze.
             model : model object
                 Instantiated model object.
@@ -252,14 +278,18 @@ def multi_shap_viz_tree(self, obs_ixs, model, data):
                 Dataset from which to slice observations' feature values.
     """
     # return observation features values, expected value, and observation SHAP values
-    obs_data, base_value, obs_shap_values = self.multi_shap_value_tree(obs_ixs=obs_ixs, model=model, data=data)
+    observation_values, observation_shap_values, base_value = \
+        self.multi_shap_value_tree(
+                    observation_indexes=observation_indexes,
+                    model=model,
+                )
 
     # generate force plot
     visual = shap.force_plot(
         base_value = base_value,
-        shap_values = obs_shap_values,
-        features = obs_data,
-        feature_names = data.columns.tolist(),
+        shap_values = observation_shap_values.values,
+        features = observation_values,
+        feature_names = self.training_features.columns.tolist(),
     )
     return visual
 

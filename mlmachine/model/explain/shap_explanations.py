@@ -52,29 +52,29 @@ explainer_algorithm_map = {
     #     ""
     # ],
     "TreeExplainer": [
-        "XGBClassifier",
-        "XGBRegressor",
-        "LGBMClassifier",
-        "LGBMRegressor",
-        "RandomForestClassifier",
+        # "XGBClassifier",
+        # "XGBRegressor",
+        # "LGBMClassifier",
+        # "LGBMRegressor",
+        # "RandomForestClassifier",
         "GradientBoostingClassifier",
-        "ExtraTreesClassifier",
-        "RandomForestRegressor",
-        "GradientBoostingRegressor",
-        "ExtraTreesRegressor",
+        # "ExtraTreesClassifier",
+        # "RandomForestRegressor",
+        # "GradientBoostingRegressor",
+        # "ExtraTreesRegressor",
     ],
     "LinearExplainer": [
-        "Lasso",
-        "Ridge",
-        "ElasticNet",
-        "LinearRegression",
-        "LogisticRegression",
+        # "Lasso",
+        # "Ridge",
+        # "ElasticNet",
+        # "LinearRegression",
+        # "LogisticRegression",
     ],
     "KernelExplainer": [
-        "KNeighborsClassifier",
-        "KNeighborsRegressor",
-        "SVC",
-        "SVR",
+        # "KNeighborsClassifier",
+        # "KNeighborsRegressor",
+        # "SVC",
+        # "SVR",
     ],
 }
 
@@ -125,23 +125,28 @@ def create_shap_explainers(self):
                         validation_shap_values = explainer.shap_values(self.validation_features.values, check_additivity=False)
 
                 # capture SHAP values in a DataFrame and preserve the index
+
                 try:
                     training_shap_values = pd.DataFrame(
                                         training_shap_values[0],
-                                        index=self.training_target.index
+                                        index=self.training_target.index,
+                                        columns=self.training_features.columns,
                                     )
                     validation_shap_values = pd.DataFrame(
-                                        training_shap_values[0],
-                                        index=self.validation_target.index
+                                        validation_shap_values[0],
+                                        index=self.validation_target.index,
+                                        columns=self.validation_features.columns,
                                     )
                 except ValueError:
                     training_shap_values = pd.DataFrame(
                                         training_shap_values,
-                                        index=self.training_target.index
+                                        index=self.training_target.index,
+                                        columns=self.training_features.columns,
                                     )
                     validation_shap_values = pd.DataFrame(
-                                        training_shap_values,
-                                        index=self.validation_target.index
+                                        validation_shap_values,
+                                        index=self.validation_target.index,
+                                        columns=self.validation_features.columns,
                                     )
 
                 # save shap explainer object as .pkl file
