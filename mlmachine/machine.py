@@ -135,8 +135,8 @@ class Machine:
     )
 
     def __init__(self, experiment_name, training_dataset, validation_dataset, remove_features=[], identify_as_boolean=None, identify_as_continuous=None, identify_as_count=None,
-                identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None,
-                identify_as_string=None, target=None, is_classification=None, create_experiment_dir=None, experiment_dir_location=".//experiments"):
+                identify_as_date=None, identify_as_nominal=None, identify_as_ordinal=None, ordinal_encodings=None, identify_as_string=None, target=None,
+                is_classification=None, verbose_encode=False, create_experiment_dir=None, experiment_dir_location=".//experiments"):
         """
         Documentation:
 
@@ -181,6 +181,8 @@ class Machine:
                 is_classification : boolean, default=None
                     Controls whether Machine is instantiated as a classification object or a
                     regression object.
+                verbose_encode : boolean, default=False
+                    Controls whether encoding transformation is printed out for review.
                 create_experiment_dir : boolean, default=None
                     Controls whether a shell experiment directory gets created for storing
                     experiment objects.
@@ -217,6 +219,7 @@ class Machine:
         self.ordinal_encodings = ordinal_encodings
         self.identify_as_string = identify_as_string
         self.is_classification = is_classification
+        self.verbose_encode = verbose_encode
         self.experiment_dir_location = experiment_dir_location
 
         if self.is_classification is None:
@@ -231,8 +234,16 @@ class Machine:
 
         # encode the target column in training and validation datasets if is_classification == True
         if self.training_target is not None and self.is_classification:
-            self.training_target, self.le_ = self.encode_target(self.training_target)
-            self.validation_target, _ = self.encode_target(self.validation_target)
+            
+            # fit/transform targets in training_target and return transform object
+            self.training_target, self.le_ = self.encode_target(self.training_target, self.verbose_encode)
+
+            # apply learned encoding transformation to validation_target
+            self.validation_target = pd.Series(
+                                        self.le_.transform(self.validation_target),
+                                        name=self.validation_target.name,
+                                        index=self.validation_target.index
+            )
 
         # create experiment directory tree
         self.create_experiment_dir()
@@ -633,7 +644,7 @@ class Machine:
 
         self.training_features.mlm_dtypes = {x:sorted(self.training_features.mlm_dtypes[x]) for x in self.training_features.mlm_dtypes.keys()}
 
-    def encode_target(self, target):
+    def encode_target(self, target, verbose=False):
         """
         Documentation:
 
@@ -657,12 +668,13 @@ class Machine:
             index=target.index,
         )
 
-        print(">>> category label encoding\n")
-        for orig_label, enc_label in zip(
-            np.sort(le_.classes_), np.sort(np.unique(target))
-        ):
-            print(f"\t{orig_label} --> {enc_label}")
-        print()
+        if verbose:
+            print(">>> category label encoding\n")
+            for orig_label, enc_label in zip(
+                np.sort(le_.classes_), np.sort(np.unique(target))
+            ):
+                print(f"\t{orig_label} --> {enc_label}")
+            print()
 
         # # reverse the label encoding and overwrite target variable with the original data
         # if reverse:
@@ -766,10 +778,10 @@ class Machine:
             self.evaluation_object_dir = os.path.join(self.current_experiment_dir, "evaluation")
             os.makedirs(self.evaluation_object_dir)
 
-            if is_classification:
+            if self.is_classification:
                 # add sub-directory for shap-related object
                 self.evaluation_classification_report_object_dir = os.path.join(self.current_experiment_dir, "evaluation", "classification_reports")
-                os.makedirs(self.evaluation_summaries_object_dir)
+                os.makedirs(self.evaluation_classification_report_object_dir)
 
             # add sub-directory for shap-related object
             self.evaluation_summaries_object_dir = os.path.join(self.current_experiment_dir, "evaluation", "summaries")
